@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.rickdnamps.glp1tracker"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.rickdnamps.glp1tracker"

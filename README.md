@@ -48,7 +48,7 @@ Garder `release.keystore` en lieu sûr et ne jamais le publier dans le dépôt.
 
 ## Compiler localement
 
-Android Studio (ou JDK 17 + SDK Android 35) :
+Android Studio (ou JDK 17 + SDK Android 36) :
 
 ```bash
 ./gradlew assembleDebug        # app/build/outputs/apk/debug/

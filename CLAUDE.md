@@ -6,7 +6,7 @@ The owner is French-speaking (Québec): talk to them in French; UI ships in Fren
 ## Build
 - Built **only on GitHub Actions** (`.github/workflows/android.yml`): unit tests, release APK, and a GitHub
   Release `build-N` with `GLP-1-Tracker.apk` for every push to the default branch.
-- Local: JDK 17 + Android SDK 35 → `./gradlew testDebugUnitTest assembleDebug`.
+- Local: JDK 17 + Android SDK 36 → `./gradlew testDebugUnitTest assembleDebug`.
 - Versions live in `gradle/libs.versions.toml`. `versionCode` = `GITHUB_RUN_NUMBER`.
 - Never commit keystores or passwords; release signing comes from repo secrets (see README).
 
