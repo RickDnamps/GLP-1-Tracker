@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Injection-site body map (ui/components/BodyMap.kt) -->
+    <string name="bodymap_your_left">Your left</string>
+    <string name="bodymap_your_right">Your right</string>
+    <string name="bodymap_days_short">%1$d d</string>
+    <string name="bodymap_today">Today</string>
+    <string name="bodymap_no_data">—</string>
+    <string name="bodymap_legend_rested">Never · 14+ d</string>
+    <string name="bodymap_legend_mid">7–13 d</string>
+    <string name="bodymap_legend_recent">&lt; 7 d</string>
+    <string name="bodymap_legend_suggested">Suggested</string>
+    <string name="bodymap_cd_title">Injection site body map</string>
+    <string name="bodymap_selected">Selected: %1$s</string>
+    <string name="bodymap_cd_no_selection">No site selected</string>
+    <string name="bodymap_cd_suggested">Suggested next site: %1$s</string>
+    <string name="bodymap_cd_site_days">%1$s: last used %2$d day(s) ago</string>
+    <string name="bodymap_cd_site_today">%1$s: used today</string>
+    <string name="bodymap_cd_site_never">%1$s: never used</string>
+    <string name="bodymap_action_select">Select %1$s</string>
+</resources>

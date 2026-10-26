@@ -36,7 +36,10 @@ import com.rickdnamps.glp1tracker.ui.components.topGlow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import com.rickdnamps.glp1tracker.domain.Milestones
+import com.rickdnamps.glp1tracker.ui.components.ConfettiBurst
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -115,6 +118,28 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
 
     LaunchedEffect(Unit) {
         vm.messages.collect { snackbar.showSnackbar(context.getString(it)) }
+    }
+
+    // Celebrate every newly unlocked badge exactly once (persisted in settings).
+    val progress = remember(state) { milestones(state) }
+    var confetti by remember { mutableIntStateOf(0) }
+    LaunchedEffect(progress) {
+        val achieved = Milestones.achievedSet(progress)
+        val celebrated = Milestones.decode(state.settings.celebratedBadges)
+        if (state.settings.celebratedBadges.isEmpty()) {
+            // First run of this feature: remember existing badges silently.
+            vm.updateSettings { it.copy(celebratedBadges = Milestones.encode(achieved)) }
+            return@LaunchedEffect
+        }
+        val fresh = Milestones.newlyAchieved(celebrated, progress)
+        if (fresh.isNotEmpty()) {
+            confetti++
+            vm.updateSettings { it.copy(celebratedBadges = Milestones.encode(celebrated + fresh)) }
+            snackbar.showSnackbar(
+                if (fresh.size == 1) context.getString(R.string.ms_new_badge, fresh[0].emoji, context.getString(fresh[0].title))
+                else context.resources.getQuantityString(R.plurals.ms_new_badges, fresh.size, fresh.size)
+            )
+        }
     }
     LaunchedEffect(Unit) {
         vm.importedCounts.collect { count ->
@@ -198,6 +223,8 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
             }
         }
     }
+
+    ConfettiBurst(confetti, Modifier.fillMaxSize())
 
     val close = { editor = null }
     when (val e = editor) {

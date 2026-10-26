@@ -49,6 +49,9 @@ import com.rickdnamps.glp1tracker.ui.components.LineChart
 import com.rickdnamps.glp1tracker.ui.components.SectionCard
 import com.rickdnamps.glp1tracker.ui.components.StatTile
 import com.rickdnamps.glp1tracker.ui.weightStats
+import com.rickdnamps.glp1tracker.ui.milestones
+import com.rickdnamps.glp1tracker.domain.GoalForecast
+import androidx.compose.runtime.remember
 import com.rickdnamps.glp1tracker.ui.weightText
 import kotlin.math.abs
 
@@ -107,6 +110,15 @@ fun ProgressScreen(
                     StatTile(stringResource(R.string.entries), state.weights.size.toString(), Modifier.weight(1f))
                 }
             }
+        }
+        item {
+            val progress = remember(state) { milestones(state) }
+            val points = remember(state.weights) { state.weights.map { it.timestamp to it.weightKg } }
+            val goal = settings.goalWeightKg
+            val now = System.currentTimeMillis()
+            val forecast = remember(points, goal) { if (goal > 0) GoalForecast.predict(points, goal, now) else null }
+            val rate = remember(points) { GoalForecast.weeklyRateKg(points, now) }
+            MilestonesCard(progress, forecast, rate, settings)
         }
         item { WeightChartCard(state.weights, settings, stats.goalKg) }
         item { MeasurementsCard(state.measurements, settings, openEditor) }

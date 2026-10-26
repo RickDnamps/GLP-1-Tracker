@@ -70,6 +70,10 @@ data class UserSettings(
     val themeMode: Int = 0,
     val accent: String = "TEAL",
     val dynamicColor: Boolean = false,
+    /** Badges already celebrated with confetti (Milestones.encode). */
+    val celebratedBadges: String = "",
+    /** 0 = not set, 1 = male, 2 = female (used for lean-mass estimates). */
+    val sex: Int = 0,
 ) {
     val skippedThrough: LocalDate? get() = skippedDueEpochDay.takeIf { it > 0 }?.let(LocalDate::ofEpochDay)
 
@@ -139,6 +143,8 @@ class SettingsRepository(context: Context) {
         val themeMode = intPreferencesKey("theme_mode")
         val accent = stringPreferencesKey("accent")
         val dynamicColor = booleanPreferencesKey("dynamic_color")
+        val celebratedBadges = stringPreferencesKey("celebrated_badges")
+        val sex = intPreferencesKey("sex")
     }
 
     val settings: Flow<UserSettings> = store.data.map(::read)
@@ -191,6 +197,8 @@ class SettingsRepository(context: Context) {
             themeMode = p[Keys.themeMode] ?: d.themeMode,
             accent = p[Keys.accent] ?: d.accent,
             dynamicColor = p[Keys.dynamicColor] ?: d.dynamicColor,
+            celebratedBadges = p[Keys.celebratedBadges] ?: d.celebratedBadges,
+            sex = p[Keys.sex] ?: d.sex,
         )
     }
 
@@ -246,5 +254,7 @@ class SettingsRepository(context: Context) {
         p[Keys.themeMode] = s.themeMode
         p[Keys.accent] = s.accent
         p[Keys.dynamicColor] = s.dynamicColor
+        p[Keys.celebratedBadges] = s.celebratedBadges
+        p[Keys.sex] = s.sex
     }
 }

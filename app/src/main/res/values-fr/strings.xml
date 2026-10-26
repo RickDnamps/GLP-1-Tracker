@@ -99,15 +99,12 @@
     <string name="dose">Dose</string>
     <string name="injection_site">Site d\'injection</string>
     <string name="notes">Notes</string>
-    <string name="never_used">Jamais utilisé</string>
     <string name="history">Historique</string>
     <string name="doses_logged">Doses</string>
     <string name="total_mg">Total</string>
     <string name="since">Depuis</string>
     <string name="half_life_info">Demi-vie du %1$s : environ %2$s jours. La partie pointillée est une projection sans nouvelle dose.</string>
     <string name="site_rotation">Rotation des sites d\'injection</string>
-    <string name="last_used">Dernier : %1$s</string>
-    <string name="times_used">%1$d fois</string>
     <string name="add_weight">Ajouter un poids</string>
     <string name="edit_weight">Modifier le poids</string>
     <string name="summary">Résumé</string>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Milestones card -->
+    <string name="ms_title">Milestones</string>
+    <plurals name="ms_unlocked_count">
+        <item quantity="one">%1$d of %2$d badges unlocked</item>
+        <item quantity="other">%1$d of %2$d badges unlocked</item>
+    </plurals>
+    <string name="ms_forecast">At this pace (%1$s per week), you could reach %2$s around %3$s.</string>
+    <string name="ms_forecast_note">Trend of your last 4 weeks. An estimate only, not medical advice.</string>
+    <string name="ms_forecast_no_goal">Set a goal weight in Settings to see when you could reach it.</string>
+    <string name="ms_forecast_need_data">Weigh yourself a few times over at least a week to see when you could reach your goal.</string>
+    <string name="ms_forecast_stable">Your weight has been fairly stable lately (%1$s per week). Plateaus are normal, keep going!</string>
+    <string name="ms_forecast_trending">You\'re trending down (%1$s per week). Keep it up, every step counts!</string>
+    <string name="ms_forecast_goal_reached">You reached your goal. Amazing work!</string>
+    <string name="ms_achieved_on">Unlocked on %1$s</string>
+    <string name="ms_locked">Not unlocked yet</string>
+    <string name="ms_progress">Progress: %1$s</string>
+    <string name="ms_badge_achieved_cd">%1$s, unlocked</string>
+    <string name="ms_badge_locked_cd">%1$s, locked, %2$s</string>
+    <string name="ms_new_badge">New badge unlocked: %1$s %2$s</string>
+    <plurals name="ms_new_badges">
+        <item quantity="one">%d new badge unlocked!</item>
+        <item quantity="other">%d new badges unlocked!</item>
+    </plurals>
+
+    <!-- Badges -->
+    <string name="ms_badge_first_dose">First dose</string>
+    <string name="ms_badge_first_dose_desc">Log your first dose. Every journey starts with a first step!</string>
+    <string name="ms_badge_weeks_4">4 weeks</string>
+    <string name="ms_badge_weeks_4_desc">Stay on treatment for 4 weeks, logging your doses along the way.</string>
+    <string name="ms_badge_weeks_12">12 weeks</string>
+    <string name="ms_badge_weeks_12_desc">Stay on treatment for 12 weeks, about 3 months. Habits are taking root.</string>
+    <string name="ms_badge_weeks_26">26 weeks</string>
+    <string name="ms_badge_weeks_26_desc">Stay on treatment for 26 weeks, half a year of consistency.</string>
+    <string name="ms_badge_weeks_52">1 year</string>
+    <string name="ms_badge_weeks_52_desc">A whole year of treatment. What a commitment!</string>
+    <string name="ms_badge_doses_5">5 doses</string>
+    <string name="ms_badge_doses_5_desc">Log 5 doses.</string>
+    <string name="ms_badge_doses_10">10 doses</string>
+    <string name="ms_badge_doses_10_desc">Log 10 doses.</string>
+    <string name="ms_badge_doses_25">25 doses</string>
+    <string name="ms_badge_doses_25_desc">Log 25 doses. A true regular!</string>
+    <string name="ms_badge_first_weigh_in">First weigh-in</string>
+    <string name="ms_badge_first_weigh_in_desc">Log your first weight to start following your progress.</string>
+    <string name="ms_badge_lost_2" formatted="false">2 % lost</string>
+    <string name="ms_badge_lost_2_desc" formatted="false">Lose 2 % of your starting weight. The first results are showing!</string>
+    <string name="ms_badge_lost_5" formatted="false">5 % lost</string>
+    <string name="ms_badge_lost_5_desc" formatted="false">Lose 5 % of your starting weight.</string>
+    <string name="ms_badge_lost_10" formatted="false">10 % lost</string>
+    <string name="ms_badge_lost_10_desc" formatted="false">Lose 10 % of your starting weight.</string>
+    <string name="ms_badge_lost_15" formatted="false">15 % lost</string>
+    <string name="ms_badge_lost_15_desc" formatted="false">Lose 15 % of your starting weight.</string>
+    <string name="ms_badge_lost_20" formatted="false">20 % lost</string>
+    <string name="ms_badge_lost_20_desc" formatted="false">Lose 20 % of your starting weight. An incredible transformation!</string>
+    <string name="ms_badge_goal">Goal reached</string>
+    <string name="ms_badge_goal_desc">Reach the goal weight set in Settings.</string>
+    <string name="ms_badge_journal_7">7-day journal</string>
+    <string name="ms_badge_journal_7_desc">Fill in your journal 7 days in a row.</string>
+    <string name="ms_badge_water_30">30 days hydrated</string>
+    <string name="ms_badge_water_30_desc">Meet your daily water goal 30 days in a row.</string>
+    <string name="ms_badge_rotation">Rotation champion</string>
+    <string name="ms_badge_rotation_desc">Use 6 different injection sites for 6 injections in a row.</string>
+</resources>

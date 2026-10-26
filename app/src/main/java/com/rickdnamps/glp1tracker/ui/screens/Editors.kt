@@ -54,6 +54,7 @@ import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.Severity
 import com.rickdnamps.glp1tracker.domain.SideEffectType
+import com.rickdnamps.glp1tracker.ui.components.BodyMap
 import com.rickdnamps.glp1tracker.ui.components.ChoiceDialog
 import com.rickdnamps.glp1tracker.ui.components.ConfirmDialog
 import com.rickdnamps.glp1tracker.ui.components.DateTimeRow
@@ -233,7 +234,6 @@ fun InjectionEditor(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun InjectionSitePicker(
     selected: InjectionSite,
@@ -241,32 +241,18 @@ fun InjectionSitePicker(
     lastUse: Map<InjectionSite, Long>,
     onSelect: (InjectionSite) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        InjectionSite.injectable.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                pair.forEach { s ->
-                    FilterChip(
-                        modifier = Modifier.weight(1f).height(56.dp),
-                        selected = selected == s,
-                        onClick = { onSelect(s) },
-                        leadingIcon = when {
-                            selected == s -> { { Icon(Icons.Filled.Check, null) } }
-                            s == suggested -> { { Icon(Icons.Outlined.Star, null, tint = MaterialTheme.colorScheme.tertiary) } }
-                            else -> null
-                        },
-                        label = {
-                            Column {
-                                Text(stringResource(s.nameRes), style = MaterialTheme.typography.labelLarge)
-                                Text(
-                                    lastUse[s]?.let { Format.shortDate(it) } ?: stringResource(R.string.never_used),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                    )
-                }
-            }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        BodyMap(selected = selected, suggested = suggested, lastUse = lastUse, onSelect = onSelect)
+        if (selected != InjectionSite.NONE) {
+            Text(
+                stringResource(R.string.bodymap_selected, stringResource(selected.nameRes)),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Star, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(end = 4.dp))

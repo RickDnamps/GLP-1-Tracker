@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Carte du corps des sites d'injection (ui/components/BodyMap.kt) -->
+    <string name="bodymap_your_left">Votre gauche</string>
+    <string name="bodymap_your_right">Votre droite</string>
+    <string name="bodymap_days_short">%1$d j</string>
+    <string name="bodymap_today">Auj.</string>
+    <string name="bodymap_no_data">—</string>
+    <string name="bodymap_legend_rested">Jamais · 14+ j</string>
+    <string name="bodymap_legend_mid">7–13 j</string>
+    <string name="bodymap_legend_recent">&lt; 7 j</string>
+    <string name="bodymap_legend_suggested">Suggéré</string>
+    <string name="bodymap_cd_title">Carte du corps des sites d\'injection</string>
+    <string name="bodymap_selected">Sélectionné : %1$s</string>
+    <string name="bodymap_cd_no_selection">Aucun site sélectionné</string>
+    <string name="bodymap_cd_suggested">Prochain site suggéré : %1$s</string>
+    <string name="bodymap_cd_site_days">%1$s : utilisé il y a %2$d jour(s)</string>
+    <string name="bodymap_cd_site_today">%1$s : utilisé aujourd\'hui</string>
+    <string name="bodymap_cd_site_never">%1$s : jamais utilisé</string>
+    <string name="bodymap_action_select">Sélectionner %1$s</string>
+</resources>

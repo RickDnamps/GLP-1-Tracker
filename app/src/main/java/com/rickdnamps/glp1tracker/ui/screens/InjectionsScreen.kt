@@ -44,6 +44,7 @@ import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.Pharmacokinetics
 import com.rickdnamps.glp1tracker.ui.UiState
+import com.rickdnamps.glp1tracker.ui.components.BodyMap
 import com.rickdnamps.glp1tracker.ui.components.LineChart
 import com.rickdnamps.glp1tracker.ui.components.SectionCard
 import com.rickdnamps.glp1tracker.ui.components.StatTile
@@ -142,39 +143,14 @@ private fun LevelHistoryCard(state: UiState) {
 private fun SiteRotationCard(injections: List<InjectionEntity>) {
     val lastUse = remember(injections) { siteLastUse(injections) }
     val suggested = InjectionSite.suggest(lastUse)
-    val counts = remember(injections) { injections.groupingBy { InjectionSite.fromName(it.site) }.eachCount() }
     SectionCard(title = stringResource(R.string.site_rotation), icon = Icons.Outlined.PersonPinCircle) {
-        InjectionSite.injectable.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                pair.forEach { s ->
-                    val isSuggested = s == suggested
-                    Surface(
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        color = if (isSuggested) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ) {
-                        Column(Modifier.padding(10.dp)) {
-                            Text(stringResource(s.nameRes), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                lastUse[s]?.let { stringResource(R.string.last_used, Format.shortDate(it)) }
-                                    ?: stringResource(R.string.never_used),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            Text(
-                                stringResource(R.string.times_used, counts[s] ?: 0),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        BodyMap(selected = null, suggested = suggested, lastUse = lastUse, onSelect = null)
         Text(
             stringResource(R.string.suggested_site, stringResource(suggested.nameRes)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.tertiary,
             fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         )
     }
 }

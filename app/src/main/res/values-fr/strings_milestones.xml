@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Carte des jalons -->
+    <string name="ms_title">Jalons</string>
+    <plurals name="ms_unlocked_count">
+        <item quantity="one">%1$d badge débloqué sur %2$d</item>
+        <item quantity="many">%1$d badges débloqués sur %2$d</item>
+        <item quantity="other">%1$d badges débloqués sur %2$d</item>
+    </plurals>
+    <string name="ms_forecast">À ce rythme (%1$s par semaine), vous pourriez atteindre %2$s vers le %3$s.</string>
+    <string name="ms_forecast_note">Tendance de vos 4 dernières semaines. Simple estimation, pas un avis médical.</string>
+    <string name="ms_forecast_no_goal">Définissez un poids cible dans les Réglages pour voir quand vous pourriez l\'atteindre.</string>
+    <string name="ms_forecast_need_data">Pesez-vous quelques fois sur au moins une semaine pour voir quand vous pourriez atteindre votre objectif.</string>
+    <string name="ms_forecast_stable">Votre poids est plutôt stable ces temps-ci (%1$s par semaine). Les plateaux sont normaux, continuez !</string>
+    <string name="ms_forecast_trending">Votre poids est à la baisse (%1$s par semaine). Continuez, chaque pas compte !</string>
+    <string name="ms_forecast_goal_reached">Vous avez atteint votre objectif. Bravo, c\'est énorme !</string>
+    <string name="ms_achieved_on">Débloqué le %1$s</string>
+    <string name="ms_locked">Pas encore débloqué</string>
+    <string name="ms_progress">Progression : %1$s</string>
+    <string name="ms_badge_achieved_cd">%1$s, débloqué</string>
+    <string name="ms_badge_locked_cd">%1$s, verrouillé, %2$s</string>
+    <string name="ms_new_badge">Nouveau badge débloqué : %1$s %2$s</string>
+    <plurals name="ms_new_badges">
+        <item quantity="one">%d nouveau badge débloqué !</item>
+        <item quantity="many">%d nouveaux badges débloqués !</item>
+        <item quantity="other">%d nouveaux badges débloqués !</item>
+    </plurals>
+
+    <!-- Badges -->
+    <string name="ms_badge_first_dose">Première dose</string>
+    <string name="ms_badge_first_dose_desc">Enregistrez votre première dose. Tout voyage commence par un premier pas !</string>
+    <string name="ms_badge_weeks_4">4 semaines</string>
+    <string name="ms_badge_weeks_4_desc">Suivez votre traitement pendant 4 semaines en enregistrant vos doses.</string>
+    <string name="ms_badge_weeks_12">12 semaines</string>
+    <string name="ms_badge_weeks_12_desc">Suivez votre traitement pendant 12 semaines, environ 3 mois. Les habitudes s\'installent.</string>
+    <string name="ms_badge_weeks_26">26 semaines</string>
+    <string name="ms_badge_weeks_26_desc">Suivez votre traitement pendant 26 semaines, une demi-année de constance.</string>
+    <string name="ms_badge_weeks_52">1 an</string>
+    <string name="ms_badge_weeks_52_desc">Une année complète de traitement. Quel engagement !</string>
+    <string name="ms_badge_doses_5">5 doses</string>
+    <string name="ms_badge_doses_5_desc">Enregistrez 5 doses.</string>
+    <string name="ms_badge_doses_10">10 doses</string>
+    <string name="ms_badge_doses_10_desc">Enregistrez 10 doses.</string>
+    <string name="ms_badge_doses_25">25 doses</string>
+    <string name="ms_badge_doses_25_desc">Enregistrez 25 doses. Quelle régularité !</string>
+    <string name="ms_badge_first_weigh_in">Première pesée</string>
+    <string name="ms_badge_first_weigh_in_desc">Enregistrez votre premier poids pour commencer à suivre vos progrès.</string>
+    <string name="ms_badge_lost_2" formatted="false">2 % perdus</string>
+    <string name="ms_badge_lost_2_desc" formatted="false">Perdez 2 % de votre poids de départ. Les premiers résultats sont là !</string>
+    <string name="ms_badge_lost_5" formatted="false">5 % perdus</string>
+    <string name="ms_badge_lost_5_desc" formatted="false">Perdez 5 % de votre poids de départ.</string>
+    <string name="ms_badge_lost_10" formatted="false">10 % perdus</string>
+    <string name="ms_badge_lost_10_desc" formatted="false">Perdez 10 % de votre poids de départ.</string>
+    <string name="ms_badge_lost_15" formatted="false">15 % perdus</string>
+    <string name="ms_badge_lost_15_desc" formatted="false">Perdez 15 % de votre poids de départ.</string>
+    <string name="ms_badge_lost_20" formatted="false">20 % perdus</string>
+    <string name="ms_badge_lost_20_desc" formatted="false">Perdez 20 % de votre poids de départ. Une transformation incroyable !</string>
+    <string name="ms_badge_goal">Objectif atteint</string>
+    <string name="ms_badge_goal_desc">Atteignez le poids cible défini dans les Réglages.</string>
+    <string name="ms_badge_journal_7">Journal 7 jours</string>
+    <string name="ms_badge_journal_7_desc">Remplissez votre journal 7 jours de suite.</string>
+    <string name="ms_badge_water_30">30 jours d\'hydratation</string>
+    <string name="ms_badge_water_30_desc">Atteignez votre objectif d\'eau quotidien 30 jours de suite.</string>
+    <string name="ms_badge_rotation">As de la rotation</string>
+    <string name="ms_badge_rotation_desc">Utilisez 6 sites d\'injection différents pour 6 injections de suite.</string>
+</resources>

@@ -188,6 +188,8 @@ object Backup {
         put("themeMode", s.themeMode)
         put("accent", s.accent)
         put("dynamicColor", s.dynamicColor)
+        put("celebratedBadges", s.celebratedBadges)
+        put("sex", s.sex)
     }
 
     private fun settingsFromJson(o: JSONObject): UserSettings {
@@ -232,6 +234,8 @@ object Backup {
             themeMode = o.optInt("themeMode", d.themeMode),
             accent = o.optString("accent", d.accent),
             dynamicColor = o.optBoolean("dynamicColor", d.dynamicColor),
+            celebratedBadges = o.optString("celebratedBadges", d.celebratedBadges),
+            sex = o.optInt("sex", d.sex),
         )
     }
 

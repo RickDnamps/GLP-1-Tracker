@@ -8,6 +8,9 @@ import com.rickdnamps.glp1tracker.data.WeightEntity
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
+import com.rickdnamps.glp1tracker.domain.MilestoneInput
+import com.rickdnamps.glp1tracker.domain.Milestones
+import com.rickdnamps.glp1tracker.domain.Progress
 import com.rickdnamps.glp1tracker.domain.Pharmacokinetics
 import com.rickdnamps.glp1tracker.domain.Schedule
 import java.time.LocalDate
@@ -82,3 +85,26 @@ fun weightText(kg: Double, settings: UserSettings, signed: Boolean = false): Str
     val prefix = if (signed && v > 0) "+" else ""
     return prefix + Format.oneDecimal(v) + " " + stringResource(settings.weightUnit.symbolRes)
 }
+
+fun milestoneInput(state: UiState, nowMillis: Long = System.currentTimeMillis()): MilestoneInput {
+    fun day(millis: Long) = Format.toLocalDateTime(millis).toLocalDate()
+    val logs = state.dailyLogs.mapNotNull { log -> runCatching { LocalDate.parse(log.date) }.getOrNull()?.let { it to log } }
+    return MilestoneInput(
+        injections = state.injections.map { MilestoneInput.Injection(it.timestamp, InjectionSite.fromName(it.site)) },
+        weights = state.weights.map { it.timestamp to it.weightKg },
+        journalDays = buildSet {
+            logs.forEach { (date, l) ->
+                if (l.waterMl > 0 || l.proteinG > 0 || l.appetite > 0 || l.mood > 0 || l.notes.isNotBlank()) add(date)
+            }
+            state.sideEffects.forEach { add(day(it.timestamp)) }
+            state.foods.forEach { add(day(it.timestamp)) }
+        },
+        waterByDay = logs.associate { (date, l) -> date to l.waterMl },
+        waterGoalMl = state.settings.waterGoalMl,
+        startWeightKg = state.settings.startWeightKg,
+        goalWeightKg = state.settings.goalWeightKg,
+        nowMillis = nowMillis,
+    )
+}
+
+fun milestones(state: UiState): List<Progress> = Milestones.evaluate(milestoneInput(state))
