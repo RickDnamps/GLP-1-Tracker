@@ -73,6 +73,7 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
     }
     val startScan = {
         scale.userProfile = profile
+        scale.displayLb = settings.weightUnit == com.rickdnamps.glp1tracker.domain.WeightUnit.LB
         scale.start(savedAddress)
     }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -141,6 +142,7 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Text(stringResource(R.string.scale_measuring, s.name), style = MaterialTheme.typography.bodyMedium)
+                    Text(s.protocol, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         stringResource(if (profile != null) R.string.scale_barefoot else R.string.comp_profile_needed),
                         style = MaterialTheme.typography.bodySmall,

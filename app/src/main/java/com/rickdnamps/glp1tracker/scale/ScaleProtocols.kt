@@ -37,11 +37,13 @@ interface ScaleProtocol {
 
     companion object {
         /** Picks a protocol from the services discovered on the device (most specific first). */
-        fun forServices(services: Set<UUID>, profile: ScaleUserProfile? = null): ScaleProtocol? = when {
+        /** [displayLb]: unit the scale's own display should use (it follows the app's setting). */
+        fun forServices(services: Set<UUID>, profile: ScaleUserProfile? = null, displayLb: Boolean = false): ScaleProtocol? = when {
             LefuProtocol.SERVICE in services -> LefuProtocol(profile)
             QnProtocol.SERVICE_T1 in services || QnProtocol.SERVICE_T2 in services -> QnProtocol(
                 hasT1 = QnProtocol.SERVICE_T1 in services,
                 hasT2 = QnProtocol.SERVICE_T2 in services,
+                displayLb = displayLb,
             )
             StandardWeightScale.SERVICE in services || StandardWeightScale.BODY_SERVICE in services ->
                 StandardWeightScale(hasBodyComposition = StandardWeightScale.BODY_SERVICE in services)
@@ -177,7 +179,7 @@ class StandardWeightScale(private val hasBodyComposition: Boolean = false) : Sca
  * QN / Yolanda vendor protocol used by many Renpho, FITINDEX and other low-cost scales
  * (service 0xFFE0 "type 1" or 0xFFF0 "type 2"). Frames: [opcode, length, protocolType, ..., checksum].
  */
-class QnProtocol(private val hasT1: Boolean, private val hasT2: Boolean) : ScaleProtocol {
+class QnProtocol(private val hasT1: Boolean, private val hasT2: Boolean, private val displayLb: Boolean = false) : ScaleProtocol {
     override val displayName = "QN / Renpho"
     override val subscriptions = listOf(SERVICE_T1 to T1_NOTIFY, SERVICE_T1 to T1_INDICATE, SERVICE_T2 to T2_NOTIFY)
 
@@ -215,8 +217,8 @@ class QnProtocol(private val hasT1: Boolean, private val hasT2: Boolean) : Scale
                 val t = qnSeconds(nowMillis)
                 val time = byteArrayOf(0x02, t.toByte(), (t ushr 8).toByte(), (t ushr 16).toByte(), (t ushr 24).toByte())
                 listOf(
-                    // Unit config: 0x01 = kg (the app converts for display).
-                    write(T1_WRITE_CONFIG, frame(0x13, 0x09, pt, 0x01, 0x10, 0x00, 0x00, 0x00)),
+                    // Unit config sets the scale's own display (0x01 kg, 0x02 lb); weights are always sent in kg.
+                    write(T1_WRITE_CONFIG, frame(0x13, 0x09, pt, if (displayLb) 0x02 else 0x01, 0x10, 0x00, 0x00, 0x00)),
                     write(T1_WRITE_TIME, time),
                 )
             }

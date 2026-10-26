@@ -113,4 +113,15 @@ class ScaleProtocolsTest {
         assertTrue(lefu.onNotification(LefuProtocol.RESULTS, first, 0).isEmpty())
         assertEquals(listOf(ScaleEvent.Live(80.0)), lefu.onNotification(LefuProtocol.RESULTS, cont, 0))
     }
+
+    @Test
+    fun qnDisplayUnitFollowsApp() {
+        val info = bytes(0x12, 0x0B, 0x05, 0, 0, 0, 0, 0, 0, 0, 0x01)
+        val lb = QnProtocol(hasT1 = true, hasT2 = false, displayLb = true)
+        val cfgLb = lb.onNotification(QnProtocol.T1_NOTIFY, info, 0).filterIsInstance<ScaleEvent.Write>().first().write.value
+        assertEquals(0x02, cfgLb[3].toInt())
+        val kg = QnProtocol(hasT1 = true, hasT2 = false, displayLb = false)
+        val cfgKg = kg.onNotification(QnProtocol.T1_NOTIFY, info, 0).filterIsInstance<ScaleEvent.Write>().first().write.value
+        assertEquals(0x01, cfgKg[3].toInt())
+    }
 }

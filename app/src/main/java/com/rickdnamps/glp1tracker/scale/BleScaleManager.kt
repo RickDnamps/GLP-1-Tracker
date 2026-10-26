@@ -60,6 +60,9 @@ class BleScaleManager(context: Context) {
     /** Profile for scales measuring body composition (sex, birth year, height, last weight). */
     var userProfile: ScaleUserProfile? = null
 
+    /** Keep the scale's display in pounds when the app uses pounds. */
+    var displayLb: Boolean = false
+
     private var gatt: BluetoothGatt? = null
     private var protocol: ScaleProtocol? = null
     private var stability = StabilityDetector()
@@ -211,7 +214,7 @@ class BleScaleManager(context: Context) {
 
     private fun onServices(g: BluetoothGatt) {
         val services = g.services.map { it.uuid }.toSet()
-        val p = ScaleProtocol.forServices(services, userProfile)
+        val p = ScaleProtocol.forServices(services, userProfile, displayLb)
         if (p == null) {
             stop()
             _state.value = ScaleState.Error(ScaleState.Reason.UNSUPPORTED)

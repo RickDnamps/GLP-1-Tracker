@@ -72,9 +72,9 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
     var day by rememberSaveable { mutableIntStateOf(LocalDate.now().dayOfWeek.value) }
     var hour by rememberSaveable { mutableIntStateOf(9) }
     var minute by rememberSaveable { mutableIntStateOf(0) }
-    // Lb by default for US locale, kg elsewhere.
+    // Pounds by default where body weight is usually given in lb (Canada, US).
     var unitName by rememberSaveable {
-        mutableStateOf(if (Locale.getDefault().country == "US") WeightUnit.LB.name else WeightUnit.KG.name)
+        mutableStateOf(if (Locale.getDefault().country in setOf("US", "CA")) WeightUnit.LB.name else WeightUnit.KG.name)
     }
     val unit = WeightUnit.fromName(unitName)
     var weightText by rememberSaveable { mutableStateOf("") }
