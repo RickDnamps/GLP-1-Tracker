@@ -258,11 +258,13 @@ class LefuProtocol : ScaleProtocol {
 class StabilityDetector(private val windowMillis: Long = 2_500) {
     private var anchorKg = 0.0
     private var anchorTime = 0L
+    private var hasAnchor = false
     private var fired = false
 
     fun onLive(kg: Double, nowMillis: Long): Double? {
         if (fired) return null
-        if (anchorTime == 0L || kotlin.math.abs(kg - anchorKg) > 0.1) {
+        if (!hasAnchor || kotlin.math.abs(kg - anchorKg) > 0.1) {
+            hasAnchor = true
             anchorKg = kg
             anchorTime = nowMillis
             return null

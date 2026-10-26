@@ -19,7 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material.icons.outlined.BluetoothSearching
+import androidx.compose.material.icons.automirrored.outlined.BluetoothSearching
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Scale
@@ -95,7 +95,7 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
             when (val s = state) {
                 ScaleState.Idle -> CircularProgressIndicator()
                 is ScaleState.Scanning -> if (s.waitingFor != null) {
-                    Icon(Icons.Outlined.BluetoothSearching, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.AutoMirrored.Outlined.BluetoothSearching, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary)
                     Text(
                         stringResource(R.string.scale_step_on, settings.scaleName.ifBlank { s.waitingFor }),
                         style = MaterialTheme.typography.titleMedium,
