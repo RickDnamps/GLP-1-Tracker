@@ -304,7 +304,7 @@ fun WeightEditor(
         mutableStateOf((item?.weightKg ?: lastWeightKg)?.let { Format.oneDecimal(unit.fromKg(it)) } ?: "")
     }
     var notes by remember { mutableStateOf(item?.notes ?: "") }
-    val compFields = remember { CompositionFields(item?.composition ?: BodyComp()) }
+    val compFields = remember { CompositionFields(item?.composition ?: BodyComp(), unit) }
     var showComp by remember { mutableStateOf(item?.composition?.isEmpty == false) }
     val weight = Format.parse(weightText)
 
@@ -338,7 +338,7 @@ fun WeightEditor(
         TextButton(onClick = { showComp = !showComp }) {
             Text((if (showComp) "▾ " else "▸ ") + stringResource(R.string.comp_section))
         }
-        if (showComp) CompositionInputs(compFields)
+        if (showComp) CompositionInputs(compFields, stringResource(unit.symbolRes))
         OutlinedTextField(
             value = notes,
             onValueChange = { notes = it },

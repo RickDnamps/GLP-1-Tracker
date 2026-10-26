@@ -22,11 +22,28 @@ class BodyCompositionTest {
     }
 
     @Test
+    fun matchesTheRenphoAppOnTheReferenceReading() {
+        // Renpho app, ES-CS20M, 304.4 lb, 6'2", 46 y, man: 38.6 % fat, 44.3 % water, 9.4 lb bone,
+        // 177.6 lb muscle, 14.0 % protein, 39.7 % skeletal muscle, 32.5 % subcutaneous,
+        // 2201 kcal, metabolic age 53. Impedance ≈ 509 Ω (as normalised by the app).
+        val c = BodyCompositionMath.estimate(138.07, 187.96, 46, Sex.MALE, 509.0)!!
+        assertEquals(38.6, c.bodyFatPct!!, 0.5)
+        assertEquals(44.3, c.waterPct!!, 0.5)
+        assertEquals(9.4 / 2.20462, c.boneKg!!, 0.15)
+        assertEquals(177.6 / 2.20462, c.muscleKg!!, 1.0)
+        assertEquals(14.0, c.proteinPct!!, 0.5)
+        assertEquals(39.7, c.skeletalMusclePct!!, 0.5)
+        assertEquals(32.5, c.subcutaneousFatPct!!, 0.5)
+        assertEquals(2201.0, c.bmrKcal!!, 20.0)
+        assertEquals(53, c.metabolicAge)
+    }
+
+    @Test
     fun metabolicAgeFollowsBodyFat() {
         // Healthy fat for the age → body age ≈ real age; leaner → younger; more fat → older.
         assertEquals(46, BodyCompositionMath.metabolicAge(16.0, 46, Sex.MALE))
         assertTrue(BodyCompositionMath.metabolicAge(10.0, 46, Sex.MALE) < 46)
-        assertEquals(54, BodyCompositionMath.metabolicAge(38.0, 46, Sex.MALE))
+        assertEquals(53, BodyCompositionMath.metabolicAge(38.6, 46, Sex.MALE))
         assertEquals(50, BodyCompositionMath.metabolicAge(28.0, 50, Sex.FEMALE))
         // Never runs away: capped at +15 years.
         assertEquals(61, BodyCompositionMath.metabolicAge(90.0, 46, Sex.MALE))

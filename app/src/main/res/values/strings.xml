@@ -478,6 +478,10 @@
     <string name="hc_button">Health Connect</string>
     <string name="hc_nothing_new">No new weigh-in in Health Connect. Your scale\'s app (Renpho…) must share its weigh-ins with Health Connect.</string>
     <string name="birth_date_choose">Choose my date of birth</string>
+    <string name="comp_lean">Fat-free mass</string>
+    <string name="comp_measured_on">Measured on %1$s</string>
+    <string name="comp_tap_hint">Tap a value to see how it changes over time.</string>
+    <string name="comp_need_two">The trend appears from the second weigh-in.</string>
     <plurals name="scale_seen">
         <item quantity="one">%d Bluetooth device nearby</item>
         <item quantity="other">%d Bluetooth devices nearby</item>

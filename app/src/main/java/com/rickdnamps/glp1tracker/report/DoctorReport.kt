@@ -279,10 +279,14 @@ private class ReportBuilder(
         layout.subTitle(string(R.string.comp_title), keepWithNext = 70f)
         val first = withComp.first()
         val last = withComp.last()
-        val cards = CompMetric.entries.mapNotNull { m ->
-            val v = m.read(last.composition, last.weightKg) ?: return@mapNotNull null
-            val start = m.read(first.composition, first.weightKg)
-            val unitText = if (m.unit.isEmpty()) "" else " " + m.unit
+        val preferred = listOf(
+            CompMetric.FAT, CompMetric.FAT_MASS, CompMetric.MUSCLE, CompMetric.WATER,
+            CompMetric.VISCERAL, CompMetric.BMR, CompMetric.LEAN, CompMetric.METABOLIC_AGE,
+        )
+        val cards = preferred.mapNotNull { m ->
+            val v = m.read(last.composition, last.weightKg)?.let { if (m.isMass) unit.fromKg(it) else it } ?: return@mapNotNull null
+            val start = m.read(first.composition, first.weightKg)?.let { if (m.isMass) unit.fromKg(it) else it }
+            val unitText = if (m.isMass) " $unitSymbol" else if (m.unit.isEmpty()) "" else " " + m.unit
             val value = format.compact(v) + unitText
             val caption = if (start != null && withComp.size > 1) signed(v - start, format::compact) + unitText else null
             Stat(string(m.nameRes), value, caption)

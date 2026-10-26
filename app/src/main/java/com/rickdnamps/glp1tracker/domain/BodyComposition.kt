@@ -33,19 +33,25 @@ data class BodyComp(
 
 enum class Sex { MALE, FEMALE }
 
-/** Metrics shown in the body-composition card, with how to read them from a [BodyComp]. */
+/**
+ * Metrics shown in the body-composition grid (same order as the Renpho app), with how to read
+ * them from a [BodyComp]. Masses ("kg") are shown in the user's weight unit.
+ */
 enum class CompMetric(@StringRes val nameRes: Int, val unit: String, val decimals: Int, val read: (BodyComp, Double) -> Double?) {
     FAT(R.string.comp_fat, "%", 1, { c, _ -> c.bodyFatPct }),
     FAT_MASS(R.string.comp_fat_mass, "kg", 1, { c, w -> c.bodyFatPct?.let { w * it / 100 } }),
-    MUSCLE(R.string.comp_muscle, "kg", 1, { c, _ -> c.muscleKg }),
-    WATER(R.string.comp_water, "%", 1, { c, _ -> c.waterPct }),
-    BONE(R.string.comp_bone, "kg", 1, { c, _ -> c.boneKg }),
-    VISCERAL(R.string.comp_visceral, "", 0, { c, _ -> c.visceralFat }),
-    BMR(R.string.comp_bmr, "kcal", 0, { c, _ -> c.bmrKcal }),
-    METABOLIC_AGE(R.string.comp_metabolic_age, "", 0, { c, _ -> c.metabolicAge?.toDouble() }),
-    PROTEIN(R.string.comp_protein, "%", 1, { c, _ -> c.proteinPct }),
-    SKELETAL(R.string.comp_skeletal, "%", 1, { c, _ -> c.skeletalMusclePct }),
+    LEAN(R.string.comp_lean, "kg", 1, { c, w -> c.bodyFatPct?.let { w * (1 - it / 100) } }),
     SUBCUTANEOUS(R.string.comp_subcutaneous, "%", 1, { c, _ -> c.subcutaneousFatPct }),
+    VISCERAL(R.string.comp_visceral, "", 0, { c, _ -> c.visceralFat }),
+    WATER(R.string.comp_water, "%", 1, { c, _ -> c.waterPct }),
+    SKELETAL(R.string.comp_skeletal, "%", 1, { c, _ -> c.skeletalMusclePct }),
+    MUSCLE(R.string.comp_muscle, "kg", 1, { c, _ -> c.muscleKg }),
+    BONE(R.string.comp_bone, "kg", 1, { c, _ -> c.boneKg }),
+    PROTEIN(R.string.comp_protein, "%", 1, { c, _ -> c.proteinPct }),
+    BMR(R.string.comp_bmr, "kcal", 0, { c, _ -> c.bmrKcal }),
+    METABOLIC_AGE(R.string.comp_metabolic_age, "", 0, { c, _ -> c.metabolicAge?.toDouble() });
+
+    val isMass: Boolean get() = unit == "kg"
 }
 
 enum class CompLevel { LOW, HEALTHY, HIGH, VERY_HIGH }
@@ -60,30 +66,43 @@ object BodyCompositionMath {
     fun estimate(weightKg: Double, heightCm: Double, age: Int, sex: Sex, impedanceOhm: Double): BodyComp? {
         if (weightKg <= 0 || heightCm <= 0 || age !in 10..100 || impedanceOhm !in 150.0..1500.0) return null
         val h2r = heightCm * heightCm / impedanceOhm
-        val ffm = when (sex) {
-            Sex.MALE -> -10.68 + 0.65 * h2r + 0.26 * weightKg + 0.02 * impedanceOhm
-            Sex.FEMALE -> -9.53 + 0.69 * h2r + 0.17 * weightKg + 0.02 * impedanceOhm
-        }.coerceIn(weightKg * 0.35, weightKg * 0.95)
+        val ffm = (
+            when (sex) {
+                Sex.MALE -> -10.68 + 0.65 * h2r + 0.26 * weightKg + 0.02 * impedanceOhm
+                Sex.FEMALE -> -9.53 + 0.69 * h2r + 0.17 * weightKg + 0.02 * impedanceOhm
+            } * FFM_CALIBRATION
+            ).coerceIn(weightKg * 0.35, weightKg * 0.95)
         val fatPct = (weightKg - ffm) / weightKg * 100
-        val water = ffm * 0.73 // hydration of fat-free mass
-        val bone = ffm * 0.042
-        val bmr = 370 + 21.6 * ffm // Katch-McArdle
+        // Shares of the fat-free mass as reported by the Renpho app for the same reading.
+        val water = ffm * 0.722
+        val bone = ffm * 0.05
+        val muscle = ffm - bone
+        val bmr = 370 + 21.6 * ffm // Katch-McArdle (Renpho uses it too)
         return BodyComp(
             bodyFatPct = fatPct,
-            muscleKg = ffm - bone,
+            muscleKg = muscle,
             waterPct = water / weightKg * 100,
             boneKg = bone,
             bmrKcal = bmr,
             metabolicAge = metabolicAge(fatPct, age, sex),
-            proteinPct = (ffm - water - bone) / weightKg * 100,
+            proteinPct = (muscle - water) / weightKg * 100,
+            skeletalMusclePct = muscle * 0.68 / weightKg * 100,
+            subcutaneousFatPct = fatPct * 0.842,
             impedance = impedanceOhm,
         )
     }
 
     /**
+     * Sun's equation gives ~5 % less fat-free mass than the Renpho app for the same Renpho
+     * ES-CS20M reading (138 kg, 188 cm, 46 y, man: Renpho 38.6 % fat, 2201 kcal, 44.3 % water,
+     * 9.4 lb bone, 14.0 % protein, 39.7 % skeletal muscle, metabolic age 53).
+     */
+    private const val FFM_CALIBRATION = 1.053
+
+    /**
      * "Body age": real age moved by how far body fat is from the healthy mid-range for that age
      * and sex (Gallagher 2000: men ≈ 10 + 0.13 × age %, women ≈ 24 + 0.075 × age %), about one
-     * year per 3 points of fat. Leaner than the norm → younger. Clamped to −12 / +15 years.
+     * year per 3 points of fat (matches the Renpho app on the reference reading above). Leaner than the norm → younger. Clamped to −12 / +15 years.
      * (Solving Mifflin-St Jeor for the age was far too sensitive: ±100 kcal = ±20 years.)
      */
     fun metabolicAge(fatPct: Double, age: Int, sex: Sex): Int {
@@ -91,7 +110,7 @@ object BodyCompositionMath {
             Sex.MALE -> 10.0 + 0.13 * age
             Sex.FEMALE -> 24.0 + 0.075 * age
         }
-        val a = age + 0.35 * (fatPct - reference)
+        val a = age + 0.31 * (fatPct - reference)
         return kotlin.math.round(a).toInt().coerceIn(maxOf(12, age - 12), age + 15)
     }
 

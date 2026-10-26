@@ -421,8 +421,8 @@
     <string name="vital_tg">Triglycérides</string>
     <string name="msg_vital_saved">Mesure enregistrée</string>
     <string name="comp_title">Composition corporelle</string>
-    <string name="comp_fat">Masse grasse</string>
-    <string name="comp_fat_mass">Masse grasse (kg)</string>
+    <string name="comp_fat">Graisse corporelle</string>
+    <string name="comp_fat_mass">Masse grasse</string>
     <string name="comp_muscle">Masse musculaire</string>
     <string name="comp_water">Eau corporelle</string>
     <string name="comp_bone">Masse osseuse</string>
@@ -478,6 +478,10 @@
     <string name="hc_button">Health Connect</string>
     <string name="hc_nothing_new">Aucune nouvelle pesée dans Health Connect. L\'app de votre balance (Renpho…) doit partager ses pesées avec Health Connect.</string>
     <string name="birth_date_choose">Choisir ma date de naissance</string>
+    <string name="comp_lean">Masse maigre</string>
+    <string name="comp_measured_on">Mesure du %1$s</string>
+    <string name="comp_tap_hint">Touchez une valeur pour voir son évolution.</string>
+    <string name="comp_need_two">L\'évolution s\'affichera dès la deuxième pesée.</string>
     <plurals name="scale_seen">
         <item quantity="one">%d appareil Bluetooth à proximité</item>
         <item quantity="many">%d appareils Bluetooth à proximité</item>

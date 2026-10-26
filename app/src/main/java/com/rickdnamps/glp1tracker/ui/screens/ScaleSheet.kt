@@ -238,7 +238,7 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                         val f = com.rickdnamps.glp1tracker.domain.Format
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             c.bodyFatPct?.let { Text(stringResource(R.string.comp_fat) + "\n" + f.oneDecimal(it) + " %", style = MaterialTheme.typography.bodyMedium) }
-                            c.muscleKg?.let { Text(stringResource(R.string.comp_muscle) + "\n" + f.oneDecimal(it) + " kg", style = MaterialTheme.typography.bodyMedium) }
+                            c.muscleKg?.let { Text(stringResource(R.string.comp_muscle) + "\n" + weightText(it, settings), style = MaterialTheme.typography.bodyMedium) }
                             c.waterPct?.let { Text(stringResource(R.string.comp_water) + "\n" + f.oneDecimal(it) + " %", style = MaterialTheme.typography.bodyMedium) }
                         }
                     }

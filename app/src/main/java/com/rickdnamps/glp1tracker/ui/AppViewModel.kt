@@ -89,26 +89,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * One-off: the first "body age" formula pinned heavy users at age + 15. Recompute it for
-     * past Bluetooth weigh-ins (those with an impedance) with the current formula.
+     * When the composition formulas change (v1: body age, v2: calibrated on the Renpho app),
+     * recompute past Bluetooth weigh-ins from their stored impedance. Fields the estimate does
+     * not produce (e.g. visceral fat typed by hand) are kept.
      */
     private suspend fun refreshMetabolicAges() {
         val s = repository.settingsRepository.current()
-        if (s.compFormulaVersion >= 1) return
+        if (s.compFormulaVersion >= COMP_FORMULA_VERSION) return
         val sex = s.sexOrNull
         val born = s.birthDateOrNull ?: s.birthYear.takeIf { it in 1900..2100 }?.let { java.time.LocalDate.of(it, 7, 1) }
-        if (sex != null && born != null) {
+        if (sex != null && born != null && s.heightCm > 0) {
             val fixed = repository.weightsSnapshot().mapNotNull { w ->
                 val c = w.composition
-                val fat = c.bodyFatPct
-                if (fat == null || c.metabolicAge == null || c.impedance == null) return@mapNotNull null
+                val impedance = c.impedance ?: return@mapNotNull null
                 val day = java.time.Instant.ofEpochMilli(w.timestamp).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
                 val age = java.time.Period.between(born, day).years
-                w.withComposition(c.copy(metabolicAge = BodyCompositionMath.metabolicAge(fat, age, sex)))
+                val fresh = BodyCompositionMath.estimate(w.weightKg, s.heightCm, age, sex, impedance) ?: return@mapNotNull null
+                w.withComposition(fresh.mergedWith(c))
             }
             if (fixed.isNotEmpty()) repository.addWeights(fixed)
         }
-        repository.settingsRepository.update { it.copy(compFormulaVersion = 1) }
+        repository.settingsRepository.update { it.copy(compFormulaVersion = COMP_FORMULA_VERSION) }
     }
 
     /** App lock state: kept here (not in saved state) so a killed process always starts locked. */
@@ -392,5 +393,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             repository.restore(Backup.fromJson(text))
         }.onSuccess { message(R.string.msg_restore_done) }.onFailure { message(R.string.msg_restore_failed) }
+    }
+
+    private companion object {
+        /** Bump when [BodyCompositionMath.estimate] changes so stored weigh-ins are recomputed. */
+        const val COMP_FORMULA_VERSION = 2
     }
 }
