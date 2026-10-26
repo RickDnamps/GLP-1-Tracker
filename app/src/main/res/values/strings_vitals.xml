@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Vitals & labs screen -->
+    <string name="vitals_title">Vitals &amp; labs</string>
+    <string name="vitals_open">Open</string>
+    <string name="vitals_teaser">Blood pressure, glucose, cholesterol: follow how they change with your treatment.</string>
+    <string name="vitals_add">Add a reading</string>
+    <string name="vitals_edit">Edit reading</string>
+    <string name="vitals_in_range">In the normal range</string>
+    <string name="vitals_in_range_hint">Based on the latest reading of each marker.</string>
+    <string name="vitals_latest">Latest reading: %s</string>
+    <string name="vitals_why_title">Why track them?</string>
+    <string name="vitals_why_short">GLP-1 treatment often improves blood pressure, blood glucose and blood lipids.</string>
+    <string name="vitals_why">GLP-1 treatment, and the weight loss that comes with it, often improves blood pressure, blood glucose, HbA1c and blood lipids (LDL cholesterol, triglycerides). Logging your readings and lab results shows the progress the scale doesn\'t, and makes it easy to review with your doctor.</string>
+    <string name="vitals_chart_legend">On the charts, the dashed line is the upper limit of the normal range.</string>
+    <string name="vitals_more">Show more</string>
+    <string name="vitals_empty">No readings yet. Pick what you want to log:</string>
+    <string name="vitals_first_reading">First reading. Add more to follow the trend.</string>
+    <string name="vitals_since_first">%1$s since %2$s</string>
+    <string name="vitals_no_change">No change since %s</string>
+    <string name="vitals_chart_systolic">Chart: systolic. Diastolic: %1$s → %2$s mmHg.</string>
+    <string name="vitals_show_all">Show all (%d)</string>
+    <string name="vitals_show_less">Show less</string>
+
+    <!-- Categories -->
+    <string name="vitals_level_normal">Normal</string>
+    <string name="vitals_level_elevated">Elevated</string>
+    <string name="vitals_level_high">High</string>
+    <string name="vitals_level_low">Low</string>
+    <string name="vitals_level_borderline">Borderline</string>
+    <string name="vitals_bp_elevated">Elevated</string>
+    <string name="vitals_bp_stage1">Stage 1 hypertension</string>
+    <string name="vitals_bp_stage2">Stage 2 hypertension</string>
+    <string name="vitals_bp_crisis">Very high</string>
+    <string name="vitals_a1c_prediabetes">Prediabetes range</string>
+    <string name="vitals_a1c_diabetes">Diabetes range</string>
+    <string name="vitals_ldl_above_target">Above target</string>
+
+    <!-- Reference ranges -->
+    <string name="vitals_ref_bp">Reference (AHA): normal &lt; 120/80 · elevated 120–129/&lt; 80 · stage 1 130–139 or 80–89 · stage 2 ≥ 140 or ≥ 90 · low &lt; 90/60. Hypertension Canada considers home readings of 135/85 or more high.</string>
+    <string name="vitals_ref_hr">Usual resting range for adults: 50–100 bpm. GLP-1 medications can raise it by a few beats per minute; mention a lasting increase to your doctor.</string>
+    <string name="vitals_ref_glucose">Fasting: 4.0–6.0 mmol/L normal · 6.1–6.9 elevated · ≥ 7.0 high · &lt; 4.0 low. Values after a meal are naturally higher.</string>
+    <string name="vitals_ref_hba1c" formatted="false">&lt; 5.7 % normal · 5.7–6.4 % prediabetes range · ≥ 6.5 % diabetes range. With diabetes, the usual target is 7.0 % or less (Diabetes Canada).</string>
+    <string name="vitals_ref_ldl">General target: &lt; 3.5 mmol/L. With diabetes or heart disease, the target is often lower (about 2.0 mmol/L or less). Ask your doctor.</string>
+    <string name="vitals_ref_tg">Fasting: &lt; 1.7 mmol/L normal · 1.7–2.2 borderline · ≥ 2.3 high.</string>
+    <string name="vitals_warn_bp_crisis">Very high reading. Rest 5 minutes and measure again. If it stays above 180/120, contact a health professional right away; call 911 if you have chest pain, shortness of breath or other symptoms.</string>
+    <string name="vitals_warn_glucose_low">Below 4.0 mmol/L is low (hypoglycemia). Follow the plan from your care team, especially if you also take insulin or a sulfonylurea.</string>
+
+    <!-- Editor -->
+    <string name="vitals_what">What are you logging?</string>
+    <string name="vitals_systolic">Systolic</string>
+    <string name="vitals_diastolic">Diastolic</string>
+    <string name="vitals_err_range">Unusual value: expected between %1$s and %2$s %3$s.</string>
+    <string name="vitals_err_diastolic">The diastolic (lower number) must be below the systolic.</string>
+    <string name="vitals_convert">Convert %1$s → %2$s</string>
+    <string name="vitals_category">Category</string>
+    <string name="vitals_hint_bp">Seated, after 5 minutes of rest, arm supported at heart level. Two readings a minute apart give a better picture.</string>
+    <string name="vitals_hint_hr">At rest, ideally in the morning before getting up.</string>
+    <string name="vitals_hint_glucose">Use a fasting value (8 hours without food) to compare with the ranges.</string>
+    <string name="vitals_hint_lab">Copy the value from your lab report, in the unit shown.</string>
+    <string name="vitals_notes_hint">e.g. fasting, left arm, after coffee</string>
+    <string name="vitals_disclaimer">Reference ranges are general values for adults (Hypertension Canada, American Heart Association, Diabetes Canada, Canadian Cardiovascular Society). Your personal targets are set with your doctor. This screen is a logbook, not a diagnosis.</string>
+</resources>

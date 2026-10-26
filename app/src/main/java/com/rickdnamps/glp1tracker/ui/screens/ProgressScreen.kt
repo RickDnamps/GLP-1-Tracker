@@ -61,6 +61,7 @@ fun ProgressScreen(
     contentPadding: PaddingValues,
     openEditor: (Editor) -> Unit,
     onOpenPhotos: () -> Unit,
+    onOpenVitals: () -> Unit,
     onSyncHealthConnect: () -> Unit,
 ) {
     val settings = state.settings
@@ -95,6 +96,7 @@ fun ProgressScreen(
         }
         item { ProgressHero(stats, settings) }
         item { PhotosEntryCard(state.photos, onClick = onOpenPhotos) }
+        item { VitalsTeaserCard(state, onOpen = onOpenVitals) }
         item {
             SectionCard(title = stringResource(R.string.summary), icon = Icons.Outlined.Insights) {
                 Row(Modifier.fillMaxWidth()) {

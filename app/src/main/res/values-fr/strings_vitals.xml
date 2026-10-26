@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Écran Signes vitaux et analyses -->
+    <string name="vitals_title">Signes vitaux et analyses</string>
+    <string name="vitals_open">Ouvrir</string>
+    <string name="vitals_teaser">Tension, glycémie, cholestérol : suivez leur évolution avec votre traitement.</string>
+    <string name="vitals_add">Ajouter une mesure</string>
+    <string name="vitals_edit">Modifier la mesure</string>
+    <string name="vitals_in_range">Dans la plage normale</string>
+    <string name="vitals_in_range_hint">Selon la dernière mesure de chaque indicateur.</string>
+    <string name="vitals_latest">Dernière mesure : %s</string>
+    <string name="vitals_why_title">Pourquoi les suivre ?</string>
+    <string name="vitals_why_short">Le traitement GLP-1 améliore souvent la tension artérielle, la glycémie et les lipides sanguins.</string>
+    <string name="vitals_why">Le traitement GLP-1, et la perte de poids qui l\'accompagne, améliorent souvent la tension artérielle, la glycémie, l\'HbA1c et les lipides sanguins (cholestérol LDL, triglycérides). Noter vos mesures et vos résultats d\'analyses montre les progrès que la balance ne voit pas, et facilite le suivi avec votre médecin.</string>
+    <string name="vitals_chart_legend">Sur les graphiques, la ligne pointillée marque la limite supérieure de la normale.</string>
+    <string name="vitals_more">Afficher plus</string>
+    <string name="vitals_empty">Aucune mesure pour l\'instant. Choisissez ce que vous voulez noter :</string>
+    <string name="vitals_first_reading">Première mesure. Ajoutez-en d\'autres pour suivre la tendance.</string>
+    <string name="vitals_since_first">%1$s depuis le %2$s</string>
+    <string name="vitals_no_change">Aucun changement depuis le %s</string>
+    <string name="vitals_chart_systolic">Graphique : systolique. Diastolique : %1$s → %2$s mmHg.</string>
+    <string name="vitals_show_all">Tout afficher (%d)</string>
+    <string name="vitals_show_less">Afficher moins</string>
+
+    <!-- Catégories -->
+    <string name="vitals_level_normal">Normal</string>
+    <string name="vitals_level_elevated">Un peu élevé</string>
+    <string name="vitals_level_high">Élevé</string>
+    <string name="vitals_level_low">Bas</string>
+    <string name="vitals_level_borderline">Limite</string>
+    <string name="vitals_bp_elevated">Élevée</string>
+    <string name="vitals_bp_stage1">Hypertension stade 1</string>
+    <string name="vitals_bp_stage2">Hypertension stade 2</string>
+    <string name="vitals_bp_crisis">Très élevée</string>
+    <string name="vitals_a1c_prediabetes">Zone de prédiabète</string>
+    <string name="vitals_a1c_diabetes">Zone de diabète</string>
+    <string name="vitals_ldl_above_target">Au-dessus de la cible</string>
+
+    <!-- Plages de référence -->
+    <string name="vitals_ref_bp">Référence (AHA) : normale &lt; 120/80 · élevée 120–129/&lt; 80 · stade 1 130–139 ou 80–89 · stade 2 ≥ 140 ou ≥ 90 · basse &lt; 90/60. Hypertension Canada considère comme élevées les mesures à domicile de 135/85 ou plus.</string>
+    <string name="vitals_ref_hr">Plage habituelle au repos chez l\'adulte : 50 à 100 bpm. Les médicaments GLP-1 peuvent l\'augmenter de quelques battements par minute; signalez une hausse persistante à votre médecin.</string>
+    <string name="vitals_ref_glucose">À jeun : 4,0–6,0 mmol/L normale · 6,1–6,9 élevée · ≥ 7,0 haute · &lt; 4,0 basse. Après un repas, les valeurs sont naturellement plus hautes.</string>
+    <string name="vitals_ref_hba1c" formatted="false">&lt; 5,7 % normale · 5,7–6,4 % zone de prédiabète · ≥ 6,5 % zone de diabète. Avec un diabète, la cible habituelle est de 7,0 % ou moins (Diabète Canada).</string>
+    <string name="vitals_ref_ldl">Cible générale : &lt; 3,5 mmol/L. Avec un diabète ou une maladie cardiaque, la cible est souvent plus basse (environ 2,0 mmol/L ou moins). Parlez-en à votre médecin.</string>
+    <string name="vitals_ref_tg">À jeun : &lt; 1,7 mmol/L normal · 1,7–2,2 limite · ≥ 2,3 élevé.</string>
+    <string name="vitals_warn_bp_crisis">Mesure très élevée. Reposez-vous 5 minutes et mesurez de nouveau. Si elle reste au-dessus de 180/120, contactez rapidement un professionnel de la santé; composez le 911 en cas de douleur à la poitrine, d\'essoufflement ou d\'autres symptômes.</string>
+    <string name="vitals_warn_glucose_low">Sous 4,0 mmol/L, la glycémie est basse (hypoglycémie). Suivez le plan de votre équipe soignante, surtout si vous prenez aussi de l\'insuline ou une sulfonylurée.</string>
+
+    <!-- Éditeur -->
+    <string name="vitals_what">Que voulez-vous noter ?</string>
+    <string name="vitals_systolic">Systolique</string>
+    <string name="vitals_diastolic">Diastolique</string>
+    <string name="vitals_err_range">Valeur inhabituelle : attendue entre %1$s et %2$s %3$s.</string>
+    <string name="vitals_err_diastolic">La diastolique (le plus petit chiffre) doit être inférieure à la systolique.</string>
+    <string name="vitals_convert">Convertir %1$s → %2$s</string>
+    <string name="vitals_category">Catégorie</string>
+    <string name="vitals_hint_bp">Assis, après 5 minutes de repos, le bras appuyé à la hauteur du cœur. Deux mesures à une minute d\'intervalle donnent un meilleur portrait.</string>
+    <string name="vitals_hint_hr">Au repos, idéalement le matin avant de vous lever.</string>
+    <string name="vitals_hint_glucose">Utilisez une valeur à jeun (8 heures sans manger) pour comparer avec les plages.</string>
+    <string name="vitals_hint_lab">Recopiez la valeur de votre rapport de laboratoire, dans l\'unité indiquée.</string>
+    <string name="vitals_notes_hint">p. ex. à jeun, bras gauche, après le café</string>
+    <string name="vitals_disclaimer">Les plages de référence sont des valeurs générales pour les adultes (Hypertension Canada, American Heart Association, Diabète Canada, Société canadienne de cardiologie). Vos cibles personnelles sont établies avec votre médecin. Cet écran est un journal, pas un diagnostic.</string>
+</resources>
