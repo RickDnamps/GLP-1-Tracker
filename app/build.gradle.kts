@@ -13,8 +13,10 @@ android {
         applicationId = "com.rickdnamps.glp1tracker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        // CI build number makes every APK an installable upgrade of the previous one.
+        val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionCode = buildNumber
+        versionName = "1.1.$buildNumber"
     }
 
     // Release signing comes from environment variables (GitHub secrets in CI).
@@ -75,6 +77,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.health.connect)
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

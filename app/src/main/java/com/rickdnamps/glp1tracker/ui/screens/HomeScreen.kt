@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Scale
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -223,6 +224,9 @@ private fun QuickActions(openEditor: (Editor) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         QuickAction(Icons.Outlined.MonitorWeight, stringResource(R.string.weight), Modifier.weight(1f)) {
             openEditor(Editor.Weight())
+        }
+        QuickAction(Icons.Outlined.Scale, stringResource(R.string.scale_short), Modifier.weight(1f)) {
+            openEditor(Editor.Scale)
         }
         QuickAction(Icons.Outlined.Healing, stringResource(R.string.side_effect), Modifier.weight(1f)) {
             openEditor(Editor.SideEffect())

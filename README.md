@@ -11,6 +11,8 @@ tirzépatide magistral ou tout autre médicament). Interface en français et en 
 - **Niveau estimé du médicament** : courbe pharmacocinétique (demi-vie + absorption) sur 14 à 180 jours, avec projection.
 - **Rotation des sites** : 6 sites (abdomen, cuisses, bras), dernier usage, nombre d'utilisations et site suggéré.
 - **Stylo** : suivi des doses restantes et alerte quand il est presque vide.
+- **Balance Bluetooth** : pesée directe avec les balances Renpho (QN, ES-CS20M), FITINDEX et toutes les balances au profil Bluetooth standard ; la balance est mémorisée, il suffit de monter dessus.
+- **Health Connect** : import automatique des pesées de Renpho, Withings, Eufy, Fitbit, Samsung Health, Google Fit…
 - **Poids** : graphique avec ligne d'objectif, poids de départ / actuel / visé, perte totale et en %, IMC, moyenne par semaine, tour de taille.
 - **Journal quotidien** : eau et protéines (objectifs), appétit / « food noise », humeur, notes.
 - **Effets secondaires** : 14 symptômes courants avec intensité, résumé des 30 derniers jours.
@@ -22,12 +24,12 @@ tirzépatide magistral ou tout autre médicament). Interface en français et en 
 
 ## Installer l'APK
 
-Chaque push compile l'application avec GitHub Actions :
+Chaque push compile l'application avec GitHub Actions et publie une **Release** :
 
-1. Onglet **Actions** du dépôt → dernière exécution « Android build » → artefact **GLP-1-Tracker-apk**.
-2. Décompresser le zip, ouvrir `GLP-1-Tracker.apk` sur le téléphone et autoriser l'installation depuis cette source.
+1. Sur le téléphone, ouvrir l'onglet **Releases** du dépôt (la plus récente est « Latest »).
+2. Télécharger `GLP-1-Tracker.apk`, l'ouvrir et autoriser l'installation depuis cette source.
 
-Pousser une étiquette `v1.0.0` publie aussi l'APK dans **Releases**.
+L'APK est aussi disponible dans l'onglet **Actions** (artefact **GLP-1-Tracker-apk**).
 
 ### Clé de signature (recommandé)
 
@@ -55,4 +57,5 @@ Android Studio (ou JDK 17 + SDK Android 35) :
 
 ## Technique
 
-Kotlin, Jetpack Compose (Material 3), Room, DataStore, AlarmManager. Aucune dépendance réseau, aucune publicité.
+Kotlin, Jetpack Compose (Material 3), Room, DataStore, AlarmManager, Bluetooth LE, Health Connect. Aucune connexion Internet, aucune publicité.
+Voir `CLAUDE.md` pour l'architecture et `docs/ROADMAP.md` pour la feuille de route.

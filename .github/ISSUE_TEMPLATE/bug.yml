@@ -1,0 +1,19 @@
+name: Bogue
+description: Quelque chose ne fonctionne pas
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Que s'est-il passé ?
+      description: Étapes pour reproduire, ce que vous attendiez, ce que vous avez vu.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version de l'app (Réglages → À propos)
+  - type: input
+    id: phone
+    attributes:
+      label: Téléphone et version d'Android

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rickdnamps.glp1tracker.domain.Medication
@@ -41,6 +42,10 @@ data class UserSettings(
     val penTrackingEnabled: Boolean = false,
     val penDosesTotal: Int = 4,
     val penDosesRemaining: Int = 4,
+    val scaleAddress: String = "",
+    val scaleName: String = "",
+    val healthConnectAutoImport: Boolean = false,
+    val healthConnectLastImport: Long = 0,
 ) {
     val reminderTime: LocalTime get() = LocalTime.of(reminderHour, reminderMinute)
 
@@ -78,6 +83,10 @@ class SettingsRepository(context: Context) {
         val penTrackingEnabled = booleanPreferencesKey("pen_tracking_enabled")
         val penDosesTotal = intPreferencesKey("pen_doses_total")
         val penDosesRemaining = intPreferencesKey("pen_doses_remaining")
+        val scaleAddress = stringPreferencesKey("scale_address")
+        val scaleName = stringPreferencesKey("scale_name")
+        val healthConnectAutoImport = booleanPreferencesKey("hc_auto_import")
+        val healthConnectLastImport = longPreferencesKey("hc_last_import")
     }
 
     val settings: Flow<UserSettings> = store.data.map(::read)
@@ -105,6 +114,10 @@ class SettingsRepository(context: Context) {
             penTrackingEnabled = p[Keys.penTrackingEnabled] ?: d.penTrackingEnabled,
             penDosesTotal = p[Keys.penDosesTotal] ?: d.penDosesTotal,
             penDosesRemaining = p[Keys.penDosesRemaining] ?: d.penDosesRemaining,
+            scaleAddress = p[Keys.scaleAddress] ?: d.scaleAddress,
+            scaleName = p[Keys.scaleName] ?: d.scaleName,
+            healthConnectAutoImport = p[Keys.healthConnectAutoImport] ?: d.healthConnectAutoImport,
+            healthConnectLastImport = p[Keys.healthConnectLastImport] ?: d.healthConnectLastImport,
         )
     }
 
@@ -135,5 +148,9 @@ class SettingsRepository(context: Context) {
         p[Keys.penTrackingEnabled] = s.penTrackingEnabled
         p[Keys.penDosesTotal] = s.penDosesTotal
         p[Keys.penDosesRemaining] = s.penDosesRemaining
+        p[Keys.scaleAddress] = s.scaleAddress
+        p[Keys.scaleName] = s.scaleName
+        p[Keys.healthConnectAutoImport] = s.healthConnectAutoImport
+        p[Keys.healthConnectLastImport] = s.healthConnectLastImport
     }
 }

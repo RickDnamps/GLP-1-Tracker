@@ -50,6 +50,7 @@ import com.rickdnamps.glp1tracker.ui.screens.InjectionsScreen
 import com.rickdnamps.glp1tracker.ui.screens.JournalScreen
 import com.rickdnamps.glp1tracker.ui.screens.OnboardingScreen
 import com.rickdnamps.glp1tracker.ui.screens.ProgressScreen
+import com.rickdnamps.glp1tracker.ui.screens.ScaleSheet
 import com.rickdnamps.glp1tracker.ui.screens.SettingsScreen
 import com.rickdnamps.glp1tracker.ui.screens.SideEffectEditor
 import com.rickdnamps.glp1tracker.ui.screens.WeightEditor
@@ -84,6 +85,15 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
 
     LaunchedEffect(Unit) {
         vm.messages.collect { snackbar.showSnackbar(context.getString(it)) }
+    }
+    LaunchedEffect(Unit) {
+        vm.importedCounts.collect { count ->
+            snackbar.showSnackbar(context.resources.getQuantityString(R.plurals.hc_imported, count, count))
+        }
+    }
+    // Pull new weights from Health Connect (Renpho, Withings, Fitbit…) when the app opens.
+    LaunchedEffect(Unit) {
+        if (state.settings.healthConnectAutoImport) vm.importFromHealthConnect(manual = false)
     }
 
     // Ask once for the notification permission needed by dose reminders (Android 13+).
@@ -137,9 +147,9 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
         NavHost(navController, startDestination = Tab.HOME.route) {
             composable(Tab.HOME.route) { HomeScreen(state, vm, padding, open) }
             composable(Tab.DOSES.route) { InjectionsScreen(state, padding, open) }
-            composable(Tab.PROGRESS.route) { ProgressScreen(state, padding, open) }
+            composable(Tab.PROGRESS.route) { ProgressScreen(state, padding, open) { vm.importFromHealthConnect(manual = true) } }
             composable(Tab.JOURNAL.route) { JournalScreen(state, vm, padding, open) }
-            composable(Tab.SETTINGS.route) { SettingsScreen(state, vm, padding) }
+            composable(Tab.SETTINGS.route) { SettingsScreen(state, vm, padding, onOpenScale = { editor = Editor.Scale }) }
         }
     }
 
@@ -162,6 +172,7 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
             onSave = { vm.saveWeight(it); close() },
             onDelete = { vm.deleteWeight(it); close() },
         )
+        Editor.Scale -> ScaleSheet(vm, state.settings, onDismiss = close)
         is Editor.SideEffect -> SideEffectEditor(
             item = e.item,
             onDismiss = close,

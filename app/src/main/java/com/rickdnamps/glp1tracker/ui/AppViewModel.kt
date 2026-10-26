@@ -39,7 +39,10 @@ data class UiState(
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = (application as Glp1App).repository
+    private val app = application as Glp1App
+    private val repository = app.repository
+    val scale = app.scaleManager
+    val healthConnect = app.healthConnect
 
     val state: StateFlow<UiState> = combine(
         repository.settings,
@@ -120,6 +123,37 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun reschedule() = launchAndReschedule {}
+
+    // --- Bluetooth scale ---
+    fun saveScaleWeight(kg: Double, address: String, name: String) = viewModelScope.launch {
+        repository.saveWeight(WeightEntity(timestamp = System.currentTimeMillis(), weightKg = kg, notes = name))
+        repository.settingsRepository.update { it.copy(scaleAddress = address, scaleName = name) }
+        message(R.string.msg_weight_saved)
+    }
+
+    fun forgetScale() = updateSettings { it.copy(scaleAddress = "", scaleName = "") }
+
+    // --- Health Connect ---
+    /** Imports new weights; [manual] shows a message even when nothing was found. */
+    fun importFromHealthConnect(manual: Boolean) = viewModelScope.launch {
+        runCatching {
+            if (!healthConnect.hasPermissions()) return@launch
+            val settings = repository.settingsRepository.current()
+            // First import looks back one year, then only since the last import (with a day of overlap).
+            val since = if (settings.healthConnectLastImport > 0) settings.healthConnectLastImport - 86_400_000L
+            else System.currentTimeMillis() - 365L * 86_400_000L
+            val news = healthConnect.newWeights(java.time.Instant.ofEpochMilli(since), repository.weightsSnapshot())
+            repository.addWeights(news)
+            repository.settingsRepository.update { it.copy(healthConnectLastImport = System.currentTimeMillis()) }
+            news.size
+        }.onSuccess { count ->
+            if (count > 0 || manual) _countMessages.tryEmit(count)
+        }.onFailure { if (manual) message(R.string.msg_hc_failed) }
+    }
+
+    private val _countMessages = MutableSharedFlow<Int>(extraBufferCapacity = 2)
+    /** Number of weights imported from Health Connect. */
+    val importedCounts: SharedFlow<Int> = _countMessages
 
     fun refillPen() = updateSettings { it.copy(penDosesRemaining = it.penDosesTotal) }
 

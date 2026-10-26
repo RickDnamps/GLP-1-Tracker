@@ -13,6 +13,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.Scale
+import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -41,7 +48,12 @@ import com.rickdnamps.glp1tracker.ui.weightText
 import kotlin.math.abs
 
 @Composable
-fun ProgressScreen(state: UiState, contentPadding: PaddingValues, openEditor: (Editor) -> Unit) {
+fun ProgressScreen(
+    state: UiState,
+    contentPadding: PaddingValues,
+    openEditor: (Editor) -> Unit,
+    onSyncHealthConnect: () -> Unit,
+) {
     val settings = state.settings
     val stats = weightStats(settings, state.weights)
     // Newest first for the list, each with the change since the previous entry.
@@ -56,6 +68,22 @@ fun ProgressScreen(state: UiState, contentPadding: PaddingValues, openEditor: (E
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                FilledTonalButton(onClick = { openEditor(Editor.Scale) }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Outlined.Scale, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.scale_weigh_me), maxLines = 1)
+                }
+                if (settings.healthConnectAutoImport) {
+                    OutlinedButton(onClick = onSyncHealthConnect) {
+                        Icon(Icons.Outlined.Sync, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.hc_short), maxLines = 1)
+                    }
+                }
+            }
+        }
         item {
             SectionCard(title = stringResource(R.string.summary), icon = Icons.Outlined.Insights) {
                 Row(Modifier.fillMaxWidth()) {

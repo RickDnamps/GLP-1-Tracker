@@ -63,6 +63,7 @@ sealed interface Editor {
     data class Injection(val item: InjectionEntity? = null) : Editor
     data class Weight(val item: WeightEntity? = null) : Editor
     data class SideEffect(val item: SideEffectEntity? = null) : Editor
+    data object Scale : Editor
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

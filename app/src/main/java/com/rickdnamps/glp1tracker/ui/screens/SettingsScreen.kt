@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocalDrink
+import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Save
@@ -32,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +48,7 @@ import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.WeightUnit
+import com.rickdnamps.glp1tracker.health.HealthConnect
 import com.rickdnamps.glp1tracker.notifications.Notifications
 import com.rickdnamps.glp1tracker.notifications.ReminderScheduler
 import com.rickdnamps.glp1tracker.ui.AppViewModel
@@ -63,6 +66,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private enum class SettingDialog {
     NAME, HEIGHT, START_WEIGHT, GOAL_WEIGHT, MEDICATION, DOSE, DOSE_CUSTOM, INTERVAL, INTERVAL_CUSTOM, DAY, TIME,
@@ -72,7 +76,7 @@ private enum class SettingDialog {
 private const val CUSTOM = -1.0
 
 @Composable
-fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValues) {
+fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValues, onOpenScale: () -> Unit) {
     val s = state.settings
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<SettingDialog?>(null) }
@@ -90,6 +94,16 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
         }
     }
     val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { canNotify = it }
+
+    val scope = rememberCoroutineScope()
+    val healthConnect = vm.healthConnect
+    val hcAvailable = remember { healthConnect.isAvailable() }
+    val hcPermission = rememberLauncherForActivityResult(HealthConnect.permissionContract()) { granted ->
+        if (granted.containsAll(healthConnect.permissions)) {
+            vm.updateSettings { it.copy(healthConnectAutoImport = true) }
+            vm.importFromHealthConnect(manual = true)
+        }
+    }
 
     val today = LocalDate.now()
     val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
@@ -182,6 +196,47 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
                     SettingRow(stringResource(R.string.doses_per_pen), s.penDosesTotal.toString()) { dialog = SettingDialog.PEN_TOTAL }
                     SettingRow(stringResource(R.string.doses_remaining), s.penDosesRemaining.toString()) { dialog = SettingDialog.PEN_REMAINING }
                 }
+            }
+        }
+        item {
+            SectionCard(title = stringResource(R.string.connections), icon = Icons.Outlined.MonitorHeart) {
+                SettingRow(stringResource(R.string.scale_title), s.scaleName.ifBlank { stringResource(R.string.none) }, onClick = onOpenScale)
+                if (s.scaleAddress.isNotBlank()) {
+                    SettingRow(stringResource(R.string.scale_forget, s.scaleName.ifBlank { s.scaleAddress }), null) { vm.forgetScale() }
+                }
+                if (hcAvailable) {
+                    SwitchRow(stringResource(R.string.hc_import), s.healthConnectAutoImport) { on ->
+                        if (!on) {
+                            vm.updateSettings { it.copy(healthConnectAutoImport = false) }
+                        } else {
+                            scope.launch {
+                                if (healthConnect.hasPermissions()) {
+                                    vm.updateSettings { it.copy(healthConnectAutoImport = true) }
+                                    vm.importFromHealthConnect(manual = true)
+                                } else {
+                                    hcPermission.launch(healthConnect.permissions)
+                                }
+                            }
+                        }
+                    }
+                    if (s.healthConnectAutoImport) {
+                        SettingRow(stringResource(R.string.hc_import_now), null) { vm.importFromHealthConnect(manual = true) }
+                    }
+                } else {
+                    SettingRow(stringResource(R.string.hc_unavailable), stringResource(R.string.install)) {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.apps.healthdata"))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                }
+                Text(
+                    stringResource(R.string.hc_help),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         item {

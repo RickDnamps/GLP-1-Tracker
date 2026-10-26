@@ -55,6 +55,10 @@ class TrackerRepository(
         db.weightDao().upsert(item)
     }
 
+    suspend fun weightsSnapshot(): List<WeightEntity> = db.weightDao().getAll()
+
+    suspend fun addWeights(items: List<WeightEntity>) = db.weightDao().insertAll(items)
+
     suspend fun deleteWeight(item: WeightEntity) = db.weightDao().delete(item)
 
     suspend fun saveSideEffect(item: SideEffectEntity) {
