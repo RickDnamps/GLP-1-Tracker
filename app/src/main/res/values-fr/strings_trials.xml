@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Carte de comparaison aux essais cliniques (Progrès) -->
+    <string name="trial_title">Où en suis-je par rapport aux études ?</string>
+    <string name="trial_arm">%1$s · %2$s %3$s mg</string>
+    <string name="trial_legend_you">Vous</string>
+    <string name="trial_legend_trial">Moyenne de %1$s</string>
+    <string name="trial_week_axis">S%1$d</string>
+    <string name="trial_chart_cd">Graphique de votre variation de poids en pourcentage depuis votre première dose, comparée à la moyenne de %1$s.</string>
+    <string name="trial_compare">Semaine %1$d : vous êtes à %2$s contre ≈ %3$s en moyenne dans %4$s</string>
+    <string name="trial_compare_end">Semaine %1$d : vous êtes à %2$s contre ≈ %3$s à la fin de %4$s (semaine %5$d)</string>
+    <string name="trial_sentence">%1$s — %2$s</string>
+    <string name="trial_verdict_ahead">en avance sur la moyenne de l\'étude 🎉</string>
+    <string name="trial_verdict_on_par">pile dans la moyenne de l\'étude 👏</string>
+    <string name="trial_verdict_behind">chacun réagit différemment ; la moyenne de l\'essai cache de grands écarts 💪</string>
+    <string name="trial_behind_note">Certaines personnes répondent plus tard ou moins fort, et c\'est normal. Ce sont vos propres progrès qui comptent.</string>
+    <string name="trial_no_trial">Aucune courbe d\'essai publiée n\'est encore incluse pour ce médicament.</string>
+    <string name="trial_no_doses">Notez votre première dose : la semaine 0 de la comparaison commence à ce moment-là.</string>
+    <string name="trial_no_baseline">Ajoutez votre poids de départ dans les Réglages pour vous comparer à l\'étude.</string>
+    <string name="trial_no_weights">Pesez-vous pour vous comparer à la moyenne de l\'étude.</string>
+    <string name="trial_too_early">Trop tôt pour comparer : revenez après la semaine 2. Les premiers jours reflètent surtout l\'eau et les variations de la balance.</string>
+    <string name="trial_source">Source : %1$s (%2$s). Valeurs approximatives tirées de la publication.</string>
+    <string name="trial_placebo">Placebo : ≈ %1$s à la semaine %2$d.</string>
+    <string name="trial_diabetes_note">Cet essai portait sur des personnes atteintes de diabète de type 2, qui perdent en général moins de poids.</string>
+    <string name="trial_disclaimer">Moyenne d\'un groupe dans des conditions d\'essai (programme de mode de vie, doses du protocole). Les résultats individuels varient beaucoup. Ni un objectif ni un avis médical.</string>
+
+    <!-- Carte du bilan de la semaine (Accueil) -->
+    <string name="recap_title">Votre semaine</string>
+    <string name="recap_range">%1$s – %2$s</string>
+    <string name="recap_empty">Notez une dose, une pesée ou votre eau cette semaine et votre bilan apparaîtra ici.</string>
+    <string name="recap_share">Partager ma semaine</string>
+    <string name="recap_share_chooser">Partager votre semaine</string>
+    <string name="recap_share_header">Ma semaine (%1$s) :</string>
+    <string name="recap_share_footer">Noté avec %1$s</string>
+    <string name="recap_days_cd">Jours notés cette semaine : %1$d sur 7</string>
+    <string name="recap_last_week">Semaine dernière : %1$s</string>
+    <plurals name="recap_last_week_days">
+        <item quantity="one">Semaine dernière : %1$d jour</item>
+        <item quantity="many">Semaine dernière : %1$d jours</item>
+        <item quantity="other">Semaine dernière : %1$d jours</item>
+    </plurals>
+
+    <string name="recap_weight_lost">Poids tendance : %1$s cette semaine</string>
+    <string name="recap_weight_stable">Poids tendance stable (%1$s). Les plateaux font partie du parcours.</string>
+    <string name="recap_weight_gained">Poids tendance : %1$s cette semaine. Les hauts et les bas sont normaux, regardez le long terme.</string>
+
+    <plurals name="recap_doses_all">
+        <item quantity="one">%1$d dose prise comme prévu</item>
+        <item quantity="many">Les %1$d doses prises comme prévu</item>
+        <item quantity="other">Les %1$d doses prises comme prévu</item>
+    </plurals>
+    <string name="recap_doses_missed">Doses notées cette semaine : %1$d sur %2$d</string>
+    <string name="recap_doses_missed_note">Une dose oubliée ? La monographie indique quoi faire, et votre pharmacien peut vous aider.</string>
+
+    <string name="recap_no_side_effects">Aucun effet secondaire noté cette semaine, contre %1$d la semaine dernière</string>
+    <plurals name="recap_fewer_side_effects">
+        <item quantity="one">%1$d effet secondaire noté, moins que la semaine dernière (%2$d)</item>
+        <item quantity="many">%1$d effets secondaires notés, moins que la semaine dernière (%2$d)</item>
+        <item quantity="other">%1$d effets secondaires notés, moins que la semaine dernière (%2$d)</item>
+    </plurals>
+    <plurals name="recap_more_side_effects">
+        <item quantity="one">%1$d effet secondaire noté (%2$d la semaine dernière)</item>
+        <item quantity="many">%1$d effets secondaires notés (%2$d la semaine dernière)</item>
+        <item quantity="other">%1$d effets secondaires notés (%2$d la semaine dernière)</item>
+    </plurals>
+    <plurals name="recap_same_side_effects">
+        <item quantity="one">%1$d effet secondaire noté, comme la semaine dernière</item>
+        <item quantity="many">%1$d effets secondaires notés, comme la semaine dernière</item>
+        <item quantity="other">%1$d effets secondaires notés, comme la semaine dernière</item>
+    </plurals>
+    <plurals name="recap_top_side_effect">
+        <item quantity="one">Le plus fréquent : %1$s (%2$d épisode)</item>
+        <item quantity="many">Le plus fréquent : %1$s (%2$d épisodes)</item>
+        <item quantity="other">Le plus fréquent : %1$s (%2$d épisodes)</item>
+    </plurals>
+    <string name="recap_side_effects_care">Souvent passagers après un changement de dose. Sévères ou persistants ? Parlez-en à votre professionnel de la santé.</string>
+
+    <plurals name="recap_water_goal">
+        <item quantity="one">Objectif d\'eau atteint %1$d jour sur 7 (moyenne %2$s)</item>
+        <item quantity="many">Objectif d\'eau atteint %1$d jours sur 7 (moyenne %2$s)</item>
+        <item quantity="other">Objectif d\'eau atteint %1$d jours sur 7 (moyenne %2$s)</item>
+    </plurals>
+    <string name="recap_water_below">Eau : %1$s par jour en moyenne, objectif %2$s</string>
+    <plurals name="recap_protein_goal">
+        <item quantity="one">Objectif de protéines atteint %1$d jour sur 7 (moyenne %2$s)</item>
+        <item quantity="many">Objectif de protéines atteint %1$d jours sur 7 (moyenne %2$s)</item>
+        <item quantity="other">Objectif de protéines atteint %1$d jours sur 7 (moyenne %2$s)</item>
+    </plurals>
+    <string name="recap_protein_below">Protéines : %1$s par jour en moyenne, objectif %2$s</string>
+
+    <plurals name="recap_streak_water">
+        <item quantity="one">%1$d jour de suite à votre objectif d\'eau</item>
+        <item quantity="many">%1$d jours de suite à votre objectif d\'eau</item>
+        <item quantity="other">%1$d jours de suite à votre objectif d\'eau</item>
+    </plurals>
+    <plurals name="recap_streak_protein">
+        <item quantity="one">%1$d jour de suite à votre objectif de protéines</item>
+        <item quantity="many">%1$d jours de suite à votre objectif de protéines</item>
+        <item quantity="other">%1$d jours de suite à votre objectif de protéines</item>
+    </plurals>
+    <plurals name="recap_streak_journal">
+        <item quantity="one">%1$d jour de suite dans votre journal</item>
+        <item quantity="many">%1$d jours de suite dans votre journal</item>
+        <item quantity="other">%1$d jours de suite dans votre journal</item>
+    </plurals>
+    <plurals name="recap_journal">
+        <item quantity="one">Journal rempli %1$d jour</item>
+        <item quantity="many">Journal rempli %1$d jours</item>
+        <item quantity="other">Journal rempli %1$d jours</item>
+    </plurals>
+</resources>

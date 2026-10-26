@@ -63,6 +63,7 @@ import com.rickdnamps.glp1tracker.data.DailyLogEntity
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Pharmacokinetics
+import com.rickdnamps.glp1tracker.domain.WeeklyRecaps
 import com.rickdnamps.glp1tracker.ui.AppViewModel
 import com.rickdnamps.glp1tracker.ui.UiState
 import com.rickdnamps.glp1tracker.ui.components.LineChart
@@ -103,6 +104,9 @@ fun HomeScreen(
                 onLog = { openEditor(Editor.Injection()) },
                 onSkip = { vm.skipDose(it) },
             )
+        }
+        if (WeeklyRecaps.isRecapDay(LocalDate.now())) {
+            item { WeeklyRecapCard(state) }
         }
         if (settings.titrationEnabled) {
             item { TitrationCard(settings, onApplyDose = { vm.applyPlannedDose(it) }, onEdit = { openEditor(Editor.Titration) }) }

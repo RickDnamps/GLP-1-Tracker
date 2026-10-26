@@ -124,6 +124,7 @@ fun ProgressScreen(
             val rate = remember(points) { GoalForecast.weeklyRateKg(points, now) }
             MilestonesCard(progress, forecast, rate, settings)
         }
+        item { TrialComparisonCard(state) }
         item { WeightChartCard(state.weights, settings, stats.goalKg, doseChanges(state)) }
         item { BodyCompositionCard(state.weights, settings) }
         item { MeasurementsCard(state.measurements, settings, openEditor) }

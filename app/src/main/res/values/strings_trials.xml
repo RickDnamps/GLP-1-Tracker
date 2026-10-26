@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Clinical-trial comparison card (Progress) -->
+    <string name="trial_title">Where am I vs the studies?</string>
+    <string name="trial_arm">%1$s · %2$s %3$s mg</string>
+    <string name="trial_legend_you">You</string>
+    <string name="trial_legend_trial">%1$s average</string>
+    <string name="trial_week_axis">W%1$d</string>
+    <string name="trial_chart_cd">Chart of your weight change in percent since your first dose, compared with the %1$s average.</string>
+    <string name="trial_compare">Week %1$d: you\'re at %2$s vs ≈ %3$s on average in %4$s</string>
+    <string name="trial_compare_end">Week %1$d: you\'re at %2$s vs ≈ %3$s at the end of %4$s (week %5$d)</string>
+    <string name="trial_sentence">%1$s — %2$s</string>
+    <string name="trial_verdict_ahead">ahead of the study average 🎉</string>
+    <string name="trial_verdict_on_par">right in line with the study average 👏</string>
+    <string name="trial_verdict_behind">everyone responds differently; the trial average hides a wide range 💪</string>
+    <string name="trial_behind_note">Some people respond later or less, and that\'s normal. Your own progress is what counts.</string>
+    <string name="trial_no_trial">No published trial curve is included for this medication yet.</string>
+    <string name="trial_no_doses">Log your first dose: week 0 of the comparison starts then.</string>
+    <string name="trial_no_baseline">Add your start weight in Settings to compare with the study.</string>
+    <string name="trial_no_weights">Weigh yourself to see how you compare with the study average.</string>
+    <string name="trial_too_early">Too early to compare: check back after week 2. The first days mostly show water and scale noise.</string>
+    <string name="trial_source">Source: %1$s (%2$s). Approximate values read from the publication.</string>
+    <string name="trial_placebo">Placebo: ≈ %1$s at week %2$d.</string>
+    <string name="trial_diabetes_note">This trial included people with type 2 diabetes, who usually lose less weight.</string>
+    <string name="trial_disclaimer">Mean of a group under trial conditions (lifestyle programme, protocol doses). Individual results vary widely. Not a target or medical advice.</string>
+
+    <!-- Weekly recap card (Home) -->
+    <string name="recap_title">Your week</string>
+    <string name="recap_range">%1$s – %2$s</string>
+    <string name="recap_empty">Log a dose, a weigh-in or your water this week and your recap will show up here.</string>
+    <string name="recap_share">Share my week</string>
+    <string name="recap_share_chooser">Share your week</string>
+    <string name="recap_share_header">My week (%1$s):</string>
+    <string name="recap_share_footer">Logged with %1$s</string>
+    <string name="recap_days_cd">Days logged this week: %1$d of 7</string>
+    <string name="recap_last_week">Last week: %1$s</string>
+    <plurals name="recap_last_week_days">
+        <item quantity="one">Last week: %1$d day</item>
+        <item quantity="other">Last week: %1$d days</item>
+    </plurals>
+
+    <string name="recap_weight_lost">Trend weight: %1$s this week</string>
+    <string name="recap_weight_stable">Trend weight stable (%1$s). Plateaus are part of the journey.</string>
+    <string name="recap_weight_gained">Trend weight: %1$s this week. Ups and downs are normal, look at the long run.</string>
+
+    <plurals name="recap_doses_all">
+        <item quantity="one">%1$d dose taken as planned</item>
+        <item quantity="other">All %1$d doses taken as planned</item>
+    </plurals>
+    <string name="recap_doses_missed">Doses logged this week: %1$d of %2$d</string>
+    <string name="recap_doses_missed_note">Missed one? The product leaflet says what to do, and your pharmacist can help.</string>
+
+    <string name="recap_no_side_effects">No side effects logged this week, down from %1$d last week</string>
+    <plurals name="recap_fewer_side_effects">
+        <item quantity="one">%1$d side effect logged, fewer than last week (%2$d)</item>
+        <item quantity="other">%1$d side effects logged, fewer than last week (%2$d)</item>
+    </plurals>
+    <plurals name="recap_more_side_effects">
+        <item quantity="one">%1$d side effect logged (%2$d last week)</item>
+        <item quantity="other">%1$d side effects logged (%2$d last week)</item>
+    </plurals>
+    <plurals name="recap_same_side_effects">
+        <item quantity="one">%1$d side effect logged, same as last week</item>
+        <item quantity="other">%1$d side effects logged, same as last week</item>
+    </plurals>
+    <plurals name="recap_top_side_effect">
+        <item quantity="one">Most often: %1$s (%2$d episode)</item>
+        <item quantity="other">Most often: %1$s (%2$d episodes)</item>
+    </plurals>
+    <string name="recap_side_effects_care">Often temporary after a dose change. Severe or lasting? Talk to your health professional.</string>
+
+    <plurals name="recap_water_goal">
+        <item quantity="one">Water goal reached on %1$d day out of 7 (average %2$s)</item>
+        <item quantity="other">Water goal reached on %1$d days out of 7 (average %2$s)</item>
+    </plurals>
+    <string name="recap_water_below">Water: %1$s a day on average, goal %2$s</string>
+    <plurals name="recap_protein_goal">
+        <item quantity="one">Protein goal reached on %1$d day out of 7 (average %2$s)</item>
+        <item quantity="other">Protein goal reached on %1$d days out of 7 (average %2$s)</item>
+    </plurals>
+    <string name="recap_protein_below">Protein: %1$s a day on average, goal %2$s</string>
+
+    <plurals name="recap_streak_water">
+        <item quantity="one">%1$d day in a row at your water goal</item>
+        <item quantity="other">%1$d days in a row at your water goal</item>
+    </plurals>
+    <plurals name="recap_streak_protein">
+        <item quantity="one">%1$d day in a row at your protein goal</item>
+        <item quantity="other">%1$d days in a row at your protein goal</item>
+    </plurals>
+    <plurals name="recap_streak_journal">
+        <item quantity="one">%1$d day in a row in your journal</item>
+        <item quantity="other">%1$d days in a row in your journal</item>
+    </plurals>
+    <plurals name="recap_journal">
+        <item quantity="one">Journal filled in on %1$d day</item>
+        <item quantity="other">Journal filled in on %1$d days</item>
+    </plurals>
+</resources>

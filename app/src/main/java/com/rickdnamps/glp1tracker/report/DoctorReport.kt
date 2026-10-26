@@ -1,5 +1,8 @@
 package com.rickdnamps.glp1tracker.report
 
+import com.rickdnamps.glp1tracker.data.composition
+import com.rickdnamps.glp1tracker.domain.BodyCompositionMath
+import com.rickdnamps.glp1tracker.domain.CompMetric
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Canvas
@@ -260,11 +263,38 @@ private class ReportBuilder(
             layout.block(CHART_HEIGHT) { canvas, top -> WeightChart.draw(canvas, chartLeft, top, chartWidth, CHART_HEIGHT, data) }
         }
 
+        compositionBlock()
+
         layout.subTitle(string(R.string.report_weight_entries))
         layout.compactGrid(
             string(R.string.report_col_date) to string(R.string.report_weight_col, unitSymbol),
             weights.map { format.date(it.timestamp) to format.oneDecimal(unit.fromKg(it.weightKg)) },
         )
+    }
+
+    /** Body composition (fat, muscle, water, visceral fat…) when the scale or Health Connect provided it. */
+    private fun compositionBlock() {
+        val withComp = weights.filter { !it.composition.isEmpty }
+        if (withComp.isEmpty()) return
+        layout.subTitle(string(R.string.comp_title), keepWithNext = 70f)
+        val first = withComp.first()
+        val last = withComp.last()
+        val cards = CompMetric.entries.mapNotNull { m ->
+            val v = m.read(last.composition, last.weightKg) ?: return@mapNotNull null
+            val start = m.read(first.composition, first.weightKg)
+            val unitText = if (m.unit.isEmpty()) "" else " " + m.unit
+            val value = format.compact(v) + unitText
+            val caption = if (start != null && withComp.size > 1) signed(v - start, format::compact) + unitText else null
+            Stat(string(m.nameRes), value, caption)
+        }.take(6)
+        layout.statCards(cards, perRow = 3)
+        val f0 = withComp.firstOrNull { it.bodyFatPct != null }
+        val f1 = withComp.lastOrNull { it.bodyFatPct != null }
+        if (f0 != null && f1 != null && f0 !== f1) {
+            BodyCompositionMath.lossSplit(f0.weightKg, f0.bodyFatPct!!, f1.weightKg, f1.bodyFatPct!!)?.let { split ->
+                layout.paragraph(string(R.string.comp_split, weightText(split.totalKg), (split.fatShare * 100).toInt()), ReportStyle.body)
+            }
+        }
     }
 
     private fun dosesSection() {
