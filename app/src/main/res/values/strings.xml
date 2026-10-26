@@ -345,6 +345,7 @@
     <string name="lock_unlock">Unlock</string>
     <string name="of_goal">of goal</string>
     <string name="water_of_goal">of %1$d ml today</string>
+    <string name="free_forever">100 % free · no account · no ads</string>
     <plurals name="ring_days">
         <item quantity="one">day</item>
         <item quantity="other">days</item>

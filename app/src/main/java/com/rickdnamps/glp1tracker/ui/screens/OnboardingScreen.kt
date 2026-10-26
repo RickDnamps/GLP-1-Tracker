@@ -1,6 +1,11 @@
 package com.rickdnamps.glp1tracker.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.graphics.Color
+import com.rickdnamps.glp1tracker.ui.components.HeroCard
+import com.rickdnamps.glp1tracker.ui.components.Pill
+import com.rickdnamps.glp1tracker.ui.components.topGlow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -81,6 +86,7 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
 
     val steps = 3
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+      Box(Modifier.fillMaxSize().topGlow(MaterialTheme.colorScheme.primary)) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -98,15 +104,19 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
             ) {
                 when (step) {
                     0 -> {
-                        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer) {
-                            Icon(
-                                Icons.Outlined.Vaccines, null,
-                                modifier = Modifier.padding(18.dp).size(48.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        HeroCard {
+                            Icon(Icons.Outlined.Vaccines, null, modifier = Modifier.size(56.dp), tint = Color.White)
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                stringResource(R.string.welcome_title),
+                                style = MaterialTheme.typography.displaySmall,
+                                color = Color.White,
                             )
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.welcome_text), style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.9f))
+                            Spacer(Modifier.height(10.dp))
+                            Pill(stringResource(R.string.free_forever))
                         }
-                        Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                        Text(stringResource(R.string.welcome_text), style = MaterialTheme.typography.bodyLarge)
                         listOf(
                             R.string.feature_doses, R.string.feature_level, R.string.feature_sites, R.string.feature_weight,
                             R.string.feature_side_effects, R.string.feature_private,
@@ -224,6 +234,7 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
                 ) { Text(stringResource(if (step < steps - 1) R.string.next else R.string.start_tracking)) }
             }
         }
+      }
     }
 
     if (chooseMed) {

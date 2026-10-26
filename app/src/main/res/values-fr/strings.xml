@@ -345,6 +345,7 @@
     <string name="lock_unlock">Déverrouiller</string>
     <string name="of_goal">de l\'objectif</string>
     <string name="water_of_goal">sur %1$d ml aujourd\'hui</string>
+    <string name="free_forever">100 % gratuit · sans compte · sans pub</string>
     <plurals name="ring_days">
         <item quantity="one">jour</item>
         <item quantity="many">jours</item>
