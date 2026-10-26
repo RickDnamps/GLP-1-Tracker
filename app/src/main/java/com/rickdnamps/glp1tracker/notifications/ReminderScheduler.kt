@@ -97,6 +97,21 @@ object ReminderScheduler {
         }
     }
 
+    /** Re-posts the dose reminder in one hour ("Later" button). */
+    fun snooze(context: Context, minutes: Long = 60) {
+        val am = context.getSystemService(AlarmManager::class.java)
+        val pi = PendingIntent.getBroadcast(
+            context, 99,
+            Intent(context, ReminderReceiver::class.java)
+                .setAction(ReminderReceiver.ACTION_REMIND)
+                .putExtra(ReminderReceiver.EXTRA_TYPE, ReminderType.DOSE.name),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val at = System.currentTimeMillis() + minutes * 60_000
+        if (canScheduleExact(context)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+        else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+    }
+
     /** True if a dose is due today or overdue (the alarm may fire slightly early or late). */
     suspend fun isDoseDue(repository: TrackerRepository): Boolean {
         val settings = repository.settingsRepository.current()

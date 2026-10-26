@@ -80,6 +80,14 @@ object Notifications {
             .setContentIntent(open)
             .setAutoCancel(true)
             .addAction(0, context.getString(R.string.notif_action_done), done)
+            .addAction(
+                0, context.getString(R.string.notif_action_snooze),
+                PendingIntent.getBroadcast(
+                    context, 2,
+                    Intent(context, ReminderReceiver::class.java).setAction(ReminderReceiver.ACTION_SNOOZE),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
+            )
             .build()
         try {
             NotificationManagerCompat.from(context).notify(ID_DOSE, notification)

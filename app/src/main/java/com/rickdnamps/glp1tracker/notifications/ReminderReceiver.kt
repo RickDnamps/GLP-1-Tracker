@@ -45,6 +45,10 @@ class ReminderReceiver : BroadcastReceiver() {
                 ReminderScheduler.reschedule(context, repository)
                 app.onDataChanged()
             }
+            ACTION_SNOOZE -> runAsync {
+                Notifications.cancelDoseReminder(context)
+                ReminderScheduler.snooze(context)
+            }
             ACTION_MARK_DONE -> runAsync {
                 // Remove the button first so a double tap cannot fire twice, then log only if still due.
                 Notifications.cancelDoseReminder(context)
@@ -107,6 +111,7 @@ class ReminderReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_REMIND = "com.rickdnamps.glp1tracker.action.REMIND"
         const val ACTION_MARK_DONE = "com.rickdnamps.glp1tracker.action.MARK_DONE"
+        const val ACTION_SNOOZE = "com.rickdnamps.glp1tracker.action.SNOOZE"
         const val EXTRA_TYPE = "type"
     }
 }

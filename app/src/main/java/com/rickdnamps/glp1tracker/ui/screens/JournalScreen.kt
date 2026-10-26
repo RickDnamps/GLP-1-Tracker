@@ -227,6 +227,50 @@ private fun FeelingCard(log: DailyLogEntity, date: LocalDate, vm: AppViewModel) 
                 )
             }
         }
+        LevelRow(stringResource(R.string.energy), log.energy, listOf("🪫", "😴", "🙂", "⚡", "🚀")) { v ->
+            vm.updateDailyLog(date) { it.copy(energy = if (it.energy == v) 0 else v) }
+        }
+        LevelRow(stringResource(R.string.sleep_quality), log.sleep, listOf("😫", "🥱", "😐", "😌", "😴")) { v ->
+            vm.updateDailyLog(date) { it.copy(sleep = if (it.sleep == v) 0 else v) }
+        }
+        LevelRow(stringResource(R.string.food_noise), log.foodNoise, listOf("🤫", "🔈", "🔉", "🔊", "📢")) { v ->
+            vm.updateDailyLog(date) { it.copy(foodNoise = if (it.foodNoise == v) 0 else v) }
+        }
+        Text(stringResource(R.string.bowel_movements), style = MaterialTheme.typography.labelLarge)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = { vm.updateDailyLog(date) { it.copy(bowel = (it.bowel - 1).coerceAtLeast(-1)) } },
+                contentPadding = PaddingValues(horizontal = 12.dp),
+            ) { Text("−") }
+            Text(
+                if (log.bowel < 0) "—" else log.bowel.toString(),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            OutlinedButton(
+                onClick = { vm.updateDailyLog(date) { it.copy(bowel = (it.bowel.coerceAtLeast(0)) + 1) } },
+                contentPadding = PaddingValues(horizontal = 12.dp),
+            ) { Text("+") }
+            Text(
+                stringResource(R.string.bowel_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(stringResource(R.string.activity), style = MaterialTheme.typography.labelLarge)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(15, 30, 45, 60).forEach { min ->
+                FilterChip(
+                    selected = log.exerciseMin == min,
+                    onClick = { vm.updateDailyLog(date) { it.copy(exerciseMin = if (it.exerciseMin == min) 0 else min) } },
+                    label = { Text(stringResource(R.string.minutes_short, min)) },
+                )
+            }
+            FilterChip(
+                selected = log.strength,
+                onClick = { vm.updateDailyLog(date) { it.copy(strength = !it.strength) } },
+                label = { Text("💪 " + stringResource(R.string.strength_training)) },
+            )
+        }
         OutlinedTextField(
             value = notes,
             onValueChange = { text ->
@@ -291,6 +335,22 @@ private fun SideEffectSummaryCard(sideEffects: List<SideEffectEntity>) {
                 )
                 Text(count.toString(), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End, modifier = Modifier.weight(0.1f))
             }
+        }
+    }
+}
+
+/** A 1–5 scale shown as emoji chips; tapping the selected one clears it. */
+@Composable
+private fun LevelRow(label: String, value: Int, emojis: List<String>, onSet: (Int) -> Unit) {
+    Text(label, style = MaterialTheme.typography.labelLarge)
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        emojis.forEachIndexed { i, emoji ->
+            val level = i + 1
+            FilterChip(
+                selected = value == level,
+                onClick = { onSet(level) },
+                label = { Text(emoji, style = MaterialTheme.typography.titleLarge) },
+            )
         }
     }
 }

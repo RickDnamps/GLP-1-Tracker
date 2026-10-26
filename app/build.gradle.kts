@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+    implementation(libs.androidx.exifinterface)
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

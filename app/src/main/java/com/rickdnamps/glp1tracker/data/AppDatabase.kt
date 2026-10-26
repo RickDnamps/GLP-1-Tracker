@@ -10,9 +10,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [
         InjectionEntity::class, WeightEntity::class, SideEffectEntity::class, DailyLogEntity::class,
-        MeasurementEntity::class, FoodEntity::class,
+        MeasurementEntity::class, FoodEntity::class, PhotoEntity::class, VitalEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,6 +22,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dailyLogDao(): DailyLogDao
     abstract fun measurementDao(): MeasurementDao
     abstract fun foodDao(): FoodDao
+    abstract fun photoDao(): PhotoDao
+    abstract fun vitalDao(): VitalDao
 
     companion object {
         /** v2: body measurements and food log. Waist values move from weights to measurements. */
@@ -44,9 +46,31 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v3: richer daily journal, progress photos, vitals & labs. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "`energy` INTEGER NOT NULL DEFAULT 0",
+                    "`sleep` INTEGER NOT NULL DEFAULT 0",
+                    "`foodNoise` INTEGER NOT NULL DEFAULT 0",
+                    "`bowel` INTEGER NOT NULL DEFAULT -1",
+                    "`exerciseMin` INTEGER NOT NULL DEFAULT 0",
+                    "`strength` INTEGER NOT NULL DEFAULT 0",
+                ).forEach { db.execSQL("ALTER TABLE `daily_logs` ADD COLUMN $it") }
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `photos` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`timestamp` INTEGER NOT NULL, `fileName` TEXT NOT NULL, `pose` TEXT NOT NULL, `notes` TEXT NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `vitals` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`timestamp` INTEGER NOT NULL, `type` TEXT NOT NULL, `value` REAL NOT NULL, `value2` REAL, `notes` TEXT NOT NULL)"
+                )
+            }
+        }
+
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "glp1tracker.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

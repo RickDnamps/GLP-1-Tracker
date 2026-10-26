@@ -20,9 +20,10 @@ object Backup {
         val dailyLogs: List<DailyLogEntity>,
         val measurements: List<MeasurementEntity> = emptyList(),
         val foods: List<FoodEntity> = emptyList(),
+        val vitals: List<VitalEntity> = emptyList(),
     )
 
-    private const val FORMAT_VERSION = 2
+    private const val FORMAT_VERSION = 3
 
     fun toJson(s: Snapshot): String {
         val root = JSONObject()
@@ -51,7 +52,9 @@ object Backup {
         root.put("dailyLogs", JSONArray().apply {
             s.dailyLogs.forEach {
                 put(JSONObject().put("date", it.date).put("waterMl", it.waterMl).put("proteinG", it.proteinG)
-                    .put("appetite", it.appetite).put("mood", it.mood).put("notes", it.notes))
+                    .put("appetite", it.appetite).put("mood", it.mood).put("notes", it.notes)
+                    .put("energy", it.energy).put("sleep", it.sleep).put("foodNoise", it.foodNoise)
+                    .put("bowel", it.bowel).put("exerciseMin", it.exerciseMin).put("strength", it.strength))
             }
         })
         root.put("measurements", JSONArray().apply {
@@ -68,6 +71,12 @@ object Backup {
                 put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("name", it.name)
                     .put("calories", it.calories).put("proteinG", it.proteinG).put("fiberG", it.fiberG)
                     .put("favorite", it.favorite))
+            }
+        })
+        root.put("vitals", JSONArray().apply {
+            s.vitals.forEach {
+                put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("type", it.type)
+                    .put("value", it.value).put("value2", it.value2 ?: JSONObject.NULL).put("notes", it.notes))
             }
         })
         return root.toString(2)
@@ -115,6 +124,12 @@ object Backup {
                     appetite = it.optInt("appetite"),
                     mood = it.optInt("mood"),
                     notes = it.optString("notes"),
+                    energy = it.optInt("energy"),
+                    sleep = it.optInt("sleep"),
+                    foodNoise = it.optInt("foodNoise"),
+                    bowel = it.optInt("bowel", -1),
+                    exerciseMin = it.optInt("exerciseMin"),
+                    strength = it.optBoolean("strength"),
                 )
             },
             measurements = root.optJSONArray("measurements").objects().map {
@@ -127,6 +142,16 @@ object Backup {
                     armCm = it.optNullableDouble("armCm"),
                     thighCm = it.optNullableDouble("thighCm"),
                     neckCm = it.optNullableDouble("neckCm"),
+                    notes = it.optString("notes"),
+                )
+            },
+            vitals = root.optJSONArray("vitals").objects().map {
+                VitalEntity(
+                    id = it.optLong("id"),
+                    timestamp = it.getLong("timestamp"),
+                    type = it.optString("type"),
+                    value = it.optDouble("value", 0.0),
+                    value2 = it.optNullableDouble("value2"),
                     notes = it.optString("notes"),
                 )
             },
@@ -290,11 +315,19 @@ object Backup {
             appendLine(listOf(csvTime(it.timestamp), csv(it.name), it.calories.toString(), cm(it.proteinG), cm(it.fiberG)).joinToString(","))
         }
         appendLine()
+        appendLine("# Vitals and labs")
+        appendLine("date,type,value,value2,notes")
+        s.vitals.sortedBy { it.timestamp }.forEach {
+            appendLine(listOf(csvTime(it.timestamp), it.type, it.value.toString(), it.value2?.toString() ?: "", csv(it.notes)).joinToString(","))
+        }
+        appendLine()
         appendLine("# Daily log")
-        appendLine("date,water_ml,protein_g,appetite_1_to_5,mood_1_to_5,notes")
+        appendLine("date,water_ml,protein_g,appetite_1_to_5,mood_1_to_5,energy_1_to_5,sleep_1_to_5,food_noise_1_to_5,bowel_movements,exercise_min,strength,notes")
         s.dailyLogs.sortedBy { it.date }.forEach {
             appendLine(listOf(it.date, it.waterMl.toString(), it.proteinG.toString(), it.appetite.toString(),
-                it.mood.toString(), csv(it.notes)).joinToString(","))
+                it.mood.toString(), it.energy.toString(), it.sleep.toString(), it.foodNoise.toString(),
+                if (it.bowel < 0) "" else it.bowel.toString(), it.exerciseMin.toString(), it.strength.toString(),
+                csv(it.notes)).joinToString(","))
         }
     }
 }

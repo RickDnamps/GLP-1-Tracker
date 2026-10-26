@@ -11,6 +11,9 @@ import com.rickdnamps.glp1tracker.data.AutoBackup
 import com.rickdnamps.glp1tracker.data.Backup
 import com.rickdnamps.glp1tracker.data.FoodEntity
 import com.rickdnamps.glp1tracker.data.MeasurementEntity
+import com.rickdnamps.glp1tracker.data.PhotoEntity
+import com.rickdnamps.glp1tracker.data.PhotoStore
+import com.rickdnamps.glp1tracker.data.VitalEntity
 import com.rickdnamps.glp1tracker.data.DailyLogEntity
 import com.rickdnamps.glp1tracker.data.InjectionEntity
 import com.rickdnamps.glp1tracker.data.SideEffectEntity
@@ -42,6 +45,8 @@ data class UiState(
     val dailyLogs: List<DailyLogEntity> = emptyList(),
     val measurements: List<MeasurementEntity> = emptyList(),
     val foods: List<FoodEntity> = emptyList(),
+    val photos: List<PhotoEntity> = emptyList(),
+    val vitals: List<VitalEntity> = emptyList(),
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -63,8 +68,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         },
         repository.measurements,
         repository.foods,
-    ) { core, measurements, foods ->
-        core.copy(measurements = measurements, foods = foods)
+        repository.photos,
+        repository.vitals,
+    ) { core, measurements, foods, photos, vitals ->
+        core.copy(measurements = measurements, foods = foods, photos = photos, vitals = vitals)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     init {
@@ -210,6 +217,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteFood(item: FoodEntity) = viewModelScope.launch {
         repository.deleteFood(item)
+        message(R.string.msg_deleted)
+    }
+
+    // --- Photos & vitals ---
+    fun savePhoto(item: PhotoEntity) = viewModelScope.launch { repository.savePhoto(item) }
+
+    /** Deletes the row and its image file. */
+    fun deletePhoto(item: PhotoEntity) = viewModelScope.launch {
+        repository.deletePhoto(item)
+        withContext(Dispatchers.IO) { PhotoStore.file(getApplication(), item.fileName).delete() }
+        message(R.string.msg_deleted)
+    }
+
+    fun saveVital(item: VitalEntity) = viewModelScope.launch {
+        repository.saveVital(item)
+        message(R.string.msg_vital_saved)
+    }
+
+    fun deleteVital(item: VitalEntity) = viewModelScope.launch {
+        repository.deleteVital(item)
         message(R.string.msg_deleted)
     }
 

@@ -18,6 +18,8 @@ class TrackerRepository(
     val dailyLogs: Flow<List<DailyLogEntity>> = db.dailyLogDao().observeAll()
     val measurements: Flow<List<MeasurementEntity>> = db.measurementDao().observeAll()
     val foods: Flow<List<FoodEntity>> = db.foodDao().observeAll()
+    val photos: Flow<List<PhotoEntity>> = db.photoDao().observeAll()
+    val vitals: Flow<List<VitalEntity>> = db.vitalDao().observeAll()
     val settings: Flow<UserSettings> = settingsRepository.settings
 
     suspend fun latestInjection(): InjectionEntity? = db.injectionDao().latest()
@@ -81,6 +83,18 @@ class TrackerRepository(
 
     suspend fun deleteFood(item: FoodEntity) = db.foodDao().delete(item)
 
+    suspend fun savePhoto(item: PhotoEntity) {
+        db.photoDao().upsert(item)
+    }
+
+    suspend fun deletePhoto(item: PhotoEntity) = db.photoDao().delete(item)
+
+    suspend fun saveVital(item: VitalEntity) {
+        db.vitalDao().upsert(item)
+    }
+
+    suspend fun deleteVital(item: VitalEntity) = db.vitalDao().delete(item)
+
     suspend fun dailyLog(date: LocalDate): DailyLogEntity? = db.dailyLogDao().get(date.toString())
 
     /** Serialises read-modify-write updates so rapid taps / keystrokes are applied in order. */
@@ -100,6 +114,7 @@ class TrackerRepository(
         dailyLogs = db.dailyLogDao().getAll(),
         measurements = db.measurementDao().getAll(),
         foods = db.foodDao().getAll(),
+        vitals = db.vitalDao().getAll(),
     )
 
     suspend fun restore(snapshot: Backup.Snapshot) {
@@ -110,12 +125,14 @@ class TrackerRepository(
             db.dailyLogDao().clear()
             db.measurementDao().clear()
             db.foodDao().clear()
+            db.vitalDao().clear()
             db.injectionDao().insertAll(snapshot.injections)
             db.weightDao().insertAll(snapshot.weights)
             db.sideEffectDao().insertAll(snapshot.sideEffects)
             db.dailyLogDao().insertAll(snapshot.dailyLogs)
             db.measurementDao().insertAll(snapshot.measurements)
             db.foodDao().insertAll(snapshot.foods)
+            db.vitalDao().insertAll(snapshot.vitals)
         }
         settingsRepository.update { cur ->
             snapshot.settings.copy(

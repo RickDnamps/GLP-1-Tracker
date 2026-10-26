@@ -136,3 +136,45 @@ interface FoodDao {
     @Query("DELETE FROM food_entries")
     suspend fun clear()
 }
+
+@Dao
+interface PhotoDao {
+    @Query("SELECT * FROM photos ORDER BY timestamp ASC")
+    fun observeAll(): Flow<List<PhotoEntity>>
+
+    @Query("SELECT * FROM photos ORDER BY timestamp ASC")
+    suspend fun getAll(): List<PhotoEntity>
+
+    @Upsert
+    suspend fun upsert(item: PhotoEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<PhotoEntity>)
+
+    @Delete
+    suspend fun delete(item: PhotoEntity)
+
+    @Query("DELETE FROM photos")
+    suspend fun clear()
+}
+
+@Dao
+interface VitalDao {
+    @Query("SELECT * FROM vitals ORDER BY timestamp ASC")
+    fun observeAll(): Flow<List<VitalEntity>>
+
+    @Query("SELECT * FROM vitals ORDER BY timestamp ASC")
+    suspend fun getAll(): List<VitalEntity>
+
+    @Upsert
+    suspend fun upsert(item: VitalEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<VitalEntity>)
+
+    @Delete
+    suspend fun delete(item: VitalEntity)
+
+    @Query("DELETE FROM vitals")
+    suspend fun clear()
+}
