@@ -91,6 +91,10 @@ fun SettingsScreen(
     var dialog by remember { mutableStateOf<SettingDialog?>(null) }
     var pendingRestore by remember { mutableStateOf<Uri?>(null) }
 
+    val scope = rememberCoroutineScope()
+    val healthConnect = vm.healthConnect
+    var hcAvailable by remember { mutableStateOf(healthConnect.isAvailable()) }
+
     // Permission states are re-read whenever the screen resumes (user may come back from system settings).
     var canNotify by remember { mutableStateOf(Notifications.canPost(context)) }
     var canExact by remember { mutableStateOf(ReminderScheduler.canScheduleExact(context)) }
@@ -105,9 +109,6 @@ fun SettingsScreen(
     }
     val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { canNotify = it }
 
-    val scope = rememberCoroutineScope()
-    val healthConnect = vm.healthConnect
-    var hcAvailable by remember { mutableStateOf(healthConnect.isAvailable()) }
     val hcPermission = rememberLauncherForActivityResult(HealthConnect.permissionContract()) { granted ->
         if (granted.containsAll(healthConnect.permissions)) {
             vm.updateSettings { it.copy(healthConnectAutoImport = true) }
