@@ -138,9 +138,19 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Bold,
                     )
+                    s.composition?.bodyFatPct?.let {
+                        Text(stringResource(R.string.comp_fat) + " : " + com.rickdnamps.glp1tracker.domain.Format.oneDecimal(it) + " %")
+                    }
+                    if (s.composition == null && s.impedance != null && (settings.sexOrNull == null || settings.ageOrNull == null)) {
+                        Text(
+                            stringResource(R.string.comp_profile_needed),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = startScan) { Text(stringResource(R.string.scale_again)) }
-                        Button(onClick = { vm.saveScaleWeight(s.kg, s.address, s.name); onDismiss() }) {
+                        Button(onClick = { vm.saveScaleWeight(s.kg, s.address, s.name, s.composition, s.impedance); onDismiss() }) {
                             Text(stringResource(R.string.save))
                         }
                     }

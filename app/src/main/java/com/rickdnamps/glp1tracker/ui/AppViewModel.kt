@@ -19,6 +19,9 @@ import com.rickdnamps.glp1tracker.data.InjectionEntity
 import com.rickdnamps.glp1tracker.data.SideEffectEntity
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.data.WeightEntity
+import com.rickdnamps.glp1tracker.data.withComposition
+import com.rickdnamps.glp1tracker.domain.BodyComp
+import com.rickdnamps.glp1tracker.domain.BodyCompositionMath
 import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.SideEffectType
@@ -160,8 +163,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun applyPlannedDose(doseMg: Double) = updateSettings { it.copy(doseMg = doseMg) }
 
     // --- Bluetooth scale ---
-    fun saveScaleWeight(kg: Double, address: String, name: String) = viewModelScope.launch {
-        repository.saveWeight(WeightEntity(timestamp = System.currentTimeMillis(), weightKg = kg))
+    fun saveScaleWeight(
+        kg: Double,
+        address: String,
+        name: String,
+        composition: BodyComp? = null,
+        impedance: Double? = null,
+    ) = viewModelScope.launch {
+        val s = repository.settingsRepository.current()
+        // Scales that only send impedance: estimate the composition from the profile.
+        val estimated = impedance?.let { imp ->
+            val sex = s.sexOrNull
+            val age = s.ageOrNull
+            if (sex != null && age != null && s.heightCm > 0) BodyCompositionMath.estimate(kg, s.heightCm, age, sex, imp) else null
+        }
+        val comp = when {
+            composition != null && estimated != null -> composition.mergedWith(estimated)
+            else -> composition ?: estimated ?: impedance?.let { BodyComp(impedance = it) }
+        }
+        val entity = WeightEntity(timestamp = System.currentTimeMillis(), weightKg = kg)
+        repository.saveWeight(if (comp != null) entity.withComposition(comp) else entity)
         repository.settingsRepository.update { it.copy(scaleAddress = address, scaleName = name) }
         message(R.string.msg_weight_saved)
     }
@@ -177,8 +198,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             // First import looks back one year, then re-reads 30 days (scale apps often sync late); duplicates are skipped.
             val since = if (settings.healthConnectLastImport > 0) settings.healthConnectLastImport - 30L * 86_400_000L
             else System.currentTimeMillis() - 365L * 86_400_000L
-            val news = healthConnect.newWeights(java.time.Instant.ofEpochMilli(since), repository.weightsSnapshot())
-            repository.addWeights(news)
+            val result = healthConnect.import(java.time.Instant.ofEpochMilli(since), repository.weightsSnapshot())
+            val news = result.newWeights
+            repository.addWeights(news + result.updated)
             repository.settingsRepository.update { it.copy(healthConnectLastImport = System.currentTimeMillis()) }
             news.size
         }.onSuccess { count ->
@@ -221,7 +243,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- Photos & vitals ---
-    fun savePhoto(item: PhotoEntity) = viewModelScope.launch { repository.savePhoto(item) }
+    fun savePhoto(item: PhotoEntity) = viewModelScope.launch {
+        repository.savePhoto(item)
+        message(R.string.msg_photo_saved)
+    }
 
     /** Deletes the row and its image file. */
     fun deletePhoto(item: PhotoEntity) = viewModelScope.launch {

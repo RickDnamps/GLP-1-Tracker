@@ -64,6 +64,7 @@ import com.rickdnamps.glp1tracker.ui.screens.MeasurementEditor
 import com.rickdnamps.glp1tracker.ui.screens.TitrationSheet
 import com.rickdnamps.glp1tracker.ui.screens.HomeScreen
 import com.rickdnamps.glp1tracker.ui.screens.InsightsScreen
+import com.rickdnamps.glp1tracker.ui.screens.PhotosScreen
 import com.rickdnamps.glp1tracker.ui.screens.ToolsScreen
 import com.rickdnamps.glp1tracker.ui.screens.InjectionEditor
 import com.rickdnamps.glp1tracker.ui.screens.InjectionsScreen
@@ -87,6 +88,7 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 private enum class Extra(val route: String, @StringRes val title: Int) {
     INSIGHTS("insights", R.string.insights_title),
     TOOLS("tools", R.string.tools_title),
+    PHOTOS("photos", R.string.photos_title),
 }
 
 @Composable
@@ -237,8 +239,13 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
             composable(Tab.HOME.route) { HomeScreen(state, vm, padding, open, openRoute = { navController.navigate(it) }) }
             composable(Extra.INSIGHTS.route) { InsightsScreen(state, vm, padding) }
             composable(Extra.TOOLS.route) { ToolsScreen(state, padding) }
+            composable(Extra.PHOTOS.route) { PhotosScreen(state, vm, padding) }
             composable(Tab.DOSES.route) { InjectionsScreen(state, padding, open) }
-            composable(Tab.PROGRESS.route) { ProgressScreen(state, padding, open) { vm.importFromHealthConnect(manual = true) } }
+            composable(Tab.PROGRESS.route) {
+                ProgressScreen(state, padding, open, onOpenPhotos = { navController.navigate(Extra.PHOTOS.route) }) {
+                    vm.importFromHealthConnect(manual = true)
+                }
+            }
             composable(Tab.JOURNAL.route) { JournalScreen(state, vm, padding, open) }
             composable(Tab.SETTINGS.route) {
                 SettingsScreen(state, vm, padding, onOpenScale = { editor = Editor.Scale }, onOpenTitration = { editor = Editor.Titration })

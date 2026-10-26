@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.Pharmacokinetics
+import com.rickdnamps.glp1tracker.domain.Sex
 import com.rickdnamps.glp1tracker.domain.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -74,7 +75,11 @@ data class UserSettings(
     val celebratedBadges: String = "",
     /** 0 = not set, 1 = male, 2 = female (used for lean-mass estimates). */
     val sex: Int = 0,
+    val birthYear: Int = 0,
 ) {
+    val sexOrNull: Sex? get() = when (sex) { 1 -> Sex.MALE; 2 -> Sex.FEMALE; else -> null }
+    val ageOrNull: Int? get() = birthYear.takeIf { it in 1900..2100 }?.let { LocalDate.now().year - it }
+
     val skippedThrough: LocalDate? get() = skippedDueEpochDay.takeIf { it > 0 }?.let(LocalDate::ofEpochDay)
 
     val weighInDay: DayOfWeek get() = DayOfWeek.of(weighInDayValue.coerceIn(1, 7))
@@ -145,6 +150,7 @@ class SettingsRepository(context: Context) {
         val dynamicColor = booleanPreferencesKey("dynamic_color")
         val celebratedBadges = stringPreferencesKey("celebrated_badges")
         val sex = intPreferencesKey("sex")
+        val birthYear = intPreferencesKey("birth_year")
     }
 
     val settings: Flow<UserSettings> = store.data.map(::read)
@@ -199,6 +205,7 @@ class SettingsRepository(context: Context) {
             dynamicColor = p[Keys.dynamicColor] ?: d.dynamicColor,
             celebratedBadges = p[Keys.celebratedBadges] ?: d.celebratedBadges,
             sex = p[Keys.sex] ?: d.sex,
+            birthYear = p[Keys.birthYear] ?: d.birthYear,
         )
     }
 
@@ -256,5 +263,6 @@ class SettingsRepository(context: Context) {
         p[Keys.dynamicColor] = s.dynamicColor
         p[Keys.celebratedBadges] = s.celebratedBadges
         p[Keys.sex] = s.sex
+        p[Keys.birthYear] = s.birthYear
     }
 }

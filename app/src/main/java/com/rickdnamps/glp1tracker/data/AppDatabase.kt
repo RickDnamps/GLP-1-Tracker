@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         InjectionEntity::class, WeightEntity::class, SideEffectEntity::class, DailyLogEntity::class,
         MeasurementEntity::class, FoodEntity::class, PhotoEntity::class, VitalEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -68,9 +68,28 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v4: body composition on weigh-ins (fat, muscle, water, bone, visceral, BMR, metabolic age…). */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "`bodyFatPct` REAL",
+                    "`muscleKg` REAL",
+                    "`waterPct` REAL",
+                    "`boneKg` REAL",
+                    "`visceralFat` REAL",
+                    "`bmrKcal` REAL",
+                    "`metabolicAge` INTEGER",
+                    "`proteinPct` REAL",
+                    "`skeletalMusclePct` REAL",
+                    "`subcutaneousFatPct` REAL",
+                    "`impedance` REAL",
+                ).forEach { db.execSQL("ALTER TABLE `weights` ADD COLUMN $it") }
+            }
+        }
+
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "glp1tracker.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
     }
 }

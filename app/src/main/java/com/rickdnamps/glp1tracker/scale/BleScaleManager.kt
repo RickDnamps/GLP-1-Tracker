@@ -18,6 +18,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import com.rickdnamps.glp1tracker.domain.BodyComp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,7 +32,13 @@ sealed interface ScaleState {
     data class Scanning(val devices: List<FoundScale>, val waitingFor: String?) : ScaleState
     data class Connecting(val name: String) : ScaleState
     data class Measuring(val name: String, val protocol: String, val liveKg: Double?) : ScaleState
-    data class Done(val name: String, val address: String, val kg: Double) : ScaleState
+    data class Done(
+        val name: String,
+        val address: String,
+        val kg: Double,
+        val composition: BodyComp? = null,
+        val impedance: Double? = null,
+    ) : ScaleState
     data class Error(val reason: Reason) : ScaleState
 
     enum class Reason { BLUETOOTH_OFF, NO_PERMISSION, UNSUPPORTED, CONNECTION_LOST, SCAN_FAILED, TIMEOUT }
@@ -88,6 +95,8 @@ class BleScaleManager(context: Context) {
 
     fun connect(address: String, name: String) {
         main.removeCallbacks(delayedStop)
+        main.removeCallbacks(liveFallback)
+        lastLiveKg = null
         stopScan()
         val device = runCatching { adapter?.getRemoteDevice(address) }.getOrNull() ?: return
         deviceName = name
@@ -222,18 +231,26 @@ class BleScaleManager(context: Context) {
             when (event) {
                 is ScaleEvent.Write -> enqueue { write(g, event.write) }
                 is ScaleEvent.Live -> {
+                    lastLiveKg = event.kg
                     _state.value = ScaleState.Measuring(deviceName, p.displayName, event.kg)
                     stability.onLive(event.kg, System.currentTimeMillis())?.let { finish(it) }
+                    // If the stream stops without a "stable" packet, keep the last reading.
+                    main.removeCallbacks(liveFallback)
+                    main.postDelayed(liveFallback, LIVE_FALLBACK_MS)
                 }
-                is ScaleEvent.Stable -> finish(event.kg)
+                is ScaleEvent.Stable -> finish(event.kg, event.composition, event.impedance)
             }
         }
         if (!busy) next()
     }
 
-    private fun finish(kg: Double) {
+    private var lastLiveKg: Double? = null
+    private val liveFallback = Runnable { lastLiveKg?.let { finish(it) } }
+
+    private fun finish(kg: Double, composition: BodyComp? = null, impedance: Double? = null) {
         if (_state.value is ScaleState.Done) return
-        _state.value = ScaleState.Done(deviceName, deviceAddress, kg)
+        main.removeCallbacks(liveFallback)
+        _state.value = ScaleState.Done(deviceName, deviceAddress, kg, composition, impedance)
         // Give the scale a moment to receive pending acknowledgements before disconnecting.
         main.postDelayed(delayedStop, 1_500)
     }
@@ -293,6 +310,7 @@ class BleScaleManager(context: Context) {
     companion object {
         private val CCCD: UUID = uuid16(0x2902)
         private const val SCAN_TIMEOUT_MS = 120_000L
+        private const val LIVE_FALLBACK_MS = 4_000L
 
         fun requiredPermissions(): Array<String> =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

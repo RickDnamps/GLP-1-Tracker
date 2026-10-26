@@ -91,7 +91,7 @@ import kotlinx.coroutines.launch
 private enum class SettingDialog {
     NAME, HEIGHT, START_WEIGHT, GOAL_WEIGHT, MEDICATION, DOSE, DOSE_CUSTOM, INTERVAL, INTERVAL_CUSTOM, DAY, TIME,
     CUSTOM_NAME, CUSTOM_HALF_LIFE, WATER_GOAL, PROTEIN_GOAL, PEN_TOTAL, PEN_REMAINING,
-    REPORT_PERIOD, STOCK_PENS, DISCARD_DAYS, PEN_OPENED, WEIGH_IN_DAY, WEIGH_IN_TIME, CALORIE_GOAL, FIBER_GOAL,
+    SEX, BIRTH_YEAR, REPORT_PERIOD, STOCK_PENS, DISCARD_DAYS, PEN_OPENED, WEIGH_IN_DAY, WEIGH_IN_TIME, CALORIE_GOAL, FIBER_GOAL,
 }
 
 private const val CUSTOM = -1.0
@@ -176,6 +176,13 @@ fun SettingsScreen(
                 }
                 SettingRow(stringResource(R.string.height), if (s.heightCm > 0) Format.number(s.heightCm, 0) + " cm" else "—") {
                     dialog = SettingDialog.HEIGHT
+                }
+                SettingRow(
+                    stringResource(R.string.sex),
+                    when (s.sex) { 1 -> stringResource(R.string.sex_male); 2 -> stringResource(R.string.sex_female); else -> "—" },
+                ) { dialog = SettingDialog.SEX }
+                SettingRow(stringResource(R.string.birth_year), if (s.birthYear > 0) s.birthYear.toString() else "—") {
+                    dialog = SettingDialog.BIRTH_YEAR
                 }
                 SettingRow(
                     stringResource(R.string.start_weight),
@@ -550,6 +557,21 @@ private fun SettingDialogs(
         }, allowDecimals = false)
         SettingDialog.PEN_TOTAL -> NumberInputDialog(stringResource(R.string.doses_per_pen), s.penDosesTotal.toDouble(), "", close, { v ->
             if (v >= 1) save { it.copy(penDosesTotal = v.toInt(), penDosesRemaining = it.penDosesRemaining.coerceAtMost(v.toInt())) }
+        }, allowDecimals = false)
+        SettingDialog.SEX -> {
+            val male = stringResource(R.string.sex_male)
+            val female = stringResource(R.string.sex_female)
+            ChoiceDialog(
+                title = stringResource(R.string.sex),
+                options = listOf(1, 2),
+                selected = s.sex.takeIf { it > 0 },
+                label = { if (it == 1) male else female },
+                onDismiss = close,
+                onSelect = { v -> save { it.copy(sex = v) } },
+            )
+        }
+        SettingDialog.BIRTH_YEAR -> NumberInputDialog(stringResource(R.string.birth_year), s.birthYear.toDouble(), "", close, { v ->
+            if (v.toInt() in 1900..LocalDate.now().year) save { it.copy(birthYear = v.toInt()) }
         }, allowDecimals = false)
         SettingDialog.REPORT_PERIOD -> {
             val labels = mapOf(

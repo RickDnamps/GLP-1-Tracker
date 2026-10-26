@@ -4,16 +4,26 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.BasalMetabolicRateRecord
+import androidx.health.connect.client.records.BodyFatRecord
+import androidx.health.connect.client.records.BodyWaterMassRecord
+import androidx.health.connect.client.records.BoneMassRecord
+import androidx.health.connect.client.records.LeanBodyMassRecord
+import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.rickdnamps.glp1tracker.data.WeightEntity
+import com.rickdnamps.glp1tracker.data.composition
+import com.rickdnamps.glp1tracker.data.withComposition
+import com.rickdnamps.glp1tracker.domain.BodyComp
 import java.time.Instant
 import kotlin.math.abs
+import kotlin.reflect.KClass
 
 /**
- * Imports weights from Health Connect, where Renpho, Withings, Eufy, Fitbit, Samsung Health,
- * Google Fit… publish their measurements. Read-only: nothing is written back.
+ * Imports weigh-ins and body composition from Health Connect, where Renpho, Withings, Eufy,
+ * Fitbit, Samsung Health, Google Fit… publish their measurements. Read-only.
  */
 class HealthConnect(context: Context) {
     private val appContext = context.applicationContext
@@ -21,8 +31,14 @@ class HealthConnect(context: Context) {
     /** Permissions the import needs. */
     val permissions = setOf(HealthPermission.getReadPermission(WeightRecord::class))
 
-    /** Also asks for history older than 30 days (ignored where the feature is unavailable). */
-    val requestedPermissions = permissions + READ_HISTORY
+    private val compositionTypes: List<KClass<out Record>> = listOf(
+        BodyFatRecord::class, LeanBodyMassRecord::class, BoneMassRecord::class,
+        BodyWaterMassRecord::class, BasalMetabolicRateRecord::class,
+    )
+
+    /** Also asks for body composition and for history older than 30 days (optional). */
+    val requestedPermissions: Set<String> =
+        permissions + compositionTypes.map { HealthPermission.getReadPermission(it) } + READ_HISTORY
 
     fun isAvailable(): Boolean =
         HealthConnectClient.getSdkStatus(appContext) == HealthConnectClient.SDK_AVAILABLE
@@ -35,37 +51,74 @@ class HealthConnect(context: Context) {
     suspend fun hasPermissions(): Boolean =
         isAvailable() && client().permissionController.getGrantedPermissions().containsAll(permissions)
 
-    /** Returns weights newer than [since] that are not already present (±2 min and ±0.05 kg). */
-    suspend fun newWeights(since: Instant, existing: List<WeightEntity>): List<WeightEntity> {
-        val records = mutableListOf<WeightRecord>()
+    private suspend fun <T : Record> readAll(type: KClass<T>, since: Instant): List<T> {
+        val out = mutableListOf<T>()
         var pageToken: String? = null
         do {
             val response = client().readRecords(
-                ReadRecordsRequest(
-                    recordType = WeightRecord::class,
-                    timeRangeFilter = TimeRangeFilter.after(since),
-                    pageToken = pageToken,
-                )
+                ReadRecordsRequest(recordType = type, timeRangeFilter = TimeRangeFilter.after(since), pageToken = pageToken)
             )
-            records += response.records
+            out += response.records
             pageToken = response.pageToken
         } while (pageToken != null)
+        return out
+    }
 
-        return records
-            .filter { it.metadata.dataOrigin.packageName != appContext.packageName }
-            .map { r ->
-                WeightEntity(
-                    timestamp = r.time.toEpochMilli(),
-                    weightKg = r.weight.inKilograms,
-                    notes = "Health Connect",
-                )
+    /** A composition value measured at [time]. */
+    private data class Sample(val time: Long, val apply: (BodyComp, Double) -> BodyComp)
+
+    data class ImportResult(val newWeights: List<WeightEntity>, val updated: List<WeightEntity>)
+
+    /**
+     * New weigh-ins newer than [since] (skipping ones already present: ±2 min and ±0.05 kg),
+     * plus body-composition values attached to the matching weigh-in (±10 min).
+     */
+    suspend fun import(since: Instant, existing: List<WeightEntity>): ImportResult {
+        val own = appContext.packageName
+        val weights = readAll(WeightRecord::class, since).filter { it.metadata.dataOrigin.packageName != own }
+
+        // Optional types: a missing permission simply yields no data.
+        val samples = mutableListOf<Sample>()
+        runCatching { readAll(BodyFatRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
+            samples += Sample(r.time.toEpochMilli()) { c, _ -> c.copy(bodyFatPct = c.bodyFatPct ?: r.percentage.value) }
+        }
+        runCatching { readAll(LeanBodyMassRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
+            samples += Sample(r.time.toEpochMilli()) { c, w ->
+                c.copy(bodyFatPct = c.bodyFatPct ?: ((w - r.mass.inKilograms) / w * 100).takeIf { it in 2.0..70.0 })
             }
+        }
+        runCatching { readAll(BoneMassRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
+            samples += Sample(r.time.toEpochMilli()) { c, _ -> c.copy(boneKg = c.boneKg ?: r.mass.inKilograms) }
+        }
+        runCatching { readAll(BodyWaterMassRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
+            samples += Sample(r.time.toEpochMilli()) { c, w -> c.copy(waterPct = c.waterPct ?: (r.mass.inKilograms / w * 100)) }
+        }
+        runCatching { readAll(BasalMetabolicRateRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
+            samples += Sample(r.time.toEpochMilli()) { c, _ -> c.copy(bmrKcal = c.bmrKcal ?: r.basalMetabolicRate.inKilocaloriesPerDay) }
+        }
+
+        fun enrich(w: WeightEntity): WeightEntity {
+            val near = samples.filter { abs(it.time - w.timestamp) <= 10 * 60_000 }
+            if (near.isEmpty()) return w
+            var c = w.composition
+            near.forEach { c = it.apply(c, w.weightKg) }
+            return w.withComposition(c)
+        }
+
+        val newWeights = weights
+            .map { WeightEntity(timestamp = it.time.toEpochMilli(), weightKg = it.weight.inKilograms, notes = "Health Connect") }
             .filter { candidate ->
-                existing.none { e ->
-                    abs(e.timestamp - candidate.timestamp) < 120_000 && abs(e.weightKg - candidate.weightKg) < 0.05
-                }
+                existing.none { e -> abs(e.timestamp - candidate.timestamp) < 120_000 && abs(e.weightKg - candidate.weightKg) < 0.05 }
             }
             .distinctBy { it.timestamp / 60_000 }
+            .map(::enrich)
+
+        // Existing weigh-ins (e.g. from the Bluetooth scale) can receive composition too.
+        val updated = existing
+            .filter { it.timestamp >= since.toEpochMilli() }
+            .mapNotNull { e -> enrich(e).takeIf { it != e } }
+
+        return ImportResult(newWeights, updated)
     }
 
     companion object {

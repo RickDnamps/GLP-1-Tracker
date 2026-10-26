@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Photos de progression (ui/screens/PhotosScreen.kt) -->
+    <string name="photos_title">Photos de progression</string>
+    <string name="photos_entry_empty">La balance ment, les photos, non. Commencez votre avant / après.</string>
+    <plurals name="photos_entry_count">
+        <item quantity="one">%1$d photo · dernière le %2$s</item>
+        <item quantity="other">%1$d photos · dernière le %2$s</item>
+    </plurals>
+    <string name="photos_open">Ouvrir</string>
+
+    <!-- État vide -->
+    <string name="photos_hero_badge">Avant / après</string>
+    <string name="photos_hero_title">La balance ment, les photos, non</string>
+    <string name="photos_hero_text">L\'eau, le sel, les hormones et les nouveaux muscles font varier la balance d\'un jour à l\'autre. Une photo toutes les quelques semaines montre ce que le chiffre cache : votre taille, votre visage, la façon dont vos vêtements tombent.</string>
+    <string name="photos_hero_tip_1">Même endroit, même lumière, mêmes vêtements, idéalement le matin.</string>
+    <string name="photos_hero_tip_2">De face, de profil et de dos, toutes les 2 à 4 semaines.</string>
+    <string name="photos_hero_tip_3">Puis faites glisser entre votre première et votre dernière photo.</string>
+
+    <!-- Pose et ajout -->
+    <string name="photos_pose_label">Pose</string>
+    <string name="photos_pose_front">Face</string>
+    <string name="photos_pose_side">Profil</string>
+    <string name="photos_pose_back">Dos</string>
+    <string name="photos_add_title">Ajouter une photo</string>
+    <string name="photos_add_hint">Pose : %1$s · datée d\'aujourd\'hui. Vous pourrez modifier la date ensuite.</string>
+    <string name="photos_choose_gallery">Choisir dans la galerie</string>
+    <string name="photos_importing">Importation…</string>
+    <string name="photos_import_failed">Impossible d\'importer cette image. Essayez-en une autre.</string>
+
+    <!-- Avant / après -->
+    <string name="photos_compare_title">Avant / après</string>
+    <string name="photos_before">Avant</string>
+    <string name="photos_after">Après</string>
+    <string name="photos_mode_slider">Curseur</string>
+    <string name="photos_mode_side_by_side">Côte à côte</string>
+    <plurals name="photos_in_days">
+        <item quantity="one">en %d jour</item>
+        <item quantity="other">en %d jours</item>
+    </plurals>
+    <plurals name="photos_days_apart">
+        <item quantity="one">%d jour d\'écart</item>
+        <item quantity="other">%d jours d\'écart</item>
+    </plurals>
+    <string name="photos_no_weight">Aucune pesée proche</string>
+    <string name="photos_compare_hint">Ouvrez une photo ci-dessous pour l\'utiliser comme avant ou après.</string>
+    <string name="photos_compare_reset">Première vs dernière</string>
+    <string name="photos_need_two">Ajoutez au moins deux photos de cette pose pour les comparer avec le curseur.</string>
+    <string name="photos_cd_compare">Comparaison avant / après. Faites glisser pour déplacer le séparateur.</string>
+
+    <!-- Chronologie et visionneuse -->
+    <string name="photos_timeline_title">Chronologie</string>
+    <plurals name="photos_count">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
+    <string name="photos_timeline_empty">Aucune photo pour cette pose.</string>
+    <string name="photos_cd_photo">Photo « %1$s », %2$s</string>
+    <string name="photos_missing">Image absente de cet appareil</string>
+    <string name="photos_use_as_before">Utiliser comme avant</string>
+    <string name="photos_use_as_after">Utiliser comme après</string>
+    <string name="photos_change_date">Modifier la date</string>
+    <string name="photos_notes_label">Notes (vêtements, lumière, comment vous vous sentez…)</string>
+    <string name="photos_save_notes">Enregistrer les notes</string>
+    <string name="photos_close">Fermer</string>
+    <string name="photos_delete_title">Supprimer cette photo ?</string>
+    <string name="photos_delete_text">L\'image est effacée de l\'application. Cette action est irréversible.</string>
+
+    <!-- Confidentialité -->
+    <string name="photos_privacy_title">Privées par conception</string>
+    <string name="photos_privacy_text">Les photos sont copiées dans l\'espace privé de l\'application : elles n\'apparaissent pas dans votre galerie, ne quittent jamais ce téléphone et ne sont pas incluses dans la sauvegarde JSON. Désinstaller l\'application les efface; vos originaux restent intacts dans votre galerie.</string>
+</resources>

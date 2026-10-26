@@ -1,5 +1,7 @@
 package com.rickdnamps.glp1tracker.scale
 
+import com.rickdnamps.glp1tracker.domain.BodyComp
+import com.rickdnamps.glp1tracker.domain.BodyCompositionMath
 import java.util.UUID
 
 fun uuid16(short: Int): UUID = UUID.fromString(String.format("%08x-0000-1000-8000-00805f9b34fb", short))
@@ -14,7 +16,7 @@ data class GattWrite(val service: UUID, val characteristic: UUID, val value: Byt
 /** What a protocol extracted from a notification. */
 sealed interface ScaleEvent {
     data class Live(val kg: Double) : ScaleEvent
-    data class Stable(val kg: Double) : ScaleEvent
+    data class Stable(val kg: Double, val composition: BodyComp? = null, val impedance: Double? = null) : ScaleEvent
     data class Write(val write: GattWrite) : ScaleEvent
 }
 
@@ -38,7 +40,8 @@ interface ScaleProtocol {
                 hasT1 = QnProtocol.SERVICE_T1 in services,
                 hasT2 = QnProtocol.SERVICE_T2 in services,
             )
-            StandardWeightScale.SERVICE in services -> StandardWeightScale()
+            StandardWeightScale.SERVICE in services || StandardWeightScale.BODY_SERVICE in services ->
+                StandardWeightScale(hasBodyComposition = StandardWeightScale.BODY_SERVICE in services)
             else -> null
         }
 
@@ -63,20 +66,60 @@ private fun sum8(d: ByteArray, until: Int): Byte {
 
 private fun plausible(kg: Double) = kg in 5.0..300.0
 
-/** Bluetooth SIG Weight Scale Service (0x181D): Weight Measurement 0x2A9D, sent when stable. */
-class StandardWeightScale : ScaleProtocol {
-    override val displayName = "Bluetooth Weight Scale"
-    override val subscriptions = listOf(SERVICE to MEASUREMENT)
+/**
+ * Bluetooth SIG Weight Scale (0x181D, Weight Measurement 0x2A9D) and Body Composition
+ * (0x181B, Body Composition Measurement 0x2A9C) services. When both exist the weight is held
+ * until the composition packet arrives (the manager finishes anyway after a short timeout).
+ */
+class StandardWeightScale(private val hasBodyComposition: Boolean = false) : ScaleProtocol {
+    override val displayName = if (hasBodyComposition) "Bluetooth Body Composition" else "Bluetooth Weight Scale"
+    override val subscriptions = listOf(SERVICE to MEASUREMENT, BODY_SERVICE to BODY_MEASUREMENT)
+
+    private var weightKg: Double? = null
+    private var done = false
 
     override fun onNotification(characteristic: UUID, data: ByteArray, nowMillis: Long): List<ScaleEvent> {
-        if (characteristic != MEASUREMENT) return emptyList()
-        val kg = parse(data) ?: return emptyList()
-        return listOf(ScaleEvent.Stable(kg))
+        if (done) return emptyList()
+        return when (characteristic) {
+            MEASUREMENT -> {
+                val kg = parse(data) ?: return emptyList()
+                weightKg = kg
+                if (hasBodyComposition) listOf(ScaleEvent.Live(kg)) else { done = true; listOf(ScaleEvent.Stable(kg)) }
+            }
+            BODY_MEASUREMENT -> {
+                val body = parseBody(data) ?: return emptyList()
+                val kg = body.weightKg ?: weightKg ?: return emptyList()
+                done = true
+                listOf(ScaleEvent.Stable(kg, body.toComposition(kg), body.impedance))
+            }
+            else -> emptyList()
+        }
+    }
+
+    data class Body(
+        val fatPct: Double,
+        val bmrKcal: Double? = null,
+        val musclePct: Double? = null,
+        val muscleKg: Double? = null,
+        val fatFreeKg: Double? = null,
+        val waterKg: Double? = null,
+        val impedance: Double? = null,
+        val weightKg: Double? = null,
+    ) {
+        fun toComposition(kg: Double) = BodyComp(
+            bodyFatPct = fatPct,
+            muscleKg = muscleKg ?: musclePct?.let { kg * it / 100 },
+            waterPct = waterKg?.let { it / kg * 100 },
+            bmrKcal = bmrKcal,
+            impedance = impedance,
+        )
     }
 
     companion object {
         val SERVICE = uuid16(0x181D)
         val MEASUREMENT = uuid16(0x2A9D)
+        val BODY_SERVICE = uuid16(0x181B)
+        val BODY_MEASUREMENT = uuid16(0x2A9C)
 
         /** Flags bit 0: 0 = SI (0.005 kg), 1 = imperial (0.01 lb). 0xFFFF = measurement unsuccessful. */
         fun parse(data: ByteArray): Double? {
@@ -86,6 +129,29 @@ class StandardWeightScale : ScaleProtocol {
             val imperial = (u8(data[0]) and 0x01) != 0
             val kg = if (imperial) raw * 0.01 / 2.20462262 else raw * 0.005
             return kg.takeIf(::plausible)
+        }
+
+        /** Body Composition Measurement: uint16 flags, body fat (0.1 %), then optional fields in flag order. */
+        fun parseBody(data: ByteArray): Body? {
+            if (data.size < 4) return null
+            val flags = u16le(data, 0)
+            val imperial = flags and 0x0001 != 0
+            fun mass(raw: Int) = if (imperial) raw * 0.01 / 2.20462262 else raw * 0.005
+            val fatRaw = u16le(data, 2)
+            if (fatRaw == 0xFFFF) return null
+            var i = 4
+            fun next(): Int? = if (i + 1 < data.size) u16le(data, i).also { i += 2 } else null
+            if (flags and 0x0002 != 0) i += 7 // timestamp
+            if (flags and 0x0004 != 0) i += 1 // user id
+            val bmr = if (flags and 0x0008 != 0) next()?.let { it / 4.184 } else null // kJ → kcal
+            val musclePct = if (flags and 0x0010 != 0) next()?.let { it * 0.1 } else null
+            val muscleKg = if (flags and 0x0020 != 0) next()?.let(::mass) else null
+            val ffm = if (flags and 0x0040 != 0) next()?.let(::mass) else null
+            if (flags and 0x0080 != 0) next() // soft lean mass (unused)
+            val water = if (flags and 0x0100 != 0) next()?.let(::mass) else null
+            val impedance = if (flags and 0x0200 != 0) next()?.let { it * 0.1 } else null
+            val weight = if (flags and 0x0400 != 0) next()?.let(::mass) else null
+            return Body(fatRaw * 0.1, bmr, musclePct, muscleKg, ffm, water, impedance, weight?.takeIf(::plausible))
         }
     }
 }
@@ -156,12 +222,15 @@ class QnProtocol(private val hasT1: Boolean, private val hasT2: Boolean) : Scale
         val altLayout = u8(data[4]) <= 0x02 && scaleFactor == 10.0 && data.size >= 11
         val stable: Boolean
         val raw: Int
+        val r1: Int
         if (altLayout) {
             stable = u8(data[4]) == 0x02 || u8(data[4]) == 0x01
             raw = u16be(data, 5)
+            r1 = u16be(data, 7)
         } else {
             stable = data[5].toInt() == 1
             raw = u16be(data, 3)
+            r1 = u16be(data, 6)
         }
         var kg = raw / scaleFactor
         if (!plausible(kg)) kg /= 10.0
@@ -169,7 +238,7 @@ class QnProtocol(private val hasT1: Boolean, private val hasT2: Boolean) : Scale
         if (!stable) return listOf(ScaleEvent.Live(kg))
         if (published) return emptyList()
         published = true
-        return listOf(ScaleEvent.Stable(kg))
+        return listOf(ScaleEvent.Stable(kg, impedance = BodyCompositionMath.normalizeImpedance(r1.toDouble())))
     }
 
     companion object {

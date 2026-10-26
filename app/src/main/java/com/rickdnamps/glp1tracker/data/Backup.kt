@@ -40,7 +40,18 @@ object Backup {
         root.put("weights", JSONArray().apply {
             s.weights.forEach {
                 put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("weightKg", it.weightKg)
-                    .put("waistCm", it.waistCm ?: JSONObject.NULL).put("notes", it.notes))
+                    .put("waistCm", it.waistCm ?: JSONObject.NULL).put("notes", it.notes)
+                    .put("bodyFatPct", it.bodyFatPct ?: JSONObject.NULL)
+                    .put("muscleKg", it.muscleKg ?: JSONObject.NULL)
+                    .put("waterPct", it.waterPct ?: JSONObject.NULL)
+                    .put("boneKg", it.boneKg ?: JSONObject.NULL)
+                    .put("visceralFat", it.visceralFat ?: JSONObject.NULL)
+                    .put("bmrKcal", it.bmrKcal ?: JSONObject.NULL)
+                    .put("metabolicAge", it.metabolicAge ?: JSONObject.NULL)
+                    .put("proteinPct", it.proteinPct ?: JSONObject.NULL)
+                    .put("skeletalMusclePct", it.skeletalMusclePct ?: JSONObject.NULL)
+                    .put("subcutaneousFatPct", it.subcutaneousFatPct ?: JSONObject.NULL)
+                    .put("impedance", it.impedance ?: JSONObject.NULL))
             }
         })
         root.put("sideEffects", JSONArray().apply {
@@ -105,6 +116,17 @@ object Backup {
                     weightKg = it.getDouble("weightKg"),
                     waistCm = if (it.isNull("waistCm")) null else it.optDouble("waistCm"),
                     notes = it.optString("notes"),
+                    bodyFatPct = it.optNullableDouble("bodyFatPct"),
+                    muscleKg = it.optNullableDouble("muscleKg"),
+                    waterPct = it.optNullableDouble("waterPct"),
+                    boneKg = it.optNullableDouble("boneKg"),
+                    visceralFat = it.optNullableDouble("visceralFat"),
+                    bmrKcal = it.optNullableDouble("bmrKcal"),
+                    metabolicAge = if (it.isNull("metabolicAge")) null else it.optInt("metabolicAge"),
+                    proteinPct = it.optNullableDouble("proteinPct"),
+                    skeletalMusclePct = it.optNullableDouble("skeletalMusclePct"),
+                    subcutaneousFatPct = it.optNullableDouble("subcutaneousFatPct"),
+                    impedance = it.optNullableDouble("impedance"),
                 )
             },
             sideEffects = root.optJSONArray("sideEffects").objects().map {
@@ -215,6 +237,7 @@ object Backup {
         put("dynamicColor", s.dynamicColor)
         put("celebratedBadges", s.celebratedBadges)
         put("sex", s.sex)
+        put("birthYear", s.birthYear)
     }
 
     private fun settingsFromJson(o: JSONObject): UserSettings {
@@ -261,6 +284,7 @@ object Backup {
             dynamicColor = o.optBoolean("dynamicColor", d.dynamicColor),
             celebratedBadges = o.optString("celebratedBadges", d.celebratedBadges),
             sex = o.optInt("sex", d.sex),
+            birthYear = o.optInt("birthYear", d.birthYear),
         )
     }
 
@@ -287,11 +311,12 @@ object Backup {
         }
         appendLine()
         appendLine("# Weight")
-        appendLine("date,weight_kg,weight_lb,waist_cm,notes")
+        appendLine("date,weight_kg,weight_lb,waist_cm,body_fat_pct,muscle_kg,water_pct,bone_kg,visceral_fat,bmr_kcal,metabolic_age,notes")
+        fun d1(v: Double?) = v?.let { "%.1f".format(java.util.Locale.US, it) } ?: ""
         s.weights.sortedBy { it.timestamp }.forEach {
-            appendLine(listOf(csvTime(it.timestamp), "%.1f".format(java.util.Locale.US, it.weightKg),
-                "%.1f".format(java.util.Locale.US, it.weightKg * WeightUnit.LB_PER_KG),
-                it.waistCm?.let { w -> "%.1f".format(java.util.Locale.US, w) } ?: "", csv(it.notes)).joinToString(","))
+            appendLine(listOf(csvTime(it.timestamp), d1(it.weightKg), d1(it.weightKg * WeightUnit.LB_PER_KG), d1(it.waistCm),
+                d1(it.bodyFatPct), d1(it.muscleKg), d1(it.waterPct), d1(it.boneKg), d1(it.visceralFat),
+                it.bmrKcal?.toInt()?.toString() ?: "", it.metabolicAge?.toString() ?: "", csv(it.notes)).joinToString(","))
         }
         appendLine()
         appendLine("# Side effects")

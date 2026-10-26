@@ -60,6 +60,7 @@ fun ProgressScreen(
     state: UiState,
     contentPadding: PaddingValues,
     openEditor: (Editor) -> Unit,
+    onOpenPhotos: () -> Unit,
     onSyncHealthConnect: () -> Unit,
 ) {
     val settings = state.settings
@@ -93,6 +94,7 @@ fun ProgressScreen(
             }
         }
         item { ProgressHero(stats, settings) }
+        item { PhotosEntryCard(state.photos, onClick = onOpenPhotos) }
         item {
             SectionCard(title = stringResource(R.string.summary), icon = Icons.Outlined.Insights) {
                 Row(Modifier.fillMaxWidth()) {
@@ -121,6 +123,7 @@ fun ProgressScreen(
             MilestonesCard(progress, forecast, rate, settings)
         }
         item { WeightChartCard(state.weights, settings, stats.goalKg, doseChanges(state)) }
+        item { BodyCompositionCard(state.weights, settings) }
         item { MeasurementsCard(state.measurements, settings, openEditor) }
         item {
             Text(
@@ -177,7 +180,8 @@ private fun WeightRow(entry: WeightEntity, delta: Double?, settings: UserSetting
             Column(Modifier.weight(1f)) {
                 Text(weightText(entry.weightKg, settings), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Text(
-                    Format.dateTime(entry.timestamp) + (entry.waistCm?.let { " · " + Format.oneDecimal(it) + " cm" } ?: ""),
+                    Format.dateTime(entry.timestamp) + (entry.waistCm?.let { " · " + Format.oneDecimal(it) + " cm" } ?: "") +
+                        (entry.bodyFatPct?.let { " · " + Format.oneDecimal(it) + " % " + stringResource(R.string.comp_fat).lowercase() } ?: ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

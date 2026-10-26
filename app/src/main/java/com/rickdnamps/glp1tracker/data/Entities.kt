@@ -3,6 +3,7 @@ package com.rickdnamps.glp1tracker.data
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.rickdnamps.glp1tracker.domain.BodyComp
 
 @Entity(tableName = "injections")
 data class InjectionEntity(
@@ -21,6 +22,29 @@ data class WeightEntity(
     val weightKg: Double,
     val waistCm: Double? = null,
     val notes: String = "",
+    // Body composition (v4), all optional.
+    val bodyFatPct: Double? = null,
+    val muscleKg: Double? = null,
+    val waterPct: Double? = null,
+    val boneKg: Double? = null,
+    val visceralFat: Double? = null,
+    val bmrKcal: Double? = null,
+    val metabolicAge: Int? = null,
+    val proteinPct: Double? = null,
+    val skeletalMusclePct: Double? = null,
+    val subcutaneousFatPct: Double? = null,
+    val impedance: Double? = null,
+)
+
+/** Body composition of a weigh-in (kept outside the entity so Room ignores it). */
+val WeightEntity.composition: BodyComp
+    get() = BodyComp(bodyFatPct, muscleKg, waterPct, boneKg, visceralFat, bmrKcal, metabolicAge, proteinPct,
+        skeletalMusclePct, subcutaneousFatPct, impedance)
+
+fun WeightEntity.withComposition(c: BodyComp) = copy(
+    bodyFatPct = c.bodyFatPct, muscleKg = c.muscleKg, waterPct = c.waterPct, boneKg = c.boneKg,
+    visceralFat = c.visceralFat, bmrKcal = c.bmrKcal, metabolicAge = c.metabolicAge, proteinPct = c.proteinPct,
+    skeletalMusclePct = c.skeletalMusclePct, subcutaneousFatPct = c.subcutaneousFatPct, impedance = c.impedance,
 )
 
 @Entity(tableName = "side_effects")

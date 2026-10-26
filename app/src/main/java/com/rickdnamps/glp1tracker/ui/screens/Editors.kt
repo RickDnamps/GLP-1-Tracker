@@ -49,6 +49,9 @@ import com.rickdnamps.glp1tracker.data.MeasurementEntity
 import com.rickdnamps.glp1tracker.data.SideEffectEntity
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.data.WeightEntity
+import com.rickdnamps.glp1tracker.data.composition
+import com.rickdnamps.glp1tracker.data.withComposition
+import com.rickdnamps.glp1tracker.domain.BodyComp
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
@@ -301,6 +304,8 @@ fun WeightEditor(
         mutableStateOf((item?.weightKg ?: lastWeightKg)?.let { Format.oneDecimal(unit.fromKg(it)) } ?: "")
     }
     var notes by remember { mutableStateOf(item?.notes ?: "") }
+    val compFields = remember { CompositionFields(item?.composition ?: BodyComp()) }
+    var showComp by remember { mutableStateOf(item?.composition?.isEmpty == false) }
     val weight = Format.parse(weightText)
 
     EditorSheet(
@@ -315,7 +320,7 @@ fun WeightEditor(
                     weightKg = unit.toKg(weight ?: 0.0),
                     waistCm = item?.waistCm,
                     notes = notes.trim(),
-                )
+                ).withComposition(compFields.toComposition())
             )
         },
         onDelete = item?.let { { onDelete(it) } },
@@ -330,6 +335,10 @@ fun WeightEditor(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
+        TextButton(onClick = { showComp = !showComp }) {
+            Text((if (showComp) "▾ " else "▸ ") + stringResource(R.string.comp_section))
+        }
+        if (showComp) CompositionInputs(compFields)
         OutlinedTextField(
             value = notes,
             onValueChange = { notes = it },
