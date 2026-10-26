@@ -43,7 +43,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.rickdnamps.glp1tracker.R
+import com.rickdnamps.glp1tracker.data.FoodEntity
 import com.rickdnamps.glp1tracker.data.InjectionEntity
+import com.rickdnamps.glp1tracker.data.MeasurementEntity
 import com.rickdnamps.glp1tracker.data.SideEffectEntity
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.data.WeightEntity
@@ -56,19 +58,23 @@ import com.rickdnamps.glp1tracker.ui.components.ChoiceDialog
 import com.rickdnamps.glp1tracker.ui.components.ConfirmDialog
 import com.rickdnamps.glp1tracker.ui.components.DateTimeRow
 import com.rickdnamps.glp1tracker.ui.medicationName
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** Which editor sheet is open; a null item means "create". */
 sealed interface Editor {
     data class Injection(val item: InjectionEntity? = null) : Editor
     data class Weight(val item: WeightEntity? = null) : Editor
-    data class SideEffect(val item: SideEffectEntity? = null) : Editor
+    data class SideEffect(val item: SideEffectEntity? = null, val date: LocalDate? = null) : Editor
     data object Scale : Editor
+    data class Measurement(val item: MeasurementEntity? = null) : Editor
+    data class Food(val item: FoodEntity? = null, val date: LocalDate = LocalDate.now()) : Editor
+    data object Titration : Editor
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditorSheet(
+internal fun EditorSheet(
     title: String,
     canSave: Boolean,
     onDismiss: () -> Unit,
@@ -115,7 +121,7 @@ private fun EditorSheet(
 }
 
 @Composable
-private fun FieldLabel(text: String) {
+internal fun FieldLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
@@ -287,7 +293,6 @@ fun WeightEditor(
     var weightText by remember {
         mutableStateOf((item?.weightKg ?: lastWeightKg)?.let { Format.oneDecimal(unit.fromKg(it)) } ?: "")
     }
-    var waistText by remember { mutableStateOf(item?.waistCm?.let { Format.oneDecimal(it) } ?: "") }
     var notes by remember { mutableStateOf(item?.notes ?: "") }
     val weight = Format.parse(weightText)
 
@@ -301,7 +306,7 @@ fun WeightEditor(
                     id = item?.id ?: 0,
                     timestamp = Format.toMillis(dateTime),
                     weightKg = unit.toKg(weight ?: 0.0),
-                    waistCm = Format.parse(waistText)?.takeIf { it > 0 },
+                    waistCm = item?.waistCm,
                     notes = notes.trim(),
                 )
             )
@@ -319,15 +324,6 @@ fun WeightEditor(
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
-            value = waistText,
-            onValueChange = { waistText = it },
-            label = { Text(stringResource(R.string.waist_optional)) },
-            suffix = { Text("cm") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
             value = notes,
             onValueChange = { notes = it },
             label = { Text(stringResource(R.string.notes)) },
@@ -340,11 +336,18 @@ fun WeightEditor(
 @Composable
 fun SideEffectEditor(
     item: SideEffectEntity?,
+    date: LocalDate? = null,
     onDismiss: () -> Unit,
     onSave: (SideEffectEntity) -> Unit,
     onDelete: (SideEffectEntity) -> Unit,
 ) {
-    var dateTime by remember { mutableStateOf(item?.let { Format.toLocalDateTime(it.timestamp) } ?: LocalDateTime.now().withSecond(0).withNano(0)) }
+    var dateTime by remember {
+        mutableStateOf(
+            item?.let { Format.toLocalDateTime(it.timestamp) }
+                ?: date?.takeIf { it != LocalDate.now() }?.atTime(12, 0)
+                ?: LocalDateTime.now().withSecond(0).withNano(0)
+        )
+    }
     var type by remember { mutableStateOf(item?.let { SideEffectType.fromName(it.type) }) }
     var severity by remember { mutableStateOf(Severity.fromLevel(item?.severity ?: 1)) }
     var notes by remember { mutableStateOf(item?.notes ?: "") }

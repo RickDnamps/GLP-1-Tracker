@@ -41,3 +41,28 @@ data class DailyLogEntity(
     val mood: Int = 0,
     val notes: String = "",
 )
+
+/** Body measurements in cm; null = not measured that day. */
+@Entity(tableName = "measurements")
+data class MeasurementEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val timestamp: Long,
+    val waistCm: Double? = null,
+    val hipsCm: Double? = null,
+    val chestCm: Double? = null,
+    val armCm: Double? = null,
+    val thighCm: Double? = null,
+    val neckCm: Double? = null,
+    val notes: String = "",
+)
+
+@Entity(tableName = "food_entries")
+data class FoodEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val timestamp: Long,
+    val name: String,
+    val calories: Int,
+    val proteinG: Double,
+    val fiberG: Double,
+    val favorite: Boolean = false,
+)

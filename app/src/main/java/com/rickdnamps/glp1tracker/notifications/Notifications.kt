@@ -15,6 +15,7 @@ import com.rickdnamps.glp1tracker.R
 
 object Notifications {
     const val CHANNEL_REMINDERS = "dose_reminders"
+    const val CHANNEL_HABITS = "habit_reminders"
     const val ID_DOSE = 1001
 
     fun createChannels(context: Context) {
@@ -23,7 +24,34 @@ object Notifications {
             context.getString(R.string.notif_channel_name),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply { description = context.getString(R.string.notif_channel_description) }
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        val habits = NotificationChannel(
+            CHANNEL_HABITS,
+            context.getString(R.string.notif_habits_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply { description = context.getString(R.string.notif_habits_channel_description) }
+        context.getSystemService(NotificationManager::class.java).createNotificationChannels(listOf(channel, habits))
+    }
+
+    /** Gentle reminders (weigh-in, water, journal, eve of the dose). */
+    fun showHabit(context: Context, type: ReminderType, title: String, text: String) {
+        if (!canPost(context)) return
+        val open = PendingIntent.getActivity(
+            context, 100 + type.requestCode,
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_HABITS)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        try {
+            NotificationManagerCompat.from(context).notify(2000 + type.requestCode, notification)
+        } catch (_: SecurityException) {
+        }
     }
 
     fun canPost(context: Context): Boolean =

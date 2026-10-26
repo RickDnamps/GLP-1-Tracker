@@ -18,7 +18,11 @@ import kotlin.math.abs
 class HealthConnect(context: Context) {
     private val appContext = context.applicationContext
 
+    /** Permissions the import needs. */
     val permissions = setOf(HealthPermission.getReadPermission(WeightRecord::class))
+
+    /** Also asks for history older than 30 days (ignored where the feature is unavailable). */
+    val requestedPermissions = permissions + READ_HISTORY
 
     fun isAvailable(): Boolean =
         HealthConnectClient.getSdkStatus(appContext) == HealthConnectClient.SDK_AVAILABLE
@@ -65,6 +69,8 @@ class HealthConnect(context: Context) {
     }
 
     companion object {
+        private const val READ_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY"
+
         fun permissionContract() = PermissionController.createRequestPermissionResultContract()
     }
 }

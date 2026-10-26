@@ -18,14 +18,22 @@ object Schedule {
         preferredDay: DayOfWeek,
         time: LocalTime,
         today: LocalDate,
+        skippedThrough: LocalDate? = null,
     ): LocalDateTime {
         val interval = intervalDays.coerceAtLeast(1).toLong()
-        if (lastDose != null) return lastDose.toLocalDate().plusDays(interval).atTime(time)
-        return if (interval == 7L) {
-            today.with(TemporalAdjusters.nextOrSame(preferredDay)).atTime(time)
-        } else {
-            today.atTime(time)
+        var due = when {
+            // Weekly: back on the chosen weekday, at least 3 days after the last dose (safe day-change gap).
+            lastDose != null && interval == 7L ->
+                lastDose.toLocalDate().plusDays(3).with(TemporalAdjusters.nextOrSame(preferredDay)).atTime(time)
+            lastDose != null -> lastDose.toLocalDate().plusDays(interval).atTime(time)
+            interval == 7L -> today.with(TemporalAdjusters.nextOrSame(preferredDay)).atTime(time)
+            else -> today.atTime(time)
         }
+        // A dose the user chose to skip moves the schedule to the following slot.
+        if (skippedThrough != null) {
+            while (!due.toLocalDate().isAfter(skippedThrough)) due = due.plusDays(interval)
+        }
+        return due
     }
 
     /** When to fire the reminder: the due time, or the next daily nag while overdue. */

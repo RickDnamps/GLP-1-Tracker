@@ -34,7 +34,7 @@ sealed interface ScaleState {
     data class Done(val name: String, val address: String, val kg: Double) : ScaleState
     data class Error(val reason: Reason) : ScaleState
 
-    enum class Reason { BLUETOOTH_OFF, NO_PERMISSION, UNSUPPORTED, CONNECTION_LOST, SCAN_FAILED }
+    enum class Reason { BLUETOOTH_OFF, NO_PERMISSION, UNSUPPORTED, CONNECTION_LOST, SCAN_FAILED, TIMEOUT }
 }
 
 /**
@@ -69,6 +69,7 @@ class BleScaleManager(context: Context) {
 
     /** Scans for scales. With [address] it waits for that scale and connects as soon as it wakes up. */
     fun start(address: String?) {
+        main.removeCallbacks(delayedStop)
         stop()
         if (!hasPermissions()) { _state.value = ScaleState.Error(ScaleState.Reason.NO_PERMISSION); return }
         val scanner = adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner
@@ -78,11 +79,15 @@ class BleScaleManager(context: Context) {
         _state.value = ScaleState.Scanning(emptyList(), address)
         val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
         runCatching { scanner.startScan(null, settings, scanCallback) }
-            .onSuccess { scanning = true }
+            .onSuccess {
+                scanning = true
+                main.postDelayed(scanTimeout, SCAN_TIMEOUT_MS)
+            }
             .onFailure { _state.value = ScaleState.Error(ScaleState.Reason.SCAN_FAILED) }
     }
 
     fun connect(address: String, name: String) {
+        main.removeCallbacks(delayedStop)
         stopScan()
         val device = runCatching { adapter?.getRemoteDevice(address) }.getOrNull() ?: return
         deviceName = name
@@ -107,7 +112,18 @@ class BleScaleManager(context: Context) {
         _state.value = ScaleState.Idle
     }
 
+    private val delayedStop = Runnable { stop() }
+
+    /** Stops searching after a while so a forgotten sheet does not drain the battery. */
+    private val scanTimeout = Runnable {
+        if (scanning) {
+            stopScan()
+            _state.value = ScaleState.Error(ScaleState.Reason.TIMEOUT)
+        }
+    }
+
     private fun stopScan() {
+        main.removeCallbacks(scanTimeout)
         if (scanning) runCatching { adapter?.bluetoothLeScanner?.stopScan(scanCallback) }
         scanning = false
     }
@@ -185,8 +201,8 @@ class BleScaleManager(context: Context) {
         val services = g.services.map { it.uuid }.toSet()
         val p = ScaleProtocol.forServices(services)
         if (p == null) {
-            _state.value = ScaleState.Error(ScaleState.Reason.UNSUPPORTED)
             stop()
+            _state.value = ScaleState.Error(ScaleState.Reason.UNSUPPORTED)
             return
         }
         protocol = p
@@ -219,7 +235,7 @@ class BleScaleManager(context: Context) {
         if (_state.value is ScaleState.Done) return
         _state.value = ScaleState.Done(deviceName, deviceAddress, kg)
         // Give the scale a moment to receive pending acknowledgements before disconnecting.
-        main.postDelayed({ stop() }, 1_500)
+        main.postDelayed(delayedStop, 1_500)
     }
 
     private fun enqueue(op: () -> Boolean) {
@@ -276,6 +292,7 @@ class BleScaleManager(context: Context) {
 
     companion object {
         private val CCCD: UUID = uuid16(0x2902)
+        private const val SCAN_TIMEOUT_MS = 120_000L
 
         fun requiredPermissions(): Array<String> =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
 
 data class UserSettings(
@@ -46,12 +47,38 @@ data class UserSettings(
     val scaleName: String = "",
     val healthConnectAutoImport: Boolean = false,
     val healthConnectLastImport: Long = 0,
+    val titrationEnabled: Boolean = false,
+    val titrationPlan: String = "",
+    val titrationStartDay: Long = 0,
+    val penOpenedAt: Long = 0,
+    val penDiscardDays: Int = 0,
+    val stockPens: Int = 0,
+    val doseEveReminder: Boolean = false,
+    val weighInReminder: Boolean = false,
+    val weighInDayValue: Int = 1,
+    val weighInHour: Int = 7,
+    val waterReminders: Boolean = false,
+    val journalReminder: Boolean = false,
+    val calorieGoal: Int = 1500,
+    val fiberGoalG: Int = 25,
+    val autoBackupUri: String = "",
+    val lastAutoBackupAt: Long = 0,
+    val appLock: Boolean = false,
+    /** Epoch day of the last dose the user decided to skip (0 = none). */
+    val skippedDueEpochDay: Long = 0,
 ) {
+    val skippedThrough: LocalDate? get() = skippedDueEpochDay.takeIf { it > 0 }?.let(LocalDate::ofEpochDay)
+
+    val weighInDay: DayOfWeek get() = DayOfWeek.of(weighInDayValue.coerceIn(1, 7))
+
     val reminderTime: LocalTime get() = LocalTime.of(reminderHour, reminderMinute)
 
     fun pkParams(medication: Medication): Pharmacokinetics.Params =
         if (medication == Medication.OTHER) {
             Pharmacokinetics.Params(customHalfLifeHours, medication.molecule.tmaxHours)
+        } else if (medication.isOral) {
+            // Oral semaglutide: absorbed within ~1 h but only ~1 % reaches the blood.
+            Pharmacokinetics.Params(medication.molecule.halfLifeHours, 1.0, bioavailability = 0.01)
         } else {
             Pharmacokinetics.Params(medication.molecule.halfLifeHours, medication.molecule.tmaxHours)
         }
@@ -87,6 +114,24 @@ class SettingsRepository(context: Context) {
         val scaleName = stringPreferencesKey("scale_name")
         val healthConnectAutoImport = booleanPreferencesKey("hc_auto_import")
         val healthConnectLastImport = longPreferencesKey("hc_last_import")
+        val titrationEnabled = booleanPreferencesKey("titration_enabled")
+        val titrationPlan = stringPreferencesKey("titration_plan")
+        val titrationStartDay = longPreferencesKey("titration_start_day")
+        val penOpenedAt = longPreferencesKey("pen_opened_at")
+        val penDiscardDays = intPreferencesKey("pen_discard_days")
+        val stockPens = intPreferencesKey("stock_pens")
+        val doseEveReminder = booleanPreferencesKey("dose_eve_reminder")
+        val weighInReminder = booleanPreferencesKey("weigh_in_reminder")
+        val weighInDayValue = intPreferencesKey("weigh_in_day")
+        val weighInHour = intPreferencesKey("weigh_in_hour")
+        val waterReminders = booleanPreferencesKey("water_reminders")
+        val journalReminder = booleanPreferencesKey("journal_reminder")
+        val calorieGoal = intPreferencesKey("calorie_goal")
+        val fiberGoalG = intPreferencesKey("fiber_goal_g")
+        val autoBackupUri = stringPreferencesKey("auto_backup_uri")
+        val lastAutoBackupAt = longPreferencesKey("last_auto_backup_at")
+        val appLock = booleanPreferencesKey("app_lock")
+        val skippedDueEpochDay = longPreferencesKey("skipped_due_epoch_day")
     }
 
     val settings: Flow<UserSettings> = store.data.map(::read)
@@ -118,6 +163,24 @@ class SettingsRepository(context: Context) {
             scaleName = p[Keys.scaleName] ?: d.scaleName,
             healthConnectAutoImport = p[Keys.healthConnectAutoImport] ?: d.healthConnectAutoImport,
             healthConnectLastImport = p[Keys.healthConnectLastImport] ?: d.healthConnectLastImport,
+            titrationEnabled = p[Keys.titrationEnabled] ?: d.titrationEnabled,
+            titrationPlan = p[Keys.titrationPlan] ?: d.titrationPlan,
+            titrationStartDay = p[Keys.titrationStartDay] ?: d.titrationStartDay,
+            penOpenedAt = p[Keys.penOpenedAt] ?: d.penOpenedAt,
+            penDiscardDays = p[Keys.penDiscardDays] ?: d.penDiscardDays,
+            stockPens = p[Keys.stockPens] ?: d.stockPens,
+            doseEveReminder = p[Keys.doseEveReminder] ?: d.doseEveReminder,
+            weighInReminder = p[Keys.weighInReminder] ?: d.weighInReminder,
+            weighInDayValue = p[Keys.weighInDayValue] ?: d.weighInDayValue,
+            weighInHour = p[Keys.weighInHour] ?: d.weighInHour,
+            waterReminders = p[Keys.waterReminders] ?: d.waterReminders,
+            journalReminder = p[Keys.journalReminder] ?: d.journalReminder,
+            calorieGoal = p[Keys.calorieGoal] ?: d.calorieGoal,
+            fiberGoalG = p[Keys.fiberGoalG] ?: d.fiberGoalG,
+            autoBackupUri = p[Keys.autoBackupUri] ?: d.autoBackupUri,
+            lastAutoBackupAt = p[Keys.lastAutoBackupAt] ?: d.lastAutoBackupAt,
+            appLock = p[Keys.appLock] ?: d.appLock,
+            skippedDueEpochDay = p[Keys.skippedDueEpochDay] ?: d.skippedDueEpochDay,
         )
     }
 
@@ -152,5 +215,23 @@ class SettingsRepository(context: Context) {
         p[Keys.scaleName] = s.scaleName
         p[Keys.healthConnectAutoImport] = s.healthConnectAutoImport
         p[Keys.healthConnectLastImport] = s.healthConnectLastImport
+        p[Keys.titrationEnabled] = s.titrationEnabled
+        p[Keys.titrationPlan] = s.titrationPlan
+        p[Keys.titrationStartDay] = s.titrationStartDay
+        p[Keys.penOpenedAt] = s.penOpenedAt
+        p[Keys.penDiscardDays] = s.penDiscardDays
+        p[Keys.stockPens] = s.stockPens
+        p[Keys.doseEveReminder] = s.doseEveReminder
+        p[Keys.weighInReminder] = s.weighInReminder
+        p[Keys.weighInDayValue] = s.weighInDayValue
+        p[Keys.weighInHour] = s.weighInHour
+        p[Keys.waterReminders] = s.waterReminders
+        p[Keys.journalReminder] = s.journalReminder
+        p[Keys.calorieGoal] = s.calorieGoal
+        p[Keys.fiberGoalG] = s.fiberGoalG
+        p[Keys.autoBackupUri] = s.autoBackupUri
+        p[Keys.lastAutoBackupAt] = s.lastAutoBackupAt
+        p[Keys.appLock] = s.appLock
+        p[Keys.skippedDueEpochDay] = s.skippedDueEpochDay
     }
 }

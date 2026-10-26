@@ -16,6 +16,8 @@ class TrackerRepository(
     val weights: Flow<List<WeightEntity>> = db.weightDao().observeAll()
     val sideEffects: Flow<List<SideEffectEntity>> = db.sideEffectDao().observeAll()
     val dailyLogs: Flow<List<DailyLogEntity>> = db.dailyLogDao().observeAll()
+    val measurements: Flow<List<MeasurementEntity>> = db.measurementDao().observeAll()
+    val foods: Flow<List<FoodEntity>> = db.foodDao().observeAll()
     val settings: Flow<UserSettings> = settingsRepository.settings
 
     suspend fun latestInjection(): InjectionEntity? = db.injectionDao().latest()
@@ -67,6 +69,20 @@ class TrackerRepository(
 
     suspend fun deleteSideEffect(item: SideEffectEntity) = db.sideEffectDao().delete(item)
 
+    suspend fun saveMeasurement(item: MeasurementEntity) {
+        db.measurementDao().upsert(item)
+    }
+
+    suspend fun deleteMeasurement(item: MeasurementEntity) = db.measurementDao().delete(item)
+
+    suspend fun saveFood(item: FoodEntity) {
+        db.foodDao().upsert(item)
+    }
+
+    suspend fun deleteFood(item: FoodEntity) = db.foodDao().delete(item)
+
+    suspend fun dailyLog(date: LocalDate): DailyLogEntity? = db.dailyLogDao().get(date.toString())
+
     /** Serialises read-modify-write updates so rapid taps / keystrokes are applied in order. */
     private val dailyLogMutex = Mutex()
 
@@ -82,6 +98,8 @@ class TrackerRepository(
         weights = db.weightDao().getAll(),
         sideEffects = db.sideEffectDao().getAll(),
         dailyLogs = db.dailyLogDao().getAll(),
+        measurements = db.measurementDao().getAll(),
+        foods = db.foodDao().getAll(),
     )
 
     suspend fun restore(snapshot: Backup.Snapshot) {
@@ -90,11 +108,25 @@ class TrackerRepository(
             db.weightDao().clear()
             db.sideEffectDao().clear()
             db.dailyLogDao().clear()
+            db.measurementDao().clear()
+            db.foodDao().clear()
             db.injectionDao().insertAll(snapshot.injections)
             db.weightDao().insertAll(snapshot.weights)
             db.sideEffectDao().insertAll(snapshot.sideEffects)
             db.dailyLogDao().insertAll(snapshot.dailyLogs)
+            db.measurementDao().insertAll(snapshot.measurements)
+            db.foodDao().insertAll(snapshot.foods)
         }
-        settingsRepository.update { snapshot.settings.copy(onboardingDone = true) }
+        settingsRepository.update { cur ->
+            snapshot.settings.copy(
+                onboardingDone = true,
+                scaleAddress = cur.scaleAddress,
+                scaleName = cur.scaleName,
+                healthConnectAutoImport = cur.healthConnectAutoImport,
+                healthConnectLastImport = cur.healthConnectLastImport,
+                autoBackupUri = cur.autoBackupUri,
+                lastAutoBackupAt = cur.lastAutoBackupAt,
+            )
+        }
     }
 }

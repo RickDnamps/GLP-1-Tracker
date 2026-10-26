@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,6 +45,9 @@ import androidx.navigation.compose.rememberNavController
 import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.notifications.Notifications
 import com.rickdnamps.glp1tracker.ui.screens.Editor
+import com.rickdnamps.glp1tracker.ui.screens.FoodEditor
+import com.rickdnamps.glp1tracker.ui.screens.MeasurementEditor
+import com.rickdnamps.glp1tracker.ui.screens.TitrationSheet
 import com.rickdnamps.glp1tracker.ui.screens.HomeScreen
 import com.rickdnamps.glp1tracker.ui.screens.InjectionEditor
 import com.rickdnamps.glp1tracker.ui.screens.InjectionsScreen
@@ -98,8 +102,10 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
 
     // Ask once for the notification permission needed by dose reminders (Android 13+).
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    var askedNotifications by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 33 && state.settings.remindersEnabled && !Notifications.canPost(context)) {
+        if (!askedNotifications && Build.VERSION.SDK_INT >= 33 && state.settings.remindersEnabled && !Notifications.canPost(context)) {
+            askedNotifications = true
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
@@ -149,7 +155,9 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
             composable(Tab.DOSES.route) { InjectionsScreen(state, padding, open) }
             composable(Tab.PROGRESS.route) { ProgressScreen(state, padding, open) { vm.importFromHealthConnect(manual = true) } }
             composable(Tab.JOURNAL.route) { JournalScreen(state, vm, padding, open) }
-            composable(Tab.SETTINGS.route) { SettingsScreen(state, vm, padding, onOpenScale = { editor = Editor.Scale }) }
+            composable(Tab.SETTINGS.route) {
+                SettingsScreen(state, vm, padding, onOpenScale = { editor = Editor.Scale }, onOpenTitration = { editor = Editor.Titration })
+            }
         }
     }
 
@@ -173,8 +181,36 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
             onDelete = { vm.deleteWeight(it); close() },
         )
         Editor.Scale -> ScaleSheet(vm, state.settings, onDismiss = close)
+        is Editor.Measurement -> MeasurementEditor(
+            item = e.item,
+            last = state.measurements.lastOrNull(),
+            onDismiss = close,
+            onSave = { vm.saveMeasurement(it); close() },
+            onDelete = { vm.deleteMeasurement(it); close() },
+        )
+        is Editor.Food -> FoodEditor(
+            item = e.item,
+            date = e.date,
+            onDismiss = close,
+            onSave = { vm.saveFood(it); close() },
+            onDelete = { vm.deleteFood(it); close() },
+        )
+        Editor.Titration -> TitrationSheet(state.settings, onDismiss = close) { enabled, steps, start ->
+            vm.updateSettings {
+                val plan = com.rickdnamps.glp1tracker.domain.Titration.serialize(steps)
+                val current = com.rickdnamps.glp1tracker.domain.Titration.status(steps, start, java.time.LocalDate.now())
+                it.copy(
+                    titrationEnabled = enabled && steps.isNotEmpty(),
+                    titrationPlan = plan,
+                    titrationStartDay = start.toEpochDay(),
+                    doseMg = if (enabled && current != null) current.current.doseMg else it.doseMg,
+                )
+            }
+            close()
+        }
         is Editor.SideEffect -> SideEffectEditor(
             item = e.item,
+            date = e.date,
             onDismiss = close,
             onSave = { vm.saveSideEffect(it); close() },
             onDelete = { vm.deleteSideEffect(it); close() },

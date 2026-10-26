@@ -52,6 +52,7 @@ fun nextDue(settings: UserSettings, injections: List<InjectionEntity>, today: Lo
         settings.injectionDay,
         settings.reminderTime,
         today,
+        settings.skippedThrough,
     )
 
 /** Days until the due date (negative when late). */

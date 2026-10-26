@@ -18,9 +18,11 @@ object Backup {
         val weights: List<WeightEntity>,
         val sideEffects: List<SideEffectEntity>,
         val dailyLogs: List<DailyLogEntity>,
+        val measurements: List<MeasurementEntity> = emptyList(),
+        val foods: List<FoodEntity> = emptyList(),
     )
 
-    private const val FORMAT_VERSION = 1
+    private const val FORMAT_VERSION = 2
 
     fun toJson(s: Snapshot): String {
         val root = JSONObject()
@@ -50,6 +52,22 @@ object Backup {
             s.dailyLogs.forEach {
                 put(JSONObject().put("date", it.date).put("waterMl", it.waterMl).put("proteinG", it.proteinG)
                     .put("appetite", it.appetite).put("mood", it.mood).put("notes", it.notes))
+            }
+        })
+        root.put("measurements", JSONArray().apply {
+            s.measurements.forEach {
+                put(JSONObject().put("id", it.id).put("timestamp", it.timestamp)
+                    .put("waistCm", it.waistCm ?: JSONObject.NULL).put("hipsCm", it.hipsCm ?: JSONObject.NULL)
+                    .put("chestCm", it.chestCm ?: JSONObject.NULL).put("armCm", it.armCm ?: JSONObject.NULL)
+                    .put("thighCm", it.thighCm ?: JSONObject.NULL).put("neckCm", it.neckCm ?: JSONObject.NULL)
+                    .put("notes", it.notes))
+            }
+        })
+        root.put("foods", JSONArray().apply {
+            s.foods.forEach {
+                put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("name", it.name)
+                    .put("calories", it.calories).put("proteinG", it.proteinG).put("fiberG", it.fiberG)
+                    .put("favorite", it.favorite))
             }
         })
         return root.toString(2)
@@ -99,8 +117,34 @@ object Backup {
                     notes = it.optString("notes"),
                 )
             },
+            measurements = root.optJSONArray("measurements").objects().map {
+                MeasurementEntity(
+                    id = it.optLong("id"),
+                    timestamp = it.getLong("timestamp"),
+                    waistCm = it.optNullableDouble("waistCm"),
+                    hipsCm = it.optNullableDouble("hipsCm"),
+                    chestCm = it.optNullableDouble("chestCm"),
+                    armCm = it.optNullableDouble("armCm"),
+                    thighCm = it.optNullableDouble("thighCm"),
+                    neckCm = it.optNullableDouble("neckCm"),
+                    notes = it.optString("notes"),
+                )
+            },
+            foods = root.optJSONArray("foods").objects().map {
+                FoodEntity(
+                    id = it.optLong("id"),
+                    timestamp = it.getLong("timestamp"),
+                    name = it.optString("name"),
+                    calories = it.optInt("calories"),
+                    proteinG = it.optDouble("proteinG", 0.0),
+                    fiberG = it.optDouble("fiberG", 0.0),
+                    favorite = it.optBoolean("favorite"),
+                )
+            },
         )
     }
+
+    private fun JSONObject.optNullableDouble(key: String): Double? = if (isNull(key)) null else optDouble(key)
 
     private fun JSONArray?.objects(): List<JSONObject> =
         if (this == null) emptyList() else (0 until length()).map { getJSONObject(it) }
@@ -125,6 +169,22 @@ object Backup {
         put("penTrackingEnabled", s.penTrackingEnabled)
         put("penDosesTotal", s.penDosesTotal)
         put("penDosesRemaining", s.penDosesRemaining)
+        put("titrationEnabled", s.titrationEnabled)
+        put("titrationPlan", s.titrationPlan)
+        put("titrationStartDay", s.titrationStartDay)
+        put("penOpenedAt", s.penOpenedAt)
+        put("penDiscardDays", s.penDiscardDays)
+        put("stockPens", s.stockPens)
+        put("doseEveReminder", s.doseEveReminder)
+        put("weighInReminder", s.weighInReminder)
+        put("weighInDayValue", s.weighInDayValue)
+        put("weighInHour", s.weighInHour)
+        put("waterReminders", s.waterReminders)
+        put("journalReminder", s.journalReminder)
+        put("calorieGoal", s.calorieGoal)
+        put("fiberGoalG", s.fiberGoalG)
+        put("appLock", s.appLock)
+        put("skippedDueEpochDay", s.skippedDueEpochDay)
     }
 
     private fun settingsFromJson(o: JSONObject): UserSettings {
@@ -150,6 +210,22 @@ object Backup {
             penTrackingEnabled = o.optBoolean("penTrackingEnabled", d.penTrackingEnabled),
             penDosesTotal = o.optInt("penDosesTotal", d.penDosesTotal),
             penDosesRemaining = o.optInt("penDosesRemaining", d.penDosesRemaining),
+            titrationEnabled = o.optBoolean("titrationEnabled", d.titrationEnabled),
+            titrationPlan = o.optString("titrationPlan", d.titrationPlan),
+            titrationStartDay = o.optLong("titrationStartDay", d.titrationStartDay),
+            penOpenedAt = o.optLong("penOpenedAt", d.penOpenedAt),
+            penDiscardDays = o.optInt("penDiscardDays", d.penDiscardDays),
+            stockPens = o.optInt("stockPens", d.stockPens),
+            doseEveReminder = o.optBoolean("doseEveReminder", d.doseEveReminder),
+            weighInReminder = o.optBoolean("weighInReminder", d.weighInReminder),
+            weighInDayValue = o.optInt("weighInDayValue", d.weighInDayValue),
+            weighInHour = o.optInt("weighInHour", d.weighInHour),
+            waterReminders = o.optBoolean("waterReminders", d.waterReminders),
+            journalReminder = o.optBoolean("journalReminder", d.journalReminder),
+            calorieGoal = o.optInt("calorieGoal", d.calorieGoal),
+            fiberGoalG = o.optInt("fiberGoalG", d.fiberGoalG),
+            appLock = o.optBoolean("appLock", d.appLock),
+            skippedDueEpochDay = o.optLong("skippedDueEpochDay", d.skippedDueEpochDay),
         )
     }
 
@@ -188,6 +264,20 @@ object Backup {
         s.sideEffects.sortedBy { it.timestamp }.forEach {
             appendLine(listOf(csvTime(it.timestamp), csv(sideEffectName(it.type)), it.severity.toString(),
                 csv(it.notes)).joinToString(","))
+        }
+        appendLine()
+        fun cm(v: Double?) = v?.let { "%.1f".format(java.util.Locale.US, it) } ?: ""
+        appendLine("# Body measurements (cm)")
+        appendLine("date,waist,hips,chest,arm,thigh,neck,notes")
+        s.measurements.sortedBy { it.timestamp }.forEach {
+            appendLine(listOf(csvTime(it.timestamp), cm(it.waistCm), cm(it.hipsCm), cm(it.chestCm), cm(it.armCm),
+                cm(it.thighCm), cm(it.neckCm), csv(it.notes)).joinToString(","))
+        }
+        appendLine()
+        appendLine("# Food")
+        appendLine("date,name,kcal,protein_g,fiber_g")
+        s.foods.sortedBy { it.timestamp }.forEach {
+            appendLine(listOf(csvTime(it.timestamp), csv(it.name), it.calories.toString(), cm(it.proteinG), cm(it.fiberG)).joinToString(","))
         }
         appendLine()
         appendLine("# Daily log")

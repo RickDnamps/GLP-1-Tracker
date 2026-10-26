@@ -115,6 +115,7 @@ fun ProgressScreen(
             }
         }
         item { WeightChartCard(state.weights, settings, stats.goalKg) }
+        item { MeasurementsCard(state.measurements, settings, openEditor) }
         item {
             Text(
                 stringResource(R.string.history),

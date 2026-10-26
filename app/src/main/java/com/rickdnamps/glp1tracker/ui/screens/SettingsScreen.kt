@@ -47,6 +47,7 @@ import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.Medication
+import com.rickdnamps.glp1tracker.domain.Supply
 import com.rickdnamps.glp1tracker.domain.WeightUnit
 import com.rickdnamps.glp1tracker.health.HealthConnect
 import com.rickdnamps.glp1tracker.notifications.Notifications
@@ -55,6 +56,7 @@ import com.rickdnamps.glp1tracker.ui.AppViewModel
 import com.rickdnamps.glp1tracker.ui.UiState
 import com.rickdnamps.glp1tracker.ui.components.ChoiceDialog
 import com.rickdnamps.glp1tracker.ui.components.ConfirmDialog
+import com.rickdnamps.glp1tracker.ui.components.DatePickerDialogFor
 import com.rickdnamps.glp1tracker.ui.components.NumberInputDialog
 import com.rickdnamps.glp1tracker.ui.components.SectionCard
 import com.rickdnamps.glp1tracker.ui.components.SettingRow
@@ -71,12 +73,19 @@ import kotlinx.coroutines.launch
 private enum class SettingDialog {
     NAME, HEIGHT, START_WEIGHT, GOAL_WEIGHT, MEDICATION, DOSE, DOSE_CUSTOM, INTERVAL, INTERVAL_CUSTOM, DAY, TIME,
     CUSTOM_NAME, CUSTOM_HALF_LIFE, WATER_GOAL, PROTEIN_GOAL, PEN_TOTAL, PEN_REMAINING,
+    STOCK_PENS, DISCARD_DAYS, PEN_OPENED, WEIGH_IN_DAY, WEIGH_IN_TIME, CALORIE_GOAL, FIBER_GOAL,
 }
 
 private const val CUSTOM = -1.0
 
 @Composable
-fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValues, onOpenScale: () -> Unit) {
+fun SettingsScreen(
+    state: UiState,
+    vm: AppViewModel,
+    contentPadding: PaddingValues,
+    onOpenScale: () -> Unit,
+    onOpenTitration: () -> Unit,
+) {
     val s = state.settings
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<SettingDialog?>(null) }
@@ -90,6 +99,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
         lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             canNotify = Notifications.canPost(context)
             canExact = ReminderScheduler.canScheduleExact(context)
+            hcAvailable = healthConnect.isAvailable()
             vm.reschedule() // the exact-alarm permission may have changed
         }
     }
@@ -97,7 +107,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
 
     val scope = rememberCoroutineScope()
     val healthConnect = vm.healthConnect
-    val hcAvailable = remember { healthConnect.isAvailable() }
+    var hcAvailable by remember { mutableStateOf(healthConnect.isAvailable()) }
     val hcPermission = rememberLauncherForActivityResult(HealthConnect.permissionContract()) { granted ->
         if (granted.containsAll(healthConnect.permissions)) {
             vm.updateSettings { it.copy(healthConnectAutoImport = true) }
@@ -111,6 +121,9 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
     }
     val backupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let(vm::exportBackup)
+    }
+    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let(vm::setAutoBackupFolder)
     }
     val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         pendingRestore = uri
@@ -165,6 +178,11 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
                     SettingRow(stringResource(R.string.dose_day), dayName(s.injectionDay)) { dialog = SettingDialog.DAY }
                 }
                 SettingRow(stringResource(R.string.reminder_time), Format.time(today.atTime(s.reminderTime))) { dialog = SettingDialog.TIME }
+                SettingRow(
+                    stringResource(R.string.titration_title),
+                    stringResource(if (s.titrationEnabled) R.string.on else R.string.off),
+                    onClick = onOpenTitration,
+                )
             }
         }
         item {
@@ -173,6 +191,14 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
                     vm.updateSettings { it.copy(remindersEnabled = on) }
                     if (on && !canNotify && Build.VERSION.SDK_INT >= 33) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
+                SwitchRow(stringResource(R.string.reminder_eve), s.doseEveReminder) { on -> vm.updateSettings { it.copy(doseEveReminder = on) } }
+                SwitchRow(stringResource(R.string.reminder_weigh_in), s.weighInReminder) { on -> vm.updateSettings { it.copy(weighInReminder = on) } }
+                if (s.weighInReminder) {
+                    SettingRow(stringResource(R.string.weigh_in_day), dayName(s.weighInDay)) { dialog = SettingDialog.WEIGH_IN_DAY }
+                    SettingRow(stringResource(R.string.weigh_in_time), Format.time(today.atTime(s.weighInHour, 0))) { dialog = SettingDialog.WEIGH_IN_TIME }
+                }
+                SwitchRow(stringResource(R.string.reminder_water), s.waterReminders) { on -> vm.updateSettings { it.copy(waterReminders = on) } }
+                SwitchRow(stringResource(R.string.reminder_journal), s.journalReminder) { on -> vm.updateSettings { it.copy(journalReminder = on) } }
                 if (!canNotify && Build.VERSION.SDK_INT >= 33) {
                     SettingRow(stringResource(R.string.allow_notifications), stringResource(R.string.allow)) {
                         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -190,11 +216,25 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
         item {
             SectionCard(title = stringResource(R.string.pen_title), icon = Icons.Outlined.Vaccines) {
                 SwitchRow(stringResource(R.string.pen_tracking), s.penTrackingEnabled) { on ->
-                    vm.updateSettings { it.copy(penTrackingEnabled = on) }
+                    vm.updateSettings {
+                        it.copy(
+                            penTrackingEnabled = on,
+                            penDiscardDays = if (on && it.penDiscardDays == 0) Supply.defaultDiscardDays(it.medication) else it.penDiscardDays,
+                        )
+                    }
                 }
                 if (s.penTrackingEnabled) {
                     SettingRow(stringResource(R.string.doses_per_pen), s.penDosesTotal.toString()) { dialog = SettingDialog.PEN_TOTAL }
                     SettingRow(stringResource(R.string.doses_remaining), s.penDosesRemaining.toString()) { dialog = SettingDialog.PEN_REMAINING }
+                    SettingRow(stringResource(R.string.stock_pens_setting), s.stockPens.toString()) { dialog = SettingDialog.STOCK_PENS }
+                    SettingRow(
+                        stringResource(R.string.pen_opened_on),
+                        s.penOpenedAt.takeIf { it > 0 }?.let { Format.date(it) } ?: "—",
+                    ) { dialog = SettingDialog.PEN_OPENED }
+                    SettingRow(
+                        stringResource(R.string.pen_discard_after),
+                        if (s.penDiscardDays > 0) stringResource(R.string.every_n_days_short, s.penDiscardDays) else "—",
+                    ) { dialog = SettingDialog.DISCARD_DAYS }
                 }
             }
         }
@@ -214,7 +254,7 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
                                     vm.updateSettings { it.copy(healthConnectAutoImport = true) }
                                     vm.importFromHealthConnect(manual = true)
                                 } else {
-                                    hcPermission.launch(healthConnect.permissions)
+                                    hcPermission.launch(healthConnect.requestedPermissions)
                                 }
                             }
                         }
@@ -243,12 +283,29 @@ fun SettingsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
             SectionCard(title = stringResource(R.string.daily_goals), icon = Icons.Outlined.LocalDrink) {
                 SettingRow(stringResource(R.string.water_goal), "${s.waterGoalMl} ml") { dialog = SettingDialog.WATER_GOAL }
                 SettingRow(stringResource(R.string.protein_goal), "${s.proteinGoalG} g") { dialog = SettingDialog.PROTEIN_GOAL }
+                SettingRow(stringResource(R.string.calorie_goal), "${s.calorieGoal} kcal") { dialog = SettingDialog.CALORIE_GOAL }
+                SettingRow(stringResource(R.string.fiber_goal), "${s.fiberGoalG} g") { dialog = SettingDialog.FIBER_GOAL }
             }
         }
         item {
             SectionCard(title = stringResource(R.string.data), icon = Icons.Outlined.Save) {
                 SettingRow(stringResource(R.string.export_csv), null) { csvLauncher.launch("glp1-tracker-$today.csv") }
                 SettingRow(stringResource(R.string.backup_json), null) { backupLauncher.launch("glp1-tracker-backup-$today.json") }
+                SettingRow(
+                    stringResource(R.string.auto_backup),
+                    if (s.autoBackupUri.isBlank()) stringResource(R.string.off)
+                    else s.lastAutoBackupAt.takeIf { it > 0 }?.let { Format.date(it) } ?: stringResource(R.string.on),
+                ) { folderLauncher.launch(null) }
+                if (s.autoBackupUri.isNotBlank()) {
+                    if (System.currentTimeMillis() - s.lastAutoBackupAt > 14 * 86_400_000L) {
+                        Text(
+                            stringResource(R.string.auto_backup_stale),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    SettingRow(stringResource(R.string.auto_backup_off), null) { vm.disableAutoBackup() }
+                }
                 SettingRow(stringResource(R.string.restore_json), null) {
                     restoreLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain"))
                 }
@@ -338,6 +395,7 @@ private fun SettingDialogs(dialog: SettingDialog?, s: UserSettings, vm: AppViewM
                     it.copy(
                         medication = med,
                         intervalDays = med.defaultIntervalDays,
+                        penDiscardDays = Supply.defaultDiscardDays(med),
                         doseMg = if (it.doseMg in med.commonDosesMg || med.commonDosesMg.isEmpty()) it.doseMg else med.commonDosesMg.first(),
                     )
                 }
@@ -401,6 +459,33 @@ private fun SettingDialogs(dialog: SettingDialog?, s: UserSettings, vm: AppViewM
         }, allowDecimals = false)
         SettingDialog.PEN_TOTAL -> NumberInputDialog(stringResource(R.string.doses_per_pen), s.penDosesTotal.toDouble(), "", close, { v ->
             if (v >= 1) save { it.copy(penDosesTotal = v.toInt(), penDosesRemaining = it.penDosesRemaining.coerceAtMost(v.toInt())) }
+        }, allowDecimals = false)
+        SettingDialog.STOCK_PENS -> NumberInputDialog(stringResource(R.string.stock_pens_setting), s.stockPens.toDouble(), "", close, { v ->
+            save { it.copy(stockPens = v.toInt()) }
+        }, allowDecimals = false)
+        SettingDialog.DISCARD_DAYS -> NumberInputDialog(stringResource(R.string.pen_discard_after), s.penDiscardDays.toDouble(), stringResource(R.string.days_unit), close, { v ->
+            save { it.copy(penDiscardDays = v.toInt()) }
+        }, allowDecimals = false, supportingText = stringResource(R.string.pen_discard_help))
+        SettingDialog.PEN_OPENED -> DatePickerDialogFor(
+            s.penOpenedAt.takeIf { it > 0 }?.let { Format.toLocalDateTime(it).toLocalDate() } ?: LocalDate.now(),
+            close,
+        ) { d -> save { it.copy(penOpenedAt = Format.toMillis(d.atTime(12, 0))) } }
+        SettingDialog.WEIGH_IN_DAY -> ChoiceDialog(
+            title = stringResource(R.string.weigh_in_day),
+            options = DayOfWeek.entries,
+            selected = s.weighInDay,
+            label = { dayName(it) },
+            onDismiss = close,
+            onSelect = { d -> save { it.copy(weighInDayValue = d.value) } },
+        )
+        SettingDialog.WEIGH_IN_TIME -> TimePickerDialogFor(java.time.LocalTime.of(s.weighInHour, 0), close) { t ->
+            save { it.copy(weighInHour = t.hour) }
+        }
+        SettingDialog.CALORIE_GOAL -> NumberInputDialog(stringResource(R.string.calorie_goal), s.calorieGoal.toDouble(), "kcal", close, { v ->
+            save { it.copy(calorieGoal = v.toInt()) }
+        }, allowDecimals = false)
+        SettingDialog.FIBER_GOAL -> NumberInputDialog(stringResource(R.string.fiber_goal), s.fiberGoalG.toDouble(), "g", close, { v ->
+            save { it.copy(fiberGoalG = v.toInt()) }
         }, allowDecimals = false)
         SettingDialog.PEN_REMAINING -> NumberInputDialog(stringResource(R.string.doses_remaining), s.penDosesRemaining.toDouble(), "", close, { v ->
             save { it.copy(penDosesRemaining = v.toInt().coerceAtMost(it.penDosesTotal)) }

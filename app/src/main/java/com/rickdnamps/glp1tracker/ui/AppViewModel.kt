@@ -7,7 +7,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.rickdnamps.glp1tracker.Glp1App
 import com.rickdnamps.glp1tracker.R
+import com.rickdnamps.glp1tracker.data.AutoBackup
 import com.rickdnamps.glp1tracker.data.Backup
+import com.rickdnamps.glp1tracker.data.FoodEntity
+import com.rickdnamps.glp1tracker.data.MeasurementEntity
 import com.rickdnamps.glp1tracker.data.DailyLogEntity
 import com.rickdnamps.glp1tracker.data.InjectionEntity
 import com.rickdnamps.glp1tracker.data.SideEffectEntity
@@ -16,6 +19,7 @@ import com.rickdnamps.glp1tracker.data.WeightEntity
 import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.SideEffectType
+import com.rickdnamps.glp1tracker.notifications.Notifications
 import com.rickdnamps.glp1tracker.notifications.ReminderScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,6 +39,8 @@ data class UiState(
     val weights: List<WeightEntity> = emptyList(),
     val sideEffects: List<SideEffectEntity> = emptyList(),
     val dailyLogs: List<DailyLogEntity> = emptyList(),
+    val measurements: List<MeasurementEntity> = emptyList(),
+    val foods: List<FoodEntity> = emptyList(),
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -45,14 +51,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val healthConnect = app.healthConnect
 
     val state: StateFlow<UiState> = combine(
-        repository.settings,
-        repository.injections,
-        repository.weights,
-        repository.sideEffects,
-        repository.dailyLogs,
-    ) { settings, injections, weights, sideEffects, dailyLogs ->
-        UiState(true, settings, injections, weights, sideEffects, dailyLogs)
+        combine(
+            repository.settings,
+            repository.injections,
+            repository.weights,
+            repository.sideEffects,
+            repository.dailyLogs,
+        ) { settings, injections, weights, sideEffects, dailyLogs ->
+            UiState(true, settings, injections, weights, sideEffects, dailyLogs)
+        },
+        repository.measurements,
+        repository.foods,
+    ) { core, measurements, foods ->
+        core.copy(measurements = measurements, foods = foods)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
+
+    init {
+        viewModelScope.launch {
+            runCatching { AutoBackup.runIfDue(getApplication(), repository) }
+            ReminderScheduler.reschedule(getApplication(), repository)
+        }
+    }
 
     private val _messages = MutableSharedFlow<Int>(extraBufferCapacity = 4)
     /** One-off snackbar messages (string resource ids). */
@@ -65,12 +84,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun launchAndReschedule(block: suspend () -> Unit) = viewModelScope.launch {
         block()
         ReminderScheduler.reschedule(getApplication(), repository)
+        app.onDataChanged()
     }
 
     // --- Injections ---
     fun saveInjection(item: InjectionEntity) = launchAndReschedule {
         repository.saveInjection(item)
+        if (item.id == 0L) Notifications.cancelDoseReminder(getApplication())
         message(R.string.msg_dose_saved)
+        runCatching { AutoBackup.runIfDue(getApplication(), repository) }
     }
 
     fun deleteInjection(item: InjectionEntity) = launchAndReschedule {
@@ -124,9 +146,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun reschedule() = launchAndReschedule {}
 
+    /** Skips the overdue dose: the schedule moves on to the next slot. */
+    fun skipDose(due: LocalDate) = updateSettings { it.copy(skippedDueEpochDay = due.toEpochDay()) }
+
+    fun applyPlannedDose(doseMg: Double) = updateSettings { it.copy(doseMg = doseMg) }
+
     // --- Bluetooth scale ---
     fun saveScaleWeight(kg: Double, address: String, name: String) = viewModelScope.launch {
-        repository.saveWeight(WeightEntity(timestamp = System.currentTimeMillis(), weightKg = kg, notes = name))
+        repository.saveWeight(WeightEntity(timestamp = System.currentTimeMillis(), weightKg = kg))
         repository.settingsRepository.update { it.copy(scaleAddress = address, scaleName = name) }
         message(R.string.msg_weight_saved)
     }
@@ -139,8 +166,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         runCatching {
             if (!healthConnect.hasPermissions()) return@launch
             val settings = repository.settingsRepository.current()
-            // First import looks back one year, then only since the last import (with a day of overlap).
-            val since = if (settings.healthConnectLastImport > 0) settings.healthConnectLastImport - 86_400_000L
+            // First import looks back one year, then re-reads 30 days (scale apps often sync late); duplicates are skipped.
+            val since = if (settings.healthConnectLastImport > 0) settings.healthConnectLastImport - 30L * 86_400_000L
             else System.currentTimeMillis() - 365L * 86_400_000L
             val news = healthConnect.newWeights(java.time.Instant.ofEpochMilli(since), repository.weightsSnapshot())
             repository.addWeights(news)
@@ -155,7 +182,50 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Number of weights imported from Health Connect. */
     val importedCounts: SharedFlow<Int> = _countMessages
 
-    fun refillPen() = updateSettings { it.copy(penDosesRemaining = it.penDosesTotal) }
+    /** Starts a new pen: full doses, opened today, one less in stock. */
+    fun refillPen() = updateSettings {
+        it.copy(
+            penDosesRemaining = it.penDosesTotal,
+            penOpenedAt = System.currentTimeMillis(),
+            stockPens = (it.stockPens - 1).coerceAtLeast(0),
+        )
+    }
+
+    // --- Measurements & food ---
+    fun saveMeasurement(item: MeasurementEntity) = viewModelScope.launch {
+        repository.saveMeasurement(item)
+        message(R.string.msg_measurement_saved)
+    }
+
+    fun deleteMeasurement(item: MeasurementEntity) = viewModelScope.launch {
+        repository.deleteMeasurement(item)
+        message(R.string.msg_deleted)
+    }
+
+    fun saveFood(item: FoodEntity) = viewModelScope.launch {
+        repository.saveFood(item)
+        message(R.string.msg_food_saved)
+    }
+
+    fun deleteFood(item: FoodEntity) = viewModelScope.launch {
+        repository.deleteFood(item)
+        message(R.string.msg_deleted)
+    }
+
+    // --- Auto backup ---
+    fun setAutoBackupFolder(uri: Uri) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        runCatching {
+            app.contentResolver.takePersistableUriPermission(
+                uri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+            repository.settingsRepository.update { it.copy(autoBackupUri = uri.toString()) }
+            AutoBackup.runIfDue(app, repository, force = true)
+        }.onSuccess { message(R.string.msg_backup_done) }.onFailure { message(R.string.msg_export_failed) }
+    }
+
+    fun disableAutoBackup() = updateSettings { it.copy(autoBackupUri = "") }
 
     // --- Import / export ---
     fun exportCsv(uri: Uri) = viewModelScope.launch {
@@ -169,7 +239,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 sideEffectName = { app.getString(SideEffectType.fromName(it).nameRes) },
             )
             withContext(Dispatchers.IO) {
-                app.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(csv.toByteArray()) }
+                app.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(("\uFEFF" + csv).toByteArray()) }
             }
         }.onSuccess { message(R.string.msg_export_done) }.onFailure { message(R.string.msg_export_failed) }
     }

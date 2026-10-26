@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.data.DailyLogEntity
@@ -80,9 +81,18 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { Greeting(settings.name) }
-        item { NextDoseCard(state, onLog = { openEditor(Editor.Injection()) }) }
+        item {
+            NextDoseCard(
+                state,
+                onLog = { openEditor(Editor.Injection()) },
+                onSkip = { vm.skipDose(it) },
+            )
+        }
+        if (settings.titrationEnabled) {
+            item { TitrationCard(settings, onApplyDose = { vm.applyPlannedDose(it) }, onEdit = { openEditor(Editor.Titration) }) }
+        }
         if (settings.penTrackingEnabled && !settings.medication.isOral) {
-            item { PenCard(state, onRefill = vm::refillPen) }
+            item { SupplyCard(settings, nextDue(settings, state.injections).toLocalDate(), onNewPen = vm::refillPen) }
         }
         item { QuickActions(openEditor) }
         item { LevelCard(state) }
@@ -124,7 +134,7 @@ private fun Greeting(name: String) {
 }
 
 @Composable
-private fun NextDoseCard(state: UiState, onLog: () -> Unit) {
+private fun NextDoseCard(state: UiState, onLog: () -> Unit, onSkip: (LocalDate) -> Unit) {
     val settings = state.settings
     val due = nextDue(settings, state.injections)
     val days = daysUntil(due)
@@ -176,6 +186,9 @@ private fun NextDoseCard(state: UiState, onLog: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+            if (late) {
+                MissedDoseBlock(settings, due, onContainer, onSkip = { onSkip(due.toLocalDate()) })
+            }
             state.injections.firstOrNull()?.let {
                 Text(
                     stringResource(R.string.last_dose_on, Format.dateTime(it.timestamp)),
@@ -188,33 +201,6 @@ private fun NextDoseCard(state: UiState, onLog: () -> Unit) {
                 Spacer(Modifier.width(6.dp))
                 Text(stringResource(R.string.log_dose))
             }
-        }
-    }
-}
-
-@Composable
-private fun PenCard(state: UiState, onRefill: () -> Unit) {
-    val s = state.settings
-    SectionCard(
-        title = stringResource(R.string.pen_title),
-        icon = Icons.Outlined.Healing,
-        action = { TextButton(onClick = onRefill) { Text(stringResource(R.string.new_pen)) } },
-    ) {
-        Text(
-            pluralStringResource(R.plurals.pen_doses_left, s.penDosesRemaining, s.penDosesRemaining, s.penDosesTotal),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        LinearProgressIndicator(
-            progress = { if (s.penDosesTotal > 0) s.penDosesRemaining.toFloat() / s.penDosesTotal else 0f },
-            modifier = Modifier.fillMaxWidth(),
-            color = if (s.penDosesRemaining <= 1) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-        )
-        if (s.penDosesRemaining <= 1) {
-            Text(
-                stringResource(R.string.pen_low_warning),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
         }
     }
 }
@@ -236,10 +222,17 @@ private fun QuickActions(openEditor: (Editor) -> Unit) {
 
 @Composable
 private fun QuickAction(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
-    FilledTonalButton(onClick = onClick, modifier = modifier.height(52.dp)) {
-        Icon(icon, null, Modifier.size(20.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(label, maxLines = 1)
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier.height(68.dp),
+        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, null, Modifier.size(22.dp))
+            Spacer(Modifier.height(4.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 
@@ -337,10 +330,11 @@ private fun TodayCard(state: UiState, vm: AppViewModel) {
             stepLabel = "+250",
             onAdd = { vm.updateDailyLog(today) { it.copy(waterMl = it.waterMl + 250) } },
         )
+        val food = foodTotals(state.foods, today)
         GoalRow(
             icon = Icons.Outlined.Restaurant,
             label = stringResource(R.string.protein),
-            value = log.proteinG,
+            value = log.proteinG + food.proteinG.toInt(),
             goal = s.proteinGoalG,
             unit = "g",
             stepLabel = "+10",

@@ -41,4 +41,30 @@ class ScheduleTest {
         lastUse.remove(InjectionSite.ARM_LEFT)
         assertEquals(InjectionSite.ARM_LEFT, InjectionSite.suggest(lastUse))
     }
+
+    @Test
+    fun changingDoseDayMovesNextWeeklyDose() {
+        // Last dose Monday 19; user switches to Thursday: next is Thursday 22 (3-day gap respected).
+        val last = LocalDateTime.of(2026, 10, 19, 9, 0)
+        val due = Schedule.nextDue(last, 7, DayOfWeek.THURSDAY, nine, LocalDate.of(2026, 10, 20))
+        assertEquals(LocalDateTime.of(2026, 10, 22, 9, 0), due)
+        // Switching to Tuesday would be too close (1 day): it goes to the following Tuesday.
+        val tue = Schedule.nextDue(last, 7, DayOfWeek.TUESDAY, nine, LocalDate.of(2026, 10, 20))
+        assertEquals(LocalDateTime.of(2026, 10, 27, 9, 0), tue)
+    }
+
+    @Test
+    fun skippedDoseMovesToNextSlot() {
+        val last = LocalDateTime.of(2026, 10, 5, 9, 0)
+        val due = Schedule.nextDue(last, 7, DayOfWeek.MONDAY, nine, LocalDate.of(2026, 10, 20), skippedThrough = LocalDate.of(2026, 10, 12))
+        assertEquals(LocalDateTime.of(2026, 10, 19, 9, 0), due)
+    }
+
+    @Test
+    fun oralBioavailabilityScalesLevel() {
+        val oral = Pharmacokinetics.Params(168.0, 1.0, bioavailability = 0.01)
+        val dose = Pharmacokinetics.Dose(0, 14.0, oral)
+        val level = Pharmacokinetics.amountAt(dose, 24 * 3_600_000L)
+        assert(level < 0.14) { "oral level should be ~1 % of the dose, was $level" }
+    }
 }

@@ -16,6 +16,11 @@ class Glp1App : Application() {
     val scaleManager: BleScaleManager by lazy { BleScaleManager(this) }
     val healthConnect: HealthConnect by lazy { HealthConnect(this) }
 
+    /** Called after data changes made outside the UI (notification actions, widget). */
+    fun onDataChanged() {
+        // Widget refresh is wired here once the widget module exists.
+    }
+
     override fun onCreate() {
         super.onCreate()
         Notifications.createChannels(this)

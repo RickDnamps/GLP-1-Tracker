@@ -91,12 +91,23 @@ fun JournalScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValue
             }
         }
         item { HabitsCard(state, log, date, vm) }
+        item {
+            FoodCard(
+                state.foods, date, state.settings,
+                openEditor = { e -> openEditor(if (e is Editor.Food && e.item == null) Editor.Food(date = date) else e) },
+                onQuickAdd = { f ->
+                    val time = if (date == LocalDate.now()) System.currentTimeMillis()
+                    else com.rickdnamps.glp1tracker.domain.Format.toMillis(date.atTime(12, 0))
+                    vm.saveFood(f.copy(id = 0, timestamp = time))
+                },
+            )
+        }
         item { FeelingCard(log, date, vm) }
         item {
             SectionCard(
                 title = stringResource(R.string.side_effects),
                 icon = Icons.Outlined.Healing,
-                action = { TextButton(onClick = { openEditor(Editor.SideEffect()) }) { Text(stringResource(R.string.add)) } },
+                action = { TextButton(onClick = { openEditor(Editor.SideEffect(date = date)) }) { Text(stringResource(R.string.add)) } },
             ) {
                 if (daySideEffects.isEmpty()) {
                     Text(stringResource(R.string.no_side_effect_day), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -150,10 +161,11 @@ private fun HabitsCard(state: UiState, log: DailyLogEntity, date: LocalDate, vm:
             onAdd = { vm.updateDailyLog(date) { it.copy(waterMl = it.waterMl + 250) } },
             onRemove = { vm.updateDailyLog(date) { it.copy(waterMl = (it.waterMl - 250).coerceAtLeast(0)) } },
         )
+        val food = foodTotals(state.foods, date)
         GoalRow(
             icon = Icons.Outlined.Restaurant,
             label = stringResource(R.string.protein),
-            value = log.proteinG,
+            value = log.proteinG + food.proteinG.toInt(),
             goal = s.proteinGoalG,
             unit = "g",
             stepLabel = "+10",

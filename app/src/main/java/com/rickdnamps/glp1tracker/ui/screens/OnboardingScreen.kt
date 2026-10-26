@@ -77,6 +77,7 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
     var heightText by rememberSaveable { mutableStateOf("") }
     var chooseMed by rememberSaveable { mutableStateOf(false) }
     var chooseTime by rememberSaveable { mutableStateOf(false) }
+    var finishing by rememberSaveable { mutableStateOf(false) }
 
     val steps = 3
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -199,11 +200,12 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
                 Spacer(Modifier.weight(1f))
                 val dose = Format.parse(doseText)
                 Button(
-                    enabled = step != 1 || (dose != null && dose > 0),
+                    enabled = !finishing && (step != 1 || (dose != null && dose > 0)),
                     onClick = {
                         if (step < steps - 1) {
                             step++
                         } else {
+                            finishing = true
                             val settings = UserSettings(
                                 name = name.trim(),
                                 weightUnit = unit,

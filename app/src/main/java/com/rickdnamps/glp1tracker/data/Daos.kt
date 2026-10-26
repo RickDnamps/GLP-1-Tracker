@@ -94,3 +94,45 @@ interface DailyLogDao {
     @Query("DELETE FROM daily_logs")
     suspend fun clear()
 }
+
+@Dao
+interface MeasurementDao {
+    @Query("SELECT * FROM measurements ORDER BY timestamp ASC")
+    fun observeAll(): Flow<List<MeasurementEntity>>
+
+    @Query("SELECT * FROM measurements ORDER BY timestamp ASC")
+    suspend fun getAll(): List<MeasurementEntity>
+
+    @Upsert
+    suspend fun upsert(item: MeasurementEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<MeasurementEntity>)
+
+    @Delete
+    suspend fun delete(item: MeasurementEntity)
+
+    @Query("DELETE FROM measurements")
+    suspend fun clear()
+}
+
+@Dao
+interface FoodDao {
+    @Query("SELECT * FROM food_entries ORDER BY timestamp DESC")
+    fun observeAll(): Flow<List<FoodEntity>>
+
+    @Query("SELECT * FROM food_entries ORDER BY timestamp DESC")
+    suspend fun getAll(): List<FoodEntity>
+
+    @Upsert
+    suspend fun upsert(item: FoodEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<FoodEntity>)
+
+    @Delete
+    suspend fun delete(item: FoodEntity)
+
+    @Query("DELETE FROM food_entries")
+    suspend fun clear()
+}

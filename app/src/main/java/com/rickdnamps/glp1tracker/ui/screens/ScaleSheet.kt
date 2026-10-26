@@ -107,7 +107,8 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                     LinearProgressIndicator(Modifier.fillMaxWidth())
                     if (s.devices.isEmpty()) {
                         Text(
-                            stringResource(R.string.scale_wake_hint),
+                            stringResource(R.string.scale_wake_hint) +
+                                if (android.os.Build.VERSION.SDK_INT <= 30) "\n" + stringResource(R.string.scale_location_hint) else "",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -154,6 +155,7 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                                 ScaleState.Reason.UNSUPPORTED -> R.string.scale_err_unsupported
                                 ScaleState.Reason.CONNECTION_LOST -> R.string.scale_err_lost
                                 ScaleState.Reason.SCAN_FAILED -> R.string.scale_err_scan
+                                ScaleState.Reason.TIMEOUT -> R.string.scale_err_timeout
                             }
                         ),
                         style = MaterialTheme.typography.bodyLarge,

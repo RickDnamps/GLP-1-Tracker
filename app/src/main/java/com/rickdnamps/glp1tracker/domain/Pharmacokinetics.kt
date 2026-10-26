@@ -10,11 +10,14 @@ import kotlin.math.ln
  */
 object Pharmacokinetics {
 
-    data class Params(val halfLifeHours: Double, val tmaxHours: Double)
+    data class Params(val halfLifeHours: Double, val tmaxHours: Double, val bioavailability: Double = 1.0)
 
     data class Dose(val timeMillis: Long, val doseMg: Double, val params: Params)
 
     private const val MS_PER_HOUR = 3_600_000.0
+
+    /** The bisection is costly and depends only on the parameters, so cache it. */
+    private val kaCache = java.util.concurrent.ConcurrentHashMap<Params, Double>()
 
     /** Solves tmax = ln(ka/ke)/(ka-ke) for the absorption rate ka (> ke) by bisection. */
     fun absorptionRate(ke: Double, tmaxHours: Double): Double {
@@ -34,8 +37,8 @@ object Pharmacokinetics {
         val t = (atMillis - dose.timeMillis) / MS_PER_HOUR
         if (t < 0) return 0.0
         val ke = ln(2.0) / dose.params.halfLifeHours
-        val ka = absorptionRate(ke, dose.params.tmaxHours)
-        return dose.doseMg * ka / (ka - ke) * (exp(-ke * t) - exp(-ka * t))
+        val ka = kaCache.getOrPut(dose.params) { absorptionRate(ke, dose.params.tmaxHours) }
+        return dose.doseMg * dose.params.bioavailability * ka / (ka - ke) * (exp(-ke * t) - exp(-ka * t))
     }
 
     fun levelAt(doses: List<Dose>, atMillis: Long): Double =
