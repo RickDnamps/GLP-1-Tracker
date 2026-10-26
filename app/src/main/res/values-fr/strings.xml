@@ -343,6 +343,8 @@
     <string name="lock_subtitle">Vos données de santé sont protégées.</string>
     <string name="lock_enable_subtitle">Confirmez pour activer le verrou</string>
     <string name="lock_unlock">Déverrouiller</string>
+    <string name="of_goal">de l\'objectif</string>
+    <string name="water_of_goal">sur %1$d ml aujourd\'hui</string>
     <plurals name="ring_days">
         <item quantity="one">jour</item>
         <item quantity="many">jours</item>

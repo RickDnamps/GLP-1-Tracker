@@ -1,8 +1,13 @@
 package com.rickdnamps.glp1tracker.ui.screens
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.graphics.Color
+import com.rickdnamps.glp1tracker.ui.components.AnimatedValue
+import com.rickdnamps.glp1tracker.ui.components.HeroCard
+import com.rickdnamps.glp1tracker.ui.components.Pill
+import com.rickdnamps.glp1tracker.ui.components.ProgressRing
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -84,20 +89,12 @@ fun ProgressScreen(
                 }
             }
         }
+        item { ProgressHero(stats, settings) }
         item {
             SectionCard(title = stringResource(R.string.summary), icon = Icons.Outlined.Insights) {
                 Row(Modifier.fillMaxWidth()) {
                     StatTile(stringResource(R.string.start), stats.startKg?.let { weightText(it, settings) } ?: "—", Modifier.weight(1f))
-                    StatTile(stringResource(R.string.current), stats.currentKg?.let { weightText(it, settings) } ?: "—", Modifier.weight(1f), emphasize = true)
                     StatTile(stringResource(R.string.goal), stats.goalKg?.let { weightText(it, settings) } ?: "—", Modifier.weight(1f))
-                }
-                Row(Modifier.fillMaxWidth()) {
-                    StatTile(
-                        stringResource(if ((stats.lostKg ?: 0.0) >= 0) R.string.lost else R.string.gained),
-                        stats.lostKg?.let { weightText(abs(it), settings) } ?: "—",
-                        Modifier.weight(1f),
-                    )
-                    StatTile(stringResource(R.string.percent_lost), stats.percentLost?.let { Format.oneDecimal(it) + " %" } ?: "—", Modifier.weight(1f))
                     StatTile(stringResource(R.string.bmi), stats.bmi?.let { Format.oneDecimal(it) } ?: "—", Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth()) {
@@ -108,9 +105,6 @@ fun ProgressScreen(
                     )
                     StatTile(stringResource(R.string.to_goal), stats.remainingKg?.let { weightText(it, settings) } ?: "—", Modifier.weight(1f))
                     StatTile(stringResource(R.string.entries), state.weights.size.toString(), Modifier.weight(1f))
-                }
-                if (stats.progressToGoal != null) {
-                    LinearProgressIndicator(progress = { stats.progressToGoal }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
                 }
             }
         }
@@ -186,5 +180,45 @@ private fun WeightRow(entry: WeightEntity, delta: Double?, settings: UserSetting
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    }
+}
+
+@Composable
+private fun ProgressHero(stats: com.rickdnamps.glp1tracker.ui.WeightStats, settings: UserSettings) {
+    HeroCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ProgressRing(
+                progress = stats.progressToGoal ?: 0f,
+                size = 128.dp,
+                stroke = 12.dp,
+                trackColor = Color.White.copy(alpha = 0.22f),
+                colors = listOf(Color.White, Color.White.copy(alpha = 0.7f)),
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    AnimatedValue(
+                        text = stats.progressToGoal?.let { "${(it * 100).toInt()} %" } ?: "—",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                    )
+                    Text(stringResource(R.string.of_goal), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f))
+                }
+            }
+            Spacer(Modifier.width(18.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(R.string.current).uppercase(), style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
+                AnimatedValue(
+                    text = stats.currentKg?.let { weightText(it, settings) } ?: "—",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = Color.White,
+                )
+                val lost = stats.lostKg
+                if (lost != null) {
+                    Pill(
+                        (if (lost >= 0) "−" else "+") + weightText(abs(lost), settings) +
+                            (stats.percentLost?.let { " · " + Format.oneDecimal(abs(it)) + " %" } ?: ""),
+                    )
+                }
+            }
+        }
     }
 }

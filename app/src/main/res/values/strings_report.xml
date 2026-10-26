@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Doctor report (PDF). Kept apart from strings.xml; every key starts with report_. -->
+<resources>
+    <!-- Entry point and messages, for the settings screen -->
+    <string name="report_export">Report for my doctor (PDF)</string>
+    <string name="report_msg_done">Report saved</string>
+    <string name="report_period_all">Since the beginning</string>
+    <string name="report_period_3m">Last 3 months</string>
+    <string name="report_period_6m">Last 6 months</string>
+    <string name="report_period_12m">Last 12 months</string>
+
+    <!-- Header and footer -->
+    <string name="report_title">Treatment report</string>
+    <string name="report_subtitle">Summary prepared for my healthcare professional</string>
+    <string name="report_patient">Patient</string>
+    <string name="report_height_cm">Height: %1$s cm</string>
+    <string name="report_period">Period</string>
+    <string name="report_period_range">%1$s – %2$s</string>
+    <string name="report_generated_on">Generated on</string>
+    <string name="report_footer">%1$s · Generated on %2$s</string>
+    <string name="report_page_of">Page %1$d / %2$d</string>
+    <plurals name="report_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+
+    <!-- Treatment -->
+    <string name="report_section_treatment">Treatment</string>
+    <string name="report_current_medication">Current medication</string>
+    <string name="report_doses_in_period">Doses in the period</string>
+    <string name="report_adherence">Adherence</string>
+    <string name="report_adherence_detail">%1$d of %2$d expected doses</string>
+    <string name="report_adherence_na">Period too short to estimate</string>
+    <string name="report_percent">%1$s%%</string>
+    <string name="report_first_dose">First dose</string>
+    <string name="report_last_dose">Last dose</string>
+    <string name="report_dose_changes">Dose changes</string>
+    <string name="report_titration">Titration: %1$s</string>
+    <string name="report_same_dose">Same dose throughout the period: %1$s.</string>
+    <string name="report_mg">%1$s mg</string>
+    <string name="report_since">Since</string>
+    <string name="report_col_date">Date</string>
+    <string name="report_col_dose">Dose (mg)</string>
+    <string name="report_col_doses">Doses</string>
+    <string name="report_col_site">Site</string>
+
+    <!-- Weight -->
+    <string name="report_start">Start of period</string>
+    <string name="report_change">Change</string>
+    <string name="report_per_week">Average per week</string>
+    <string name="report_to_goal">%1$s to go</string>
+    <string name="report_goal_reached">Goal reached</string>
+    <string name="report_goal_line">Goal %1$s</string>
+    <string name="report_weight_chart">Weight over the period</string>
+    <string name="report_chart_need_two">At least two weight entries are needed to draw the chart.</string>
+    <string name="report_weight_entries">Weight entries</string>
+    <string name="report_weight_col">Weight (%1$s)</string>
+    <string name="report_no_weight">No weight logged during this period.</string>
+
+    <!-- Doses -->
+    <string name="report_section_doses">Dose log</string>
+    <string name="report_no_dose">No dose logged during this period.</string>
+
+    <!-- Side effects -->
+    <string name="report_section_side_effects">Side effects</string>
+    <string name="report_no_side_effect">No side effect logged during this period.</string>
+    <string name="report_by_symptom">Frequency by symptom</string>
+    <string name="report_occurrences">Occurrences</string>
+    <string name="report_avg_severity">Average severity</string>
+    <string name="report_max_severity">Highest severity</string>
+    <string name="report_severity_value">%1$s / 3</string>
+    <string name="report_severity_help">Severity: 1\u00A0=\u00A0mild, 2\u00A0=\u00A0moderate, 3\u00A0=\u00A0severe.</string>
+    <string name="report_all_entries">All entries</string>
+
+    <!-- Daily habits -->
+    <string name="report_section_habits">Daily habits</string>
+    <string name="report_habits_help">Averages over the days on which a value was entered. Appetite: 1\u00A0=\u00A0none to 5\u00A0=\u00A0very high. Mood: 1\u00A0=\u00A0very bad to 5\u00A0=\u00A0very good.</string>
+    <string name="report_ml_per_day">%1$s ml/day</string>
+    <string name="report_g_per_day">%1$s g/day</string>
+    <string name="report_scale_5">%1$s / 5</string>
+    <string name="report_goal_value">goal %1$s</string>
+    <string name="report_no_habits">No daily journal entry during this period.</string>
+
+    <!-- Questions and disclaimer -->
+    <string name="report_section_questions">Questions for my doctor</string>
+    <string name="report_questions_help">Write down your questions before the appointment, and the answers during it.</string>
+    <string name="report_disclaimer_title">Important</string>
+    <string name="report_data_source">Data entered by the patient in %1$s, not verified by a health professional.</string>
+</resources>

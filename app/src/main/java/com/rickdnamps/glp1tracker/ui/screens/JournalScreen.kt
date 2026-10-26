@@ -1,6 +1,12 @@
 package com.rickdnamps.glp1tracker.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
+import com.rickdnamps.glp1tracker.ui.components.AnimatedValue
+import com.rickdnamps.glp1tracker.ui.components.WaterGlass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -151,16 +157,34 @@ fun JournalScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValue
 private fun HabitsCard(state: UiState, log: DailyLogEntity, date: LocalDate, vm: AppViewModel) {
     val s = state.settings
     SectionCard(title = stringResource(R.string.hydration_nutrition)) {
-        GoalRow(
-            icon = Icons.Outlined.WaterDrop,
-            label = stringResource(R.string.water),
-            value = log.waterMl,
-            goal = s.waterGoalMl,
-            unit = "ml",
-            stepLabel = "+250",
-            onAdd = { vm.updateDailyLog(date) { it.copy(waterMl = it.waterMl + 250) } },
-            onRemove = { vm.updateDailyLog(date) { it.copy(waterMl = (it.waterMl - 250).coerceAtLeast(0)) } },
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            WaterGlass(if (s.waterGoalMl > 0) log.waterMl.toFloat() / s.waterGoalMl else 0f)
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                AnimatedValue(
+                    text = "${log.waterMl} ml",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    stringResource(R.string.water_of_goal, s.waterGoalMl),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(250, 500).forEach { ml ->
+                        FilledTonalButton(
+                            onClick = { vm.updateDailyLog(date) { it.copy(waterMl = it.waterMl + ml) } },
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                        ) { Text("+$ml") }
+                    }
+                    OutlinedButton(
+                        onClick = { vm.updateDailyLog(date) { it.copy(waterMl = (it.waterMl - 250).coerceAtLeast(0)) } },
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                    ) { Text("−") }
+                }
+            }
+        }
         val food = foodTotals(state.foods, date)
         GoalRow(
             icon = Icons.Outlined.Restaurant,

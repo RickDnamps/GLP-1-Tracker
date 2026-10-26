@@ -20,6 +20,7 @@ import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.SideEffectType
 import com.rickdnamps.glp1tracker.notifications.Notifications
+import com.rickdnamps.glp1tracker.report.DoctorReport
 import com.rickdnamps.glp1tracker.notifications.ReminderScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -242,6 +243,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 app.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(("\uFEFF" + csv).toByteArray()) }
             }
         }.onSuccess { message(R.string.msg_export_done) }.onFailure { message(R.string.msg_export_failed) }
+    }
+
+    fun exportDoctorReport(uri: Uri, fromMillis: Long, toMillis: Long = System.currentTimeMillis()) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        runCatching {
+            val snapshot = repository.snapshot()
+            withContext(Dispatchers.IO) {
+                app.contentResolver.openOutputStream(uri, "wt")!!.use {
+                    DoctorReport.write(app, it, snapshot, fromMillis, toMillis)
+                }
+            }
+        }.onSuccess { message(R.string.report_msg_done) }.onFailure { message(R.string.msg_export_failed) }
     }
 
     fun exportBackup(uri: Uri) = viewModelScope.launch {

@@ -91,7 +91,7 @@ import kotlinx.coroutines.launch
 private enum class SettingDialog {
     NAME, HEIGHT, START_WEIGHT, GOAL_WEIGHT, MEDICATION, DOSE, DOSE_CUSTOM, INTERVAL, INTERVAL_CUSTOM, DAY, TIME,
     CUSTOM_NAME, CUSTOM_HALF_LIFE, WATER_GOAL, PROTEIN_GOAL, PEN_TOTAL, PEN_REMAINING,
-    STOCK_PENS, DISCARD_DAYS, PEN_OPENED, WEIGH_IN_DAY, WEIGH_IN_TIME, CALORIE_GOAL, FIBER_GOAL,
+    REPORT_PERIOD, STOCK_PENS, DISCARD_DAYS, PEN_OPENED, WEIGH_IN_DAY, WEIGH_IN_TIME, CALORIE_GOAL, FIBER_GOAL,
 }
 
 private const val CUSTOM = -1.0
@@ -140,6 +140,10 @@ fun SettingsScreen(
     }
     val backupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let(vm::exportBackup)
+    }
+    var reportFrom by remember { mutableStateOf(0L) }
+    val pdfLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        uri?.let { vm.exportDoctorReport(it, fromMillis = reportFrom) }
     }
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let(vm::setAutoBackupFolder)
@@ -366,6 +370,7 @@ fun SettingsScreen(
         }
         item {
             SectionCard(title = stringResource(R.string.data), icon = Icons.Outlined.Save) {
+                SettingRow(stringResource(R.string.report_export), null) { dialog = SettingDialog.REPORT_PERIOD }
                 SettingRow(stringResource(R.string.export_csv), null) { csvLauncher.launch("glp1-tracker-$today.csv") }
                 SettingRow(stringResource(R.string.backup_json), null) { backupLauncher.launch("glp1-tracker-backup-$today.json") }
                 SettingRow(
@@ -408,7 +413,10 @@ fun SettingsScreen(
         }
     }
 
-    SettingDialogs(dialog, s, vm, onDialog = { dialog = it })
+    SettingDialogs(dialog, s, vm, onDialog = { dialog = it }, onReport = { months ->
+        reportFrom = if (months == 0) 0L else System.currentTimeMillis() - months * 30L * 86_400_000L
+        pdfLauncher.launch("glp1-tracker-report-$today.pdf")
+    })
 
     pendingRestore?.let { uri ->
         ConfirmDialog(
@@ -441,7 +449,13 @@ fun dayName(day: DayOfWeek): String =
     day.getDisplayName(TextStyle.FULL, Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }
 
 @Composable
-private fun SettingDialogs(dialog: SettingDialog?, s: UserSettings, vm: AppViewModel, onDialog: (SettingDialog?) -> Unit) {
+private fun SettingDialogs(
+    dialog: SettingDialog?,
+    s: UserSettings,
+    vm: AppViewModel,
+    onDialog: (SettingDialog?) -> Unit,
+    onReport: (months: Int) -> Unit,
+) {
     val close = { onDialog(null) }
     val unit = stringResource(s.weightUnit.symbolRes)
     fun save(transform: (UserSettings) -> UserSettings) {
@@ -537,6 +551,22 @@ private fun SettingDialogs(dialog: SettingDialog?, s: UserSettings, vm: AppViewM
         SettingDialog.PEN_TOTAL -> NumberInputDialog(stringResource(R.string.doses_per_pen), s.penDosesTotal.toDouble(), "", close, { v ->
             if (v >= 1) save { it.copy(penDosesTotal = v.toInt(), penDosesRemaining = it.penDosesRemaining.coerceAtMost(v.toInt())) }
         }, allowDecimals = false)
+        SettingDialog.REPORT_PERIOD -> {
+            val labels = mapOf(
+                3 to stringResource(R.string.report_period_3m),
+                6 to stringResource(R.string.report_period_6m),
+                12 to stringResource(R.string.report_period_12m),
+                0 to stringResource(R.string.report_period_all),
+            )
+            ChoiceDialog(
+                title = stringResource(R.string.report_export),
+                options = listOf(3, 6, 12, 0),
+                selected = null,
+                label = { labels.getValue(it) },
+                onDismiss = close,
+                onSelect = { months -> onDialog(null); onReport(months) },
+            )
+        }
         SettingDialog.STOCK_PENS -> NumberInputDialog(stringResource(R.string.stock_pens_setting), s.stockPens.toDouble(), "", close, { v ->
             save { it.copy(stockPens = v.toInt()) }
         }, allowDecimals = false)

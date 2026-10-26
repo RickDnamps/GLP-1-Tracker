@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -173,4 +174,47 @@ fun Pill(text: String, modifier: Modifier = Modifier, container: Color = Color.W
             .background(container)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
+}
+
+/** Glass of water whose level follows [progress] with a gently moving wave. */
+@Composable
+fun WaterGlass(progress: Float, modifier: Modifier = Modifier) {
+    val level by animateFloatAsState(progress.coerceIn(0f, 1f), tween(900, easing = FastOutSlowInEasing), label = "level")
+    val phase by rememberInfiniteTransition(label = "wave").animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(2_400, easing = androidx.compose.animation.core.LinearEasing)),
+        label = "phase",
+    )
+    val outline = MaterialTheme.colorScheme.outline
+    val water = listOf(Color(0xFF4FC3F7), Color(0xFF0288D1))
+    Canvas(modifier.size(width = 64.dp, height = 84.dp)) {
+        val w = size.width
+        val h = size.height
+        val inset = w * 0.12f
+        val glass = androidx.compose.ui.graphics.Path().apply {
+            moveTo(0f, 0f)
+            lineTo(w, 0f)
+            lineTo(w - inset, h)
+            lineTo(inset, h)
+            close()
+        }
+        clipPath(glass) {
+            val top = h * (1f - level)
+            val amp = if (level in 0.02f..0.98f) h * 0.035f else 0f
+            val wave = androidx.compose.ui.graphics.Path().apply {
+                moveTo(0f, h)
+                lineTo(0f, top)
+                var x = 0f
+                while (x <= w) {
+                    lineTo(x, top + amp * kotlin.math.sin(phase + x / w * 2f * Math.PI.toFloat()))
+                    x += w / 24f
+                }
+                lineTo(w, h)
+                close()
+            }
+            drawPath(wave, Brush.verticalGradient(water, startY = top, endY = h))
+        }
+        drawPath(glass, outline, style = Stroke(width = 2.dp.toPx(), join = androidx.compose.ui.graphics.StrokeJoin.Round))
+    }
 }

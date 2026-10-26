@@ -343,6 +343,8 @@
     <string name="lock_subtitle">Your health data is protected.</string>
     <string name="lock_enable_subtitle">Confirm to turn on the lock</string>
     <string name="lock_unlock">Unlock</string>
+    <string name="of_goal">of goal</string>
+    <string name="water_of_goal">of %1$d ml today</string>
     <plurals name="ring_days">
         <item quantity="one">day</item>
         <item quantity="other">days</item>
