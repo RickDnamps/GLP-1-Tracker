@@ -452,6 +452,7 @@
     <string name="sex_female">Femme</string>
     <string name="birth_year">Année de naissance</string>
     <string name="msg_photo_saved">Photo ajoutée</string>
+    <string name="scale_barefoot">Restez immobile, pieds nus sur les plaques métalliques : mesure de la composition…</string>
     <plurals name="ring_days">
         <item quantity="one">jour</item>
         <item quantity="many">jours</item>

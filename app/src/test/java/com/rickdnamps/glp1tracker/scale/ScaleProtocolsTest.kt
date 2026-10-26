@@ -80,4 +80,37 @@ class ScaleProtocolsTest {
         assertEquals(80.02, d.onLive(80.02, 2_100)!!, 0.0)
         assertNull(d.onLive(80.02, 5_000))
     }
+
+    @Test
+    fun lefuBioimpedanceHandshake() {
+        val profile = ScaleUserProfile(male = true, birthYear = 1980, heightCm = 178.0, refWeightKg = 92.5)
+        val lefu = LefuProtocol(profile)
+        fun frame(cmd: Int, vararg payload: Int) = LefuProtocol.buildFrame(cmd, bytes(*payload))
+        // Profile ack → user profile 0x96 with height in mm and reference weight in 0.01 kg
+        val w1 = lefu.onNotification(LefuProtocol.RESULTS, frame(0x17, 0x01), 0).filterIsInstance<ScaleEvent.Write>()
+        assertEquals(1, w1.size)
+        val p96 = w1[0].write.value
+        assertEquals(0x96, p96[2].toInt() and 0xFF)
+        assertEquals(0x11, p96[5].toInt() and 0xFF) // male
+        assertEquals(1780, ((p96[10].toInt() and 0xFF) shl 8) or (p96[11].toInt() and 0xFF))
+        assertEquals(9250, ((p96[14].toInt() and 0xFF) shl 8) or (p96[15].toInt() and 0xFF))
+        // History ack accepted → start BIA (0x90)
+        val w2 = lefu.onNotification(LefuProtocol.RESULTS, frame(0x16, 0x01), 0).filterIsInstance<ScaleEvent.Write>()
+        assertEquals(0x90, w2.single().write.value[2].toInt() and 0xFF)
+        // Final BIA: weight 91.20 kg at [10..11], resistance 512 ohm at [12..13]
+        val final = frame(0x18, 0, 0, 0, 0, 0, 0x23, 0xA0, 0x02, 0x00, 0, 0)
+        val events = lefu.onNotification(LefuProtocol.RESULTS, final, 0)
+        assertEquals(2, events.filterIsInstance<ScaleEvent.Write>().size)
+        assertEquals(ScaleEvent.Stable(91.2, impedance = 512.0), events.filterIsInstance<ScaleEvent.Stable>().single())
+    }
+
+    @Test
+    fun lefuReassemblesFragments() {
+        val lefu = LefuProtocol()
+        val full = LefuProtocol.buildFrame(0x14, bytes(0, 0, 0, 0x1F, 0x40, 0, 0))
+        val first = bytes(0xAD, 0, 0) + full.copyOfRange(0, 6)
+        val cont = bytes(0xAF, 0, 0) + full.copyOfRange(6, full.size)
+        assertTrue(lefu.onNotification(LefuProtocol.RESULTS, first, 0).isEmpty())
+        assertEquals(listOf(ScaleEvent.Live(80.0)), lefu.onNotification(LefuProtocol.RESULTS, cont, 0))
+    }
 }

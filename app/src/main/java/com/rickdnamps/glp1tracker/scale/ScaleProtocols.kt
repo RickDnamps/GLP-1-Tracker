@@ -37,8 +37,8 @@ interface ScaleProtocol {
 
     companion object {
         /** Picks a protocol from the services discovered on the device (most specific first). */
-        fun forServices(services: Set<UUID>): ScaleProtocol? = when {
-            LefuProtocol.SERVICE in services -> LefuProtocol()
+        fun forServices(services: Set<UUID>, profile: ScaleUserProfile? = null): ScaleProtocol? = when {
+            LefuProtocol.SERVICE in services -> LefuProtocol(profile)
             QnProtocol.SERVICE_T1 in services || QnProtocol.SERVICE_T2 in services -> QnProtocol(
                 hasT1 = QnProtocol.SERVICE_T1 in services,
                 hasT2 = QnProtocol.SERVICE_T2 in services,
@@ -272,26 +272,66 @@ class QnProtocol(private val hasT1: Boolean, private val hasT2: Boolean) : Scale
     }
 }
 
+/** Profile sent to scales that measure body composition (bioimpedance). */
+data class ScaleUserProfile(
+    val male: Boolean,
+    val birthYear: Int,
+    val heightCm: Double,
+    /** Last known weight; the scale needs it to accept the profile (0 = unknown). */
+    val refWeightKg: Double,
+)
+
 /**
  * "Lefu" protocol of the Renpho ES-CS20M / ES-32MD family (service 0x1A10).
- * Frames: 0x55 0xAA cmd 0x00 len payload... checksum. Weight frames (0x14) stream while
- * standing on the scale; a 0x11 frame with payload 0 marks the end of the measurement.
+ * Frames: 0x55 0xAA cmd 0x00 len payload... checksum. Long frames are split in two
+ * notifications prefixed 0xAD (first) / 0xAF (continuation) + 2 bytes.
+ *
+ * Weight only: subscribe, send 0x97; 0x14 frames stream the weight, 0x11 with payload 0 ends.
+ * With a [profile] the scale also measures impedance: 0x97 → ack 0x17 → profile 0x96 → ack 0x16
+ * (accepted) → start BIA 0x90 → interim 0x19 (answer 0x99 + 0x96) → final 0x18 with resistance.
  */
-class LefuProtocol : ScaleProtocol {
+class LefuProtocol(private val profile: ScaleUserProfile? = null) : ScaleProtocol {
     override val displayName = "Renpho ES-CS20M"
     override val subscriptions = listOf(SERVICE to RESULTS)
 
+    /** Bioimpedance takes a few seconds after the weight settles. */
+    override val liveFallbackMs: Long get() = if (profile != null) 12_000 else 4_000
+
+    private enum class Phase { WAIT_PROFILE_ACK, WAIT_HIST_ACK, MEASURING }
+
+    private var phase = Phase.WAIT_PROFILE_ACK
     private var lastKg: Double? = null
+    private var fragment: ByteArray? = null
     private var published = false
 
     override fun onReady(nowMillis: Long): List<GattWrite> {
         val ts = (nowMillis / 1000L).toInt()
         val payload = byteArrayOf(0x01, 0x00, 0x00, (ts ushr 24).toByte(), (ts ushr 16).toByte(), (ts ushr 8).toByte(), ts.toByte(), 0x01, 0x06)
-        return listOf(GattWrite(SERVICE, COMMAND, buildFrame(0x97, payload)))
+        return listOf(command(0x97, payload))
     }
 
+    private fun command(cmd: Int, payload: ByteArray) = GattWrite(SERVICE, COMMAND, buildFrame(cmd, payload))
+
+    private fun write(cmd: Int, payload: ByteArray) = ScaleEvent.Write(command(cmd, payload))
+
     override fun onNotification(characteristic: UUID, data: ByteArray, nowMillis: Long): List<ScaleEvent> {
-        if (characteristic != RESULTS || data.size < 3 || u8(data[0]) != 0x55) return emptyList()
+        if (characteristic != RESULTS || data.isEmpty()) return emptyList()
+        return when (u8(data[0])) {
+            FRAG_FIRST -> {
+                fragment = data.copyOfRange(minOf(3, data.size), data.size)
+                emptyList()
+            }
+            FRAG_CONT -> {
+                val first = fragment ?: return emptyList()
+                fragment = null
+                onFrame(first + data.copyOfRange(minOf(3, data.size), data.size))
+            }
+            else -> onFrame(data)
+        }
+    }
+
+    private fun onFrame(data: ByteArray): List<ScaleEvent> {
+        if (data.size < 3 || u8(data[0]) != 0x55) return emptyList()
         return when (u8(data[2])) {
             0x14 -> {
                 if (data.size < 12) return emptyList()
@@ -300,28 +340,71 @@ class LefuProtocol : ScaleProtocol {
                 lastKg = kg
                 listOf(ScaleEvent.Live(kg))
             }
+            0x17 -> {
+                val p = profile
+                if (phase != Phase.WAIT_PROFILE_ACK || p == null) return emptyList()
+                phase = Phase.WAIT_HIST_ACK
+                listOf(write(0x96, profilePayload(p, (p.refWeightKg * 100).toInt())))
+            }
+            0x16 -> {
+                if (phase != Phase.WAIT_HIST_ACK) return emptyList()
+                phase = Phase.MEASURING
+                // Accepted (byte 5 = 1): arm the impedance measurement. Rejected: weight only.
+                if (data.size >= 6 && u8(data[5]) == 0x01) listOf(write(0x90, byteArrayOf(0x01, 0x00, 0x01, 0x00))) else emptyList()
+            }
+            0x19 -> {
+                val p = profile ?: return emptyList()
+                val interim = if (data.size >= 13) u16be(data, 11) else ((lastKg ?: 0.0) * 100).toInt()
+                listOf(write(0x99, byteArrayOf(0x01)), write(0x96, profilePayload(p, interim)))
+            }
             0x18 -> {
                 if (data.size < 12) return emptyList()
                 val kg = u16be(data, 10) / 100.0
                 if (plausible(kg)) lastKg = kg
-                finish()
+                val r1 = if (data.size >= 14) u16be(data, 12) else 0
+                val saves = profile?.let { p ->
+                    val save = write(0x96, profilePayload(p, ((lastKg ?: 0.0) * 100).toInt()))
+                    listOf(save, save)
+                }.orEmpty()
+                saves + finish(BodyCompositionMath.normalizeImpedance(r1.toDouble()))
             }
-            0x11 -> if (data.size >= 6 && data[5].toInt() == 0) finish() else emptyList()
+            0x11 -> if (data.size >= 6 && data[5].toInt() == 0) finish(null) else emptyList()
             else -> emptyList()
         }
     }
 
-    private fun finish(): List<ScaleEvent> {
+    private fun finish(impedance: Double?): List<ScaleEvent> {
         val kg = lastKg ?: return emptyList()
         if (published) return emptyList()
         published = true
-        return listOf(ScaleEvent.Stable(kg))
+        return listOf(ScaleEvent.Stable(kg, impedance = impedance))
     }
 
     companion object {
         val SERVICE = uuid16(0x1A10)
         val RESULTS = uuid16(0x2A10)
         val COMMAND = uuid16(0x2A11)
+        private const val FRAG_FIRST = 0xAD
+        private const val FRAG_CONT = 0xAF
+
+        /**
+         * 0x96 user profile: sex (0x11 male / 0x21 female), birth year (BE16), month, day,
+         * height in mm (BE16), 0, 0, reference weight in 0.01 kg (BE16), mode (0xAA standard), 0x01, 0x05.
+         */
+        fun profilePayload(p: ScaleUserProfile, weightRaw: Int): ByteArray {
+            val heightMm = (p.heightCm * 10).toInt().coerceIn(0, 0xFFFF)
+            val w = weightRaw.coerceIn(0, 0xFFFF)
+            val year = p.birthYear
+            return byteArrayOf(
+                (if (p.male) 0x11 else 0x21).toByte(),
+                (year ushr 8).toByte(), year.toByte(),
+                7, 1, // birth month/day unknown: mid-year
+                (heightMm ushr 8).toByte(), heightMm.toByte(),
+                0x00, 0x00,
+                (w ushr 8).toByte(), w.toByte(),
+                0xAA.toByte(), 0x01, 0x05,
+            )
+        }
 
         fun buildFrame(cmd: Int, payload: ByteArray): ByteArray {
             val f = ByteArray(5 + payload.size + 1)

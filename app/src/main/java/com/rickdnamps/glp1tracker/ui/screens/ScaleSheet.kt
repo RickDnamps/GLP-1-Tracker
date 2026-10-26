@@ -51,6 +51,8 @@ import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.scale.BleScaleManager
 import com.rickdnamps.glp1tracker.scale.FoundScale
 import com.rickdnamps.glp1tracker.scale.ScaleState
+import com.rickdnamps.glp1tracker.scale.ScaleUserProfile
+import androidx.compose.runtime.remember
 import com.rickdnamps.glp1tracker.ui.AppViewModel
 import com.rickdnamps.glp1tracker.ui.weightText
 
@@ -62,7 +64,17 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val savedAddress = settings.scaleAddress.ifBlank { null }
 
-    val startScan = { scale.start(savedAddress) }
+    // Profile lets body-composition scales (e.g. Renpho ES-CS20M) measure impedance.
+    val profile = remember(settings) {
+        val male = when (settings.sex) { 1 -> true; 2 -> false; else -> null }
+        if (male != null && settings.birthYear > 0 && settings.heightCm > 0) {
+            ScaleUserProfile(male, settings.birthYear, settings.heightCm, vm.state.value.weights.lastOrNull()?.weightKg ?: 0.0)
+        } else null
+    }
+    val startScan = {
+        scale.userProfile = profile
+        scale.start(savedAddress)
+    }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         startScan()
     }
@@ -129,17 +141,35 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Text(stringResource(R.string.scale_measuring, s.name), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        stringResource(if (profile != null) R.string.scale_barefoot else R.string.comp_profile_needed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
                 is ScaleState.Done -> {
+                    // Preview of the composition that will be saved (scale values or impedance estimate).
+                    val preview = s.composition ?: s.impedance?.let { imp ->
+                        val sex = settings.sexOrNull
+                        val age = settings.ageOrNull
+                        if (sex != null && age != null && settings.heightCm > 0) {
+                            com.rickdnamps.glp1tracker.domain.BodyCompositionMath.estimate(s.kg, settings.heightCm, age, sex, imp)
+                        } else null
+                    }
                     Icon(Icons.Outlined.CheckCircle, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
                     Text(
                         weightText(s.kg, settings),
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Bold,
                     )
-                    s.composition?.bodyFatPct?.let {
-                        Text(stringResource(R.string.comp_fat) + " : " + com.rickdnamps.glp1tracker.domain.Format.oneDecimal(it) + " %")
+                    preview?.let { c ->
+                        val f = com.rickdnamps.glp1tracker.domain.Format
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            c.bodyFatPct?.let { Text(stringResource(R.string.comp_fat) + "\n" + f.oneDecimal(it) + " %", style = MaterialTheme.typography.bodyMedium) }
+                            c.muscleKg?.let { Text(stringResource(R.string.comp_muscle) + "\n" + f.oneDecimal(it) + " kg", style = MaterialTheme.typography.bodyMedium) }
+                            c.waterPct?.let { Text(stringResource(R.string.comp_water) + "\n" + f.oneDecimal(it) + " %", style = MaterialTheme.typography.bodyMedium) }
+                        }
                     }
                     if (s.composition == null && s.impedance != null && (settings.sexOrNull == null || settings.ageOrNull == null)) {
                         Text(

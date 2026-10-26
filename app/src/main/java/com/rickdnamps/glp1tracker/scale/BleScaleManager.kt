@@ -57,6 +57,9 @@ class BleScaleManager(context: Context) {
     private val _state = MutableStateFlow<ScaleState>(ScaleState.Idle)
     val state: StateFlow<ScaleState> = _state.asStateFlow()
 
+    /** Profile for scales measuring body composition (sex, birth year, height, last weight). */
+    var userProfile: ScaleUserProfile? = null
+
     private var gatt: BluetoothGatt? = null
     private var protocol: ScaleProtocol? = null
     private var stability = StabilityDetector()
@@ -208,7 +211,7 @@ class BleScaleManager(context: Context) {
 
     private fun onServices(g: BluetoothGatt) {
         val services = g.services.map { it.uuid }.toSet()
-        val p = ScaleProtocol.forServices(services)
+        val p = ScaleProtocol.forServices(services, userProfile)
         if (p == null) {
             stop()
             _state.value = ScaleState.Error(ScaleState.Reason.UNSUPPORTED)
