@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="45">
+        <!-- cap / button -->
+        <path
+            android:fillColor="#FF8FE3CF"
+            android:pathData="M49,26 h10 a2,2 0 0 1 2,2 v6 h-14 v-6 a2,2 0 0 1 2,-2z" />
+        <!-- pen body -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M45,34 h18 a3,3 0 0 1 3,3 v31 a3,3 0 0 1 -3,3 h-18 a3,3 0 0 1 -3,-3 v-31 a3,3 0 0 1 3,-3z" />
+        <!-- dose window -->
+        <path
+            android:fillColor="#FF2BB59A"
+            android:pathData="M49,42 h10 v14 h-10z" />
+        <!-- dose marks -->
+        <path
+            android:fillColor="#FF0F3D36"
+            android:pathData="M51,45 h6 v1.5 h-6z M51,48.5 h6 v1.5 h-6z M51,52 h6 v1.5 h-6z" />
+        <!-- needle hub -->
+        <path
+            android:fillColor="#FF8FE3CF"
+            android:pathData="M48,71 h12 v5 h-12z" />
+        <!-- needle -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M53,76 h2 v9 l-1,2 l-1,-2z" />
+    </group>
+</vector>
