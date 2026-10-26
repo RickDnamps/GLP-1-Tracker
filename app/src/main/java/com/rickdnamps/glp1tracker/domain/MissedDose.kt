@@ -55,5 +55,9 @@ object MissedDose {
         }
     }
 
+    /** Hours that should separate two doses: the label's day-change gap, else half the interval. */
+    fun guardHours(medication: Medication, intervalDays: Int): Int =
+        rule(medication)?.minGapHours ?: (intervalDays.coerceAtLeast(1) * 24 / 2)
+
     fun hoursLeft(deadline: LocalDateTime, now: LocalDateTime): Long = Duration.between(now, deadline).toHours().coerceAtLeast(0)
 }

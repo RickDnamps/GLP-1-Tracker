@@ -21,6 +21,8 @@ import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -61,6 +63,8 @@ import com.rickdnamps.glp1tracker.ui.screens.FoodEditor
 import com.rickdnamps.glp1tracker.ui.screens.MeasurementEditor
 import com.rickdnamps.glp1tracker.ui.screens.TitrationSheet
 import com.rickdnamps.glp1tracker.ui.screens.HomeScreen
+import com.rickdnamps.glp1tracker.ui.screens.InsightsScreen
+import com.rickdnamps.glp1tracker.ui.screens.ToolsScreen
 import com.rickdnamps.glp1tracker.ui.screens.InjectionEditor
 import com.rickdnamps.glp1tracker.ui.screens.InjectionsScreen
 import com.rickdnamps.glp1tracker.ui.screens.JournalScreen
@@ -77,6 +81,12 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
     PROGRESS("progress", R.string.tab_progress, Icons.AutoMirrored.Outlined.TrendingDown),
     JOURNAL("journal", R.string.tab_journal, Icons.AutoMirrored.Outlined.EventNote),
     SETTINGS("settings", R.string.tab_settings, Icons.Outlined.Settings),
+}
+
+/** Screens reached from inside the app (not bottom-bar tabs). */
+private enum class Extra(val route: String, @StringRes val title: Int) {
+    INSIGHTS("insights", R.string.insights_title),
+    TOOLS("tools", R.string.tools_title),
 }
 
 @Composable
@@ -113,6 +123,7 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentTab = Tab.entries.firstOrNull { tab -> backStack?.destination?.hierarchy?.any { it.route == tab.route } == true } ?: Tab.HOME
+    val extra = Extra.entries.firstOrNull { it.route == backStack?.destination?.route }
     val snackbar = remember { SnackbarHostState() }
     var editor by remember { mutableStateOf<Editor?>(null) }
 
@@ -168,7 +179,16 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(if (currentTab == Tab.HOME) R.string.app_name else currentTab.label)) },
+                title = {
+                    Text(stringResource(extra?.title ?: if (currentTab == Tab.HOME) R.string.app_name else currentTab.label))
+                },
+                navigationIcon = {
+                    if (extra != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.back))
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
         },
@@ -192,7 +212,7 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                 Tab.entries.forEach { tab ->
                     NavigationBarItem(
-                        selected = currentTab == tab,
+                        selected = extra == null && currentTab == tab,
                         onClick = {
                             navController.navigate(tab.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -214,7 +234,9 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
             enterTransition = { fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.98f) },
             exitTransition = { fadeOut(tween(150)) },
         ) {
-            composable(Tab.HOME.route) { HomeScreen(state, vm, padding, open) }
+            composable(Tab.HOME.route) { HomeScreen(state, vm, padding, open, openRoute = { navController.navigate(it) }) }
+            composable(Extra.INSIGHTS.route) { InsightsScreen(state, vm, padding) }
+            composable(Extra.TOOLS.route) { ToolsScreen(state, padding) }
             composable(Tab.DOSES.route) { InjectionsScreen(state, padding, open) }
             composable(Tab.PROGRESS.route) { ProgressScreen(state, padding, open) { vm.importFromHealthConnect(manual = true) } }
             composable(Tab.JOURNAL.route) { JournalScreen(state, vm, padding, open) }

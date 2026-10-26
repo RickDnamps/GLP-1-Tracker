@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Healing
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.MonitorWeight
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
@@ -83,6 +84,7 @@ fun HomeScreen(
     vm: AppViewModel,
     contentPadding: PaddingValues,
     openEditor: (Editor) -> Unit,
+    openRoute: (String) -> Unit = {},
 ) {
     val settings = state.settings
     LazyColumn(
@@ -110,6 +112,7 @@ fun HomeScreen(
         }
         item { OverviewStrip(state) }
         item { QuickActions(openEditor) }
+        item { InsightsTeaser(state, openRoute) }
         item { LevelCard(state) }
         item { WeightCard(state, onAdd = { openEditor(Editor.Weight()) }) }
         item { TodayCard(state, vm) }
@@ -492,3 +495,31 @@ fun GoalRow(
     }
 }
 
+/** Entry to the insights and tools screens, with one live headline from the user's data. */
+@Composable
+private fun InsightsTeaser(state: UiState, openRoute: (String) -> Unit) {
+    val doseTimes = remember(state.injections) { state.injections.map { it.timestamp }.sorted() }
+    val interval = state.settings.intervalDays.coerceIn(1, 14)
+    val headline = remember(state.sideEffects, doseTimes, interval) {
+        if (interval < 2) null
+        else state.sideEffects.groupBy { com.rickdnamps.glp1tracker.domain.SideEffectType.fromName(it.type) }
+            .mapValues { (_, l) -> com.rickdnamps.glp1tracker.domain.Insights.cycleProfile(l.map { it.timestamp }, doseTimes, interval) }
+            .filter { it.value.peakDay != null }
+            .maxByOrNull { it.value.total }
+    }
+    SectionCard(title = stringResource(R.string.insights_title), icon = Icons.Outlined.Lightbulb) {
+        Text(
+            if (headline != null) stringResource(
+                R.string.insights_peak,
+                stringResource(headline.key.nameRes),
+                headline.value.peakDay ?: 0,
+                (headline.value.peakShare * 100).toInt(),
+            ) else stringResource(R.string.insights_teaser),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = { openRoute("insights") }) { Text(stringResource(R.string.insights_open)) }
+            OutlinedButton(onClick = { openRoute("tools") }) { Text(stringResource(R.string.tools_title)) }
+        }
+    }
+}

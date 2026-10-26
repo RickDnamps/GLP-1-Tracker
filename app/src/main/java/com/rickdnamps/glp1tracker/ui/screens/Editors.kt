@@ -52,6 +52,7 @@ import com.rickdnamps.glp1tracker.data.WeightEntity
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
+import com.rickdnamps.glp1tracker.domain.MissedDose
 import com.rickdnamps.glp1tracker.domain.Severity
 import com.rickdnamps.glp1tracker.domain.SideEffectType
 import com.rickdnamps.glp1tracker.ui.components.BodyMap
@@ -151,23 +152,27 @@ fun InjectionEditor(
     }
     var notes by remember { mutableStateOf(item?.notes ?: "") }
     var chooseMed by remember { mutableStateOf(false) }
+    var confirmEarly by remember { mutableStateOf<InjectionEntity?>(null) }
     val dose = Format.parse(doseText)
+    // Previous dose before the chosen time, to catch accidental double doses.
+    val previous = injections.filter { it.id != item?.id && it.timestamp < Format.toMillis(dateTime) }.maxByOrNull { it.timestamp }
+    val guardHours = MissedDose.guardHours(medication, settings.intervalDays)
 
     EditorSheet(
         title = stringResource(if (item == null) R.string.add_dose else R.string.edit_dose),
         canSave = dose != null && dose > 0,
         onDismiss = onDismiss,
         onSave = {
-            onSave(
-                InjectionEntity(
-                    id = item?.id ?: 0,
-                    timestamp = Format.toMillis(dateTime),
-                    medication = medication.name,
-                    doseMg = dose ?: 0.0,
-                    site = if (medication.isOral) InjectionSite.NONE.name else site.name,
-                    notes = notes.trim(),
-                )
+            val entity = InjectionEntity(
+                id = item?.id ?: 0,
+                timestamp = Format.toMillis(dateTime),
+                medication = medication.name,
+                doseMg = dose ?: 0.0,
+                site = if (medication.isOral) InjectionSite.NONE.name else site.name,
+                notes = notes.trim(),
             )
+            val tooSoon = item == null && previous != null && entity.timestamp - previous.timestamp < guardHours * 3_600_000L
+            if (tooSoon) confirmEarly = entity else onSave(entity)
         },
         onDelete = item?.let { { onDelete(it) } },
     ) {
@@ -211,6 +216,22 @@ fun InjectionEditor(
             label = { Text(stringResource(R.string.notes)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
+        )
+    }
+
+    confirmEarly?.let { entity ->
+        val prev = previous
+        ConfirmDialog(
+            title = stringResource(R.string.double_dose_title),
+            text = stringResource(
+                R.string.double_dose_text,
+                prev?.let { Format.dateTime(it.timestamp) } ?: "—",
+                prev?.let { stringResource(InjectionSite.fromName(it.site).nameRes) } ?: "",
+                guardHours,
+            ),
+            confirmLabel = stringResource(R.string.double_dose_confirm),
+            onDismiss = { confirmEarly = null },
+            onConfirm = { confirmEarly = null; onSave(entity) },
         )
     }
 
