@@ -212,7 +212,7 @@ fun NumberInputDialog(
                 onValueChange = { text = it },
                 singleLine = true,
                 suffix = { Text(suffix) },
-                supportingText = supportingText?.let { { Text(it) } },
+                supportingText = if (supportingText != null) { { Text(supportingText) } } else null,
                 keyboardOptions = KeyboardOptions(keyboardType = if (allowDecimals) KeyboardType.Decimal else KeyboardType.Number),
             )
         },
