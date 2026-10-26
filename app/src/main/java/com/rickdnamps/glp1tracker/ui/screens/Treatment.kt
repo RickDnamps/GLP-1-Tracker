@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -77,7 +78,11 @@ fun MissedDoseBlock(settings: UserSettings, due: LocalDateTime, contentColor: Co
         }
         Text(stringResource(R.string.missed_disclaimer), style = MaterialTheme.typography.bodySmall, color = contentColor)
         if (advice.action != MissedDoseAdvice.Action.TAKE_NOW) {
-            OutlinedButton(onClick = onSkip) { Text(stringResource(R.string.skip_this_dose)) }
+            OutlinedButton(
+                onClick = onSkip,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = contentColor),
+                border = androidx.compose.foundation.BorderStroke(1.dp, contentColor.copy(alpha = 0.6f)),
+            ) { Text(stringResource(R.string.skip_this_dose)) }
         }
     }
 }

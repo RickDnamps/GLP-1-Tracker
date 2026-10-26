@@ -9,6 +9,7 @@ import com.rickdnamps.glp1tracker.data.TrackerRepository
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.Medication
+import com.rickdnamps.glp1tracker.widget.WidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,6 +43,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 val type = ReminderType.fromName(intent.getStringExtra(EXTRA_TYPE)) ?: ReminderType.DOSE
                 remind(context, repository, type)
                 ReminderScheduler.reschedule(context, repository)
+                app.onDataChanged()
             }
             ACTION_MARK_DONE -> runAsync {
                 // Remove the button first so a double tap cannot fire twice, then log only if still due.
@@ -113,6 +115,9 @@ class ReminderReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val repository = (context.applicationContext as Glp1App).repository
-        runAsync { ReminderScheduler.reschedule(context, repository) }
+        runAsync {
+            ReminderScheduler.reschedule(context, repository)
+            WidgetUpdater.refresh(context)
+        }
     }
 }

@@ -1,5 +1,19 @@
 package com.rickdnamps.glp1tracker.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import com.rickdnamps.glp1tracker.ui.components.AnimatedValue
+import com.rickdnamps.glp1tracker.ui.components.GlassTile
+import com.rickdnamps.glp1tracker.ui.components.HeroCard
+import com.rickdnamps.glp1tracker.ui.components.ProgressRing
+import com.rickdnamps.glp1tracker.ui.components.pulseAlpha
+import com.rickdnamps.glp1tracker.ui.theme.LocalBrand
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -94,6 +108,7 @@ fun HomeScreen(
         if (settings.penTrackingEnabled && !settings.medication.isOral) {
             item { SupplyCard(settings, nextDue(settings, state.injections).toLocalDate(), onNewPen = vm::refillPen) }
         }
+        item { OverviewStrip(state) }
         item { QuickActions(openEditor) }
         item { LevelCard(state) }
         item { WeightCard(state, onAdd = { openEditor(Editor.Weight()) }) }
@@ -119,17 +134,29 @@ private fun Greeting(name: String) {
             else -> R.string.greeting_evening
         }
     )
-    Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
-        Text(
-            if (name.isBlank()) greeting else "$greeting, $name",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            Format.date(LocalDate.now()),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Row(Modifier.padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                Format.date(LocalDate.now()),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                if (name.isBlank()) greeting else "$greeting, $name 👋",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
+        if (name.isNotBlank()) {
+            Box(
+                Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(LocalBrand.current.hero),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(name.take(1).uppercase(), style = MaterialTheme.typography.titleLarge, color = Color.White)
+            }
+        }
     }
 }
 
@@ -139,68 +166,157 @@ private fun NextDoseCard(state: UiState, onLog: () -> Unit, onSkip: (LocalDate) 
     val due = nextDue(settings, state.injections)
     val days = daysUntil(due)
     val late = days < 0
-    val container = when {
-        late -> MaterialTheme.colorScheme.errorContainer
-        days == 0L -> MaterialTheme.colorScheme.tertiaryContainer
-        else -> MaterialTheme.colorScheme.primaryContainer
-    }
-    val onContainer = when {
-        late -> MaterialTheme.colorScheme.onErrorContainer
-        days == 0L -> MaterialTheme.colorScheme.onTertiaryContainer
-        else -> MaterialTheme.colorScheme.onPrimaryContainer
-    }
+    val scheme = MaterialTheme.colorScheme
+    val brush = if (late) Brush.linearGradient(listOf(scheme.error, Color(0xFFE8710A))) else LocalBrand.current.hero
+    val interval = settings.intervalDays.coerceAtLeast(1)
+    val progress = if (late) 1f else (1f - days.toFloat() / interval).coerceIn(0.04f, 1f)
     val suggested = remember(state.injections) { InjectionSite.suggest(siteLastUse(state.injections)) }
+    val urgent = days <= 0
+    val pulse = if (urgent) pulseAlpha() else 1f
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = container, contentColor = onContainer),
-        shape = MaterialTheme.shapes.extraLarge,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(if (settings.medication.isOral) Icons.Outlined.Medication else Icons.Outlined.Vaccines, null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.next_dose), style = MaterialTheme.typography.titleMedium)
+    HeroCard(brush = brush) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ProgressRing(
+                progress = progress,
+                size = 116.dp,
+                stroke = 11.dp,
+                trackColor = Color.White.copy(alpha = 0.22f),
+                colors = listOf(Color.White, Color.White.copy(alpha = 0.75f)),
+                modifier = Modifier.alpha(pulse),
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    AnimatedValue(
+                        text = if (days == 0L) "💉" else kotlin.math.abs(days).toString(),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = Color.White,
+                    )
+                    Text(
+                        if (days == 0L) stringResource(R.string.ring_today)
+                        else pluralStringResource(R.plurals.ring_days, kotlin.math.abs(days).toInt()),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.85f),
+                    )
+                }
             }
-            Text(
-                when {
-                    late -> pluralStringResource(R.plurals.late_by_days, (-days).toInt(), (-days).toInt())
-                    days == 0L -> stringResource(R.string.due_today)
-                    days == 1L -> stringResource(R.string.due_tomorrow)
-                    else -> pluralStringResource(R.plurals.in_days, days.toInt(), days.toInt())
-                },
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                stringResource(R.string.due_on, Format.weekdayDate(due), Format.time(due)),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                "${medicationName(settings.medication, settings)} · ${Format.dose(settings.doseMg)} mg",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (!settings.medication.isOral) {
+            Spacer(Modifier.width(18.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    stringResource(R.string.suggested_site, stringResource(suggested.nameRes)),
+                    stringResource(R.string.next_dose).uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.8f),
+                )
+                Text(
+                    when {
+                        late -> pluralStringResource(R.plurals.late_by_days, (-days).toInt(), (-days).toInt())
+                        days == 0L -> stringResource(R.string.due_today)
+                        days == 1L -> stringResource(R.string.due_tomorrow)
+                        else -> pluralStringResource(R.plurals.in_days, days.toInt(), days.toInt())
+                    },
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                )
+                Text(
+                    stringResource(R.string.due_on, Format.weekdayDate(due), Format.time(due)),
                     style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.9f),
                 )
             }
-            if (late) {
-                MissedDoseBlock(settings, due, onContainer, onSkip = { onSkip(due.toLocalDate()) })
+        }
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            GlassTile(Modifier.weight(1f)) {
+                Column {
+                    Text(stringResource(R.string.medication), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
+                    Text(
+                        "${medicationName(settings.medication, settings).substringBefore(" (")} · ${Format.dose(settings.doseMg)} mg",
+                        style = MaterialTheme.typography.titleSmall, color = Color.White, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-            state.injections.firstOrNull()?.let {
-                Text(
-                    stringResource(R.string.last_dose_on, Format.dateTime(it.timestamp)),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+            if (!settings.medication.isOral) {
+                GlassTile(Modifier.weight(1f)) {
+                    Column {
+                        Text(stringResource(R.string.next_site), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
+                        Text(
+                            stringResource(suggested.nameRes),
+                            style = MaterialTheme.typography.titleSmall, color = Color.White, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
-            Spacer(Modifier.height(4.dp))
-            Button(onClick = onLog, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Outlined.Add, null)
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.log_dose))
-            }
+        }
+        if (late) {
+            Spacer(Modifier.height(12.dp))
+            MissedDoseBlock(settings, due, Color.White, onSkip = { onSkip(due.toLocalDate()) })
+        }
+        state.injections.firstOrNull()?.let {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                stringResource(R.string.last_dose_on, Format.dateTime(it.timestamp)),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.8f),
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        Button(
+            onClick = onLog,
+            modifier = Modifier.fillMaxWidth().height(54.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.White,
+                contentColor = if (late) scheme.error else scheme.primary,
+            ),
+        ) {
+            Icon(Icons.Outlined.Add, null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.log_dose), style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+/** Three key numbers at a glance under the hero. */
+@Composable
+private fun OverviewStrip(state: UiState) {
+    val settings = state.settings
+    val stats = weightStats(settings, state.weights)
+    val level = Pharmacokinetics.levelAt(doses(settings, state.injections), System.currentTimeMillis())
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        OverviewTile(
+            stringResource(R.string.current),
+            stats.currentKg?.let { weightText(it, settings) } ?: "—",
+            Modifier.weight(1f),
+        )
+        OverviewTile(
+            stringResource(R.string.percent_lost),
+            stats.percentLost?.let { Format.oneDecimal(it) + " %" } ?: "—",
+            Modifier.weight(1f),
+            highlight = (stats.percentLost ?: 0.0) > 0,
+        )
+        OverviewTile(
+            stringResource(R.string.level_short),
+            if (state.injections.isEmpty()) "—" else Format.number(level, if (level < 1) 2 else 1) + " mg",
+            Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun OverviewTile(label: String, value: String, modifier: Modifier, highlight: Boolean = false) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = if (highlight) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            AnimatedValue(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                color = if (highlight) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }

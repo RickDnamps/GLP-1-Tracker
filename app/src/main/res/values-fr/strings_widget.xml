@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget d'écran d'accueil (widget/) -->
+    <string name="widget_name">Prochaine dose</string>
+    <string name="widget_description">Compte à rebours jusqu\'à votre prochaine dose, avec un bouton pour la noter.</string>
+    <string name="widget_today">Aujourd\'hui</string>
+    <string name="widget_tomorrow">Demain</string>
+    <string name="widget_due_on">%1$s à %2$s</string>
+    <string name="widget_dose">%1$s · %2$s mg</string>
+    <string name="widget_site">Site : %1$s</string>
+    <string name="widget_done">C\'est fait</string>
+    <string name="widget_done_description">Marquer la dose comme prise</string>
+    <string name="widget_setup">Ouvrez l\'application pour configurer votre traitement.</string>
+    <plurals name="widget_in_days">
+        <item quantity="one">Dans %d jour</item>
+        <item quantity="many">Dans %d jours</item>
+        <item quantity="other">Dans %d jours</item>
+    </plurals>
+    <plurals name="widget_late_by_days">
+        <item quantity="one">En retard de %d jour</item>
+        <item quantity="many">En retard de %d jours</item>
+        <item quantity="other">En retard de %d jours</item>
+    </plurals>
+</resources>

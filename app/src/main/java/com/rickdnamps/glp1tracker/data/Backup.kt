@@ -185,6 +185,9 @@ object Backup {
         put("fiberGoalG", s.fiberGoalG)
         put("appLock", s.appLock)
         put("skippedDueEpochDay", s.skippedDueEpochDay)
+        put("themeMode", s.themeMode)
+        put("accent", s.accent)
+        put("dynamicColor", s.dynamicColor)
     }
 
     private fun settingsFromJson(o: JSONObject): UserSettings {
@@ -226,6 +229,9 @@ object Backup {
             fiberGoalG = o.optInt("fiberGoalG", d.fiberGoalG),
             appLock = o.optBoolean("appLock", d.appLock),
             skippedDueEpochDay = o.optLong("skippedDueEpochDay", d.skippedDueEpochDay),
+            themeMode = o.optInt("themeMode", d.themeMode),
+            accent = o.optString("accent", d.accent),
+            dynamicColor = o.optBoolean("dynamicColor", d.dynamicColor),
         )
     }
 

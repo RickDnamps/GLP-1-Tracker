@@ -66,6 +66,10 @@ data class UserSettings(
     val appLock: Boolean = false,
     /** Epoch day of the last dose the user decided to skip (0 = none). */
     val skippedDueEpochDay: Long = 0,
+    /** 0 = follow system, 1 = light, 2 = dark. */
+    val themeMode: Int = 0,
+    val accent: String = "TEAL",
+    val dynamicColor: Boolean = false,
 ) {
     val skippedThrough: LocalDate? get() = skippedDueEpochDay.takeIf { it > 0 }?.let(LocalDate::ofEpochDay)
 
@@ -132,6 +136,9 @@ class SettingsRepository(context: Context) {
         val lastAutoBackupAt = longPreferencesKey("last_auto_backup_at")
         val appLock = booleanPreferencesKey("app_lock")
         val skippedDueEpochDay = longPreferencesKey("skipped_due_epoch_day")
+        val themeMode = intPreferencesKey("theme_mode")
+        val accent = stringPreferencesKey("accent")
+        val dynamicColor = booleanPreferencesKey("dynamic_color")
     }
 
     val settings: Flow<UserSettings> = store.data.map(::read)
@@ -181,6 +188,9 @@ class SettingsRepository(context: Context) {
             lastAutoBackupAt = p[Keys.lastAutoBackupAt] ?: d.lastAutoBackupAt,
             appLock = p[Keys.appLock] ?: d.appLock,
             skippedDueEpochDay = p[Keys.skippedDueEpochDay] ?: d.skippedDueEpochDay,
+            themeMode = p[Keys.themeMode] ?: d.themeMode,
+            accent = p[Keys.accent] ?: d.accent,
+            dynamicColor = p[Keys.dynamicColor] ?: d.dynamicColor,
         )
     }
 
@@ -233,5 +243,8 @@ class SettingsRepository(context: Context) {
         p[Keys.lastAutoBackupAt] = s.lastAutoBackupAt
         p[Keys.appLock] = s.appLock
         p[Keys.skippedDueEpochDay] = s.skippedDueEpochDay
+        p[Keys.themeMode] = s.themeMode
+        p[Keys.accent] = s.accent
+        p[Keys.dynamicColor] = s.dynamicColor
     }
 }

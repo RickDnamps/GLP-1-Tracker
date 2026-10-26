@@ -16,6 +16,12 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -54,6 +60,9 @@ fun LineChart(
     val labelStyle = TextStyle(fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
     val markerColor = MaterialTheme.colorScheme.error
+    // Draw-in animation each time the data set changes.
+    val reveal = remember(points.size, points.firstOrNull()?.first, points.lastOrNull()?.first) { Animatable(0f) }
+    LaunchedEffect(reveal) { reveal.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
 
     Canvas(modifier.fillMaxWidth().height(height)) {
         val values = points.map { it.second } + listOfNotNull(goal)
@@ -103,30 +112,33 @@ fun LineChart(
             )
         }
 
-        val solid = points.filter { dashedAfter == null || it.first <= dashedAfter }
-        val dashed = if (dashedAfter == null) emptyList() else points.filter { it.first >= dashedAfter }
+        val revealRight = leftPad + w * reveal.value
+        clipRect(right = revealRight) {
+            val solid = points.filter { dashedAfter == null || it.first <= dashedAfter }
+            val dashed = if (dashedAfter == null) emptyList() else points.filter { it.first >= dashedAfter }
 
-        fun pathOf(list: List<Pair<Long, Double>>) = Path().apply {
-            list.forEachIndexed { i, p -> if (i == 0) moveTo(x(p.first), y(p.second)) else lineTo(x(p.first), y(p.second)) }
-        }
-
-        if (solid.size >= 2) {
-            val fill = pathOf(solid).apply {
-                lineTo(x(solid.last().first), topPad + h)
-                lineTo(x(solid.first().first), topPad + h)
-                close()
+            fun pathOf(list: List<Pair<Long, Double>>) = Path().apply {
+                list.forEachIndexed { i, p -> if (i == 0) moveTo(x(p.first), y(p.second)) else lineTo(x(p.first), y(p.second)) }
             }
-            drawPath(fill, Brush.verticalGradient(listOf(lineColor.copy(alpha = 0.30f), lineColor.copy(alpha = 0.02f))))
-            drawPath(pathOf(solid), lineColor, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
-        }
-        if (dashed.size >= 2) {
-            drawPath(
-                pathOf(dashed), lineColor.copy(alpha = 0.7f),
-                style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))),
-            )
-        }
-        if (showDots) {
-            points.forEach { drawCircle(lineColor, radius = 3.dp.toPx(), center = Offset(x(it.first), y(it.second))) }
+
+            if (solid.size >= 2) {
+                val fill = pathOf(solid).apply {
+                    lineTo(x(solid.last().first), topPad + h)
+                    lineTo(x(solid.first().first), topPad + h)
+                    close()
+                }
+                drawPath(fill, Brush.verticalGradient(listOf(lineColor.copy(alpha = 0.30f), lineColor.copy(alpha = 0.02f))))
+                drawPath(pathOf(solid), lineColor, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
+            }
+            if (dashed.size >= 2) {
+                drawPath(
+                    pathOf(dashed), lineColor.copy(alpha = 0.7f),
+                    style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))),
+                )
+            }
+            if (showDots) {
+                points.forEach { drawCircle(lineColor, radius = 3.dp.toPx(), center = Offset(x(it.first), y(it.second))) }
+            }
         }
         marker?.takeIf { it in minX..maxX }?.let {
             val mx = x(it)

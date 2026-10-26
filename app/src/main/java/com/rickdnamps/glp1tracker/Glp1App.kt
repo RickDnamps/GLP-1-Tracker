@@ -7,6 +7,7 @@ import com.rickdnamps.glp1tracker.data.TrackerRepository
 import com.rickdnamps.glp1tracker.health.HealthConnect
 import com.rickdnamps.glp1tracker.notifications.Notifications
 import com.rickdnamps.glp1tracker.scale.BleScaleManager
+import com.rickdnamps.glp1tracker.widget.WidgetUpdater
 
 class Glp1App : Application() {
     val repository: TrackerRepository by lazy {
@@ -18,7 +19,7 @@ class Glp1App : Application() {
 
     /** Called after data changes made outside the UI (notification actions, widget). */
     fun onDataChanged() {
-        // Widget refresh is wired here once the widget module exists.
+        WidgetUpdater.requestRefresh(this)
     }
 
     override fun onCreate() {

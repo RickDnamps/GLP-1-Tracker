@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home-screen widget (widget/) -->
+    <string name="widget_name">Next dose</string>
+    <string name="widget_description">Countdown to your next dose, with a button to log it.</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_tomorrow">Tomorrow</string>
+    <string name="widget_due_on">%1$s at %2$s</string>
+    <string name="widget_dose">%1$s · %2$s mg</string>
+    <string name="widget_site">Site: %1$s</string>
+    <string name="widget_done">Done</string>
+    <string name="widget_done_description">Mark the dose as taken</string>
+    <string name="widget_setup">Open the app to set up your treatment.</string>
+    <plurals name="widget_in_days">
+        <item quantity="one">In %d day</item>
+        <item quantity="other">In %d days</item>
+    </plurals>
+    <plurals name="widget_late_by_days">
+        <item quantity="one">%d day late</item>
+        <item quantity="other">%d days late</item>
+    </plurals>
+</resources>

@@ -5,6 +5,10 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -24,6 +28,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import com.rickdnamps.glp1tracker.ui.components.topGlow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,9 +79,26 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 @Composable
 fun Glp1AppUi(vm: AppViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
+    // App lock: re-lock after one minute in the background.
+    var unlocked by rememberSaveable { mutableStateOf(false) }
+    var stoppedAt by rememberSaveable { mutableStateOf(0L) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> stoppedAt = System.currentTimeMillis()
+                androidx.lifecycle.Lifecycle.Event.ON_START ->
+                    if (stoppedAt > 0 && System.currentTimeMillis() - stoppedAt > 60_000) unlocked = false
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     when {
         !state.loaded -> Box(Modifier.fillMaxSize())
         !state.settings.onboardingDone -> OnboardingScreen(onFinish = vm::completeOnboarding)
+        state.settings.appLock && !unlocked -> LockScreen(onUnlocked = { unlocked = true })
         else -> MainScaffold(state, vm)
     }
 }
@@ -111,8 +137,15 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
     }
 
     Scaffold(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
+            .topGlow(MaterialTheme.colorScheme.primary),
+        containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(title = { Text(stringResource(if (currentTab == Tab.HOME) R.string.app_name else currentTab.label)) })
+            TopAppBar(
+                title = { Text(stringResource(if (currentTab == Tab.HOME) R.string.app_name else currentTab.label)) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            )
         },
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
@@ -131,7 +164,7 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
             }
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                 Tab.entries.forEach { tab ->
                     NavigationBarItem(
                         selected = currentTab == tab,
@@ -150,7 +183,12 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
         },
     ) { padding ->
         val open: (Editor) -> Unit = { editor = it }
-        NavHost(navController, startDestination = Tab.HOME.route) {
+        NavHost(
+            navController,
+            startDestination = Tab.HOME.route,
+            enterTransition = { fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.98f) },
+            exitTransition = { fadeOut(tween(150)) },
+        ) {
             composable(Tab.HOME.route) { HomeScreen(state, vm, padding, open) }
             composable(Tab.DOSES.route) { InjectionsScreen(state, padding, open) }
             composable(Tab.PROGRESS.route) { ProgressScreen(state, padding, open) { vm.importFromHealthConnect(manual = true) } }

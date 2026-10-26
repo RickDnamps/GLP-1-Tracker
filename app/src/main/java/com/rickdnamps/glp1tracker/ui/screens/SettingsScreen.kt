@@ -7,6 +7,24 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.rickdnamps.glp1tracker.ui.AppLock
+import com.rickdnamps.glp1tracker.ui.findActivity
+import com.rickdnamps.glp1tracker.ui.theme.Accent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -162,6 +180,64 @@ fun SettingsScreen(
                 SettingRow(stringResource(R.string.goal_weight), if (s.goalWeightKg > 0) weightText(s.goalWeightKg, s) else "—") {
                     dialog = SettingDialog.GOAL_WEIGHT
                 }
+            }
+        }
+        item {
+            SectionCard(title = stringResource(R.string.appearance), icon = Icons.Outlined.Palette) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf(R.string.theme_system, R.string.theme_light, R.string.theme_dark).forEachIndexed { i, label ->
+                        SegmentedButton(
+                            selected = s.themeMode == i,
+                            onClick = { vm.updateSettings { it.copy(themeMode = i) } },
+                            shape = SegmentedButtonDefaults.itemShape(i, 3),
+                        ) { Text(stringResource(label), maxLines = 1) }
+                    }
+                }
+                Text(stringResource(R.string.accent_color), style = MaterialTheme.typography.bodyLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Accent.entries.forEach { a ->
+                        val selected = !s.dynamicColor && Accent.fromName(s.accent) == a
+                        Box(
+                            Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(Brush.linearGradient(listOf(a.light.first, a.light.third)))
+                                .border(if (selected) 3.dp else 0.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                                .clickable { vm.updateSettings { it.copy(accent = a.name, dynamicColor = false) } }
+                                .semantics { contentDescription = context.getString(a.label) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (selected) Icon(Icons.Filled.Check, null, tint = Color.White)
+                        }
+                    }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    SwitchRow(stringResource(R.string.dynamic_color), s.dynamicColor) { on -> vm.updateSettings { it.copy(dynamicColor = on) } }
+                }
+            }
+        }
+        item {
+            SectionCard(title = stringResource(R.string.privacy), icon = Icons.Outlined.Lock) {
+                val lockAvailable = remember { AppLock.isAvailable(context) }
+                val lockTitle = stringResource(R.string.lock_title)
+                val lockSubtitle = stringResource(R.string.lock_enable_subtitle)
+                val cancel = stringResource(R.string.cancel)
+                SwitchRow(stringResource(R.string.app_lock), s.appLock) { on ->
+                    if (!on) {
+                        vm.updateSettings { it.copy(appLock = false) }
+                    } else {
+                        context.findActivity()?.let { activity ->
+                            AppLock.prompt(activity, lockTitle, lockSubtitle, cancel) {
+                                vm.updateSettings { it.copy(appLock = true) }
+                            }
+                        }
+                    }
+                }
+                Text(
+                    stringResource(if (lockAvailable) R.string.app_lock_help else R.string.app_lock_unavailable),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         item {
