@@ -28,6 +28,8 @@ import com.rickdnamps.glp1tracker.domain.SideEffectType
 import com.rickdnamps.glp1tracker.notifications.Notifications
 import com.rickdnamps.glp1tracker.report.DoctorReport
 import com.rickdnamps.glp1tracker.notifications.ReminderScheduler
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
