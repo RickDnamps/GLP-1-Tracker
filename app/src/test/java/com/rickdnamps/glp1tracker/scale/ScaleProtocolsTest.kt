@@ -3,6 +3,7 @@ package com.rickdnamps.glp1tracker.scale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class ScaleProtocolsTest {
@@ -105,6 +106,14 @@ class ScaleProtocolsTest {
         val events = lefu.onNotification(LefuProtocol.RESULTS, final, 0)
         assertEquals(2, events.filterIsInstance<ScaleEvent.Write>().size)
         assertEquals(ScaleEvent.Stable(91.2, impedance = 512.0), events.filterIsInstance<ScaleEvent.Stable>().single())
+    }
+
+    @Test
+    fun recognisesRenphoNamesAndServices() {
+        assertTrue(ScaleProtocol.looksCompatible("ES-CS20M", emptyList()))
+        assertTrue(ScaleProtocol.looksCompatible("113360_A1B2", emptyList()))
+        assertTrue(ScaleProtocol.looksCompatible(null, listOf(LefuProtocol.SERVICE)))
+        assertFalse(ScaleProtocol.looksCompatible("Galaxy Buds", emptyList()))
     }
 
     @Test

@@ -25,6 +25,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.Cake
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -213,15 +215,16 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
                             NumberField(heightText, { heightText = it }, stringResource(R.string.height_optional), stringResource(R.string.unit_cm))
                         }
                         Text(stringResource(R.string.profile_optional), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.sex), style = MaterialTheme.typography.bodyMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterChip(selected = sex == 1, onClick = { sex = if (sex == 1) 0 else 1 }, label = { Text(stringResource(R.string.sex_male)) })
                             FilterChip(selected = sex == 2, onClick = { sex = if (sex == 2) 0 else 2 }, label = { Text(stringResource(R.string.sex_female)) })
                         }
+                        Text(stringResource(R.string.birth_date), style = MaterialTheme.typography.bodyMedium)
                         OutlinedButton(onClick = { chooseBirth = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                birthEpochDay?.let { stringResource(R.string.birth_date) + " : " + Format.date(LocalDate.ofEpochDay(it)) }
-                                    ?: stringResource(R.string.birth_date_tap),
-                            )
+                            Icon(Icons.Outlined.Cake, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(birthEpochDay?.let { Format.date(LocalDate.ofEpochDay(it)) } ?: stringResource(R.string.birth_date_choose))
                         }
                         Text(
                             stringResource(R.string.goals_help),

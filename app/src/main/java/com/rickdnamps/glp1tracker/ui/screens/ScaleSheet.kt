@@ -4,6 +4,30 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,8 +85,11 @@ import com.rickdnamps.glp1tracker.ui.weightText
 fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) {
     val scale = vm.scale
     val state by scale.state.collectAsStateWithLifecycle()
+    val log by scale.log.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val savedAddress = settings.scaleAddress.ifBlank { null }
+    var showDevices by rememberSaveable { mutableStateOf(false) }
+    var showLog by rememberSaveable { mutableStateOf(false) }
 
     // Profile lets body-composition scales (e.g. Renpho ES-CS20M) measure impedance.
     val profile = remember(settings) {
@@ -75,20 +102,20 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
             )
         } else null
     }
-    val startScan = {
+    val startScan: (Boolean) -> Unit = { manual ->
         scale.userProfile = profile
         scale.displayLb = settings.weightUnit == com.rickdnamps.glp1tracker.domain.WeightUnit.LB
-        scale.start(savedAddress)
+        scale.start(if (manual) null else savedAddress, manualPick = manual, savedName = settings.scaleName.ifBlank { null })
     }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        startScan()
+        startScan(false)
     }
     val enableBluetooth = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        startScan()
+        startScan(false)
     }
 
     LaunchedEffect(Unit) {
-        if (scale.hasPermissions()) startScan() else permissionLauncher.launch(BleScaleManager.requiredPermissions())
+        if (scale.hasPermissions()) startScan(false) else permissionLauncher.launch(BleScaleManager.requiredPermissions())
     }
     DisposableEffect(Unit) { onDispose { scale.reset() } }
 
@@ -111,32 +138,69 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
 
             when (val s = state) {
                 ScaleState.Idle -> CircularProgressIndicator()
-                is ScaleState.Scanning -> if (s.waitingFor != null) {
-                    Icon(Icons.AutoMirrored.Outlined.BluetoothSearching, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(
-                        stringResource(R.string.scale_step_on, settings.scaleName.ifBlank { s.waitingFor }),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    LinearProgressIndicator(Modifier.fillMaxWidth())
-                    TextButton(onClick = { scale.start(null) }) { Text(stringResource(R.string.scale_choose_other)) }
-                } else {
+                is ScaleState.Scanning -> if (s.manual) {
                     Text(stringResource(R.string.scale_pick), style = MaterialTheme.typography.bodyLarge)
                     LinearProgressIndicator(Modifier.fillMaxWidth())
-                    if (s.devices.isEmpty()) {
-                        Text(
-                            stringResource(R.string.scale_wake_hint) +
-                                if (android.os.Build.VERSION.SDK_INT <= 30) "\n" + stringResource(R.string.scale_location_hint) else "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    SeenCount(s.seen)
                     Column(Modifier.fillMaxWidth()) {
                         s.devices.forEach { d -> DeviceRow(d) { scale.connect(d.address, d.name) } }
+                    }
+                } else {
+                    PulsingIcon()
+                    Text(
+                        stringResource(R.string.scale_step_now),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        if (s.waitingFor != null) stringResource(R.string.scale_searching_for, settings.scaleName.ifBlank { s.waitingFor })
+                        else stringResource(R.string.scale_searching),
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                    )
+                    SeenCount(s.seen)
+                    HowToCard()
+                    if (s.waitingFor != null) {
+                        TextButton(onClick = { startScan(true) }) { Text(stringResource(R.string.scale_choose_other)) }
+                    } else {
+                        TextButton(onClick = { showDevices = !showDevices }) { Text(stringResource(R.string.scale_not_listed)) }
+                        if (showDevices) {
+                            if (s.devices.isEmpty()) {
+                                Text(
+                                    stringResource(R.string.scale_wake_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Column(Modifier.fillMaxWidth()) {
+                                s.devices.forEach { d -> DeviceRow(d) { scale.connect(d.address, d.name) } }
+                            }
+                        }
+                    }
+                    if (android.os.Build.VERSION.SDK_INT <= 30) {
+                        Text(
+                            stringResource(R.string.scale_location_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
                 is ScaleState.Connecting -> {
                     CircularProgressIndicator()
-                    Text(stringResource(R.string.scale_connecting, s.name))
+                    Text(stringResource(R.string.scale_connecting, s.name), style = MaterialTheme.typography.titleMedium)
+                    if (s.attempt > 1) {
+                        Text(
+                            stringResource(R.string.scale_attempt, s.attempt, 3),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.scale_stay_on),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                    )
                 }
                 is ScaleState.Measuring -> {
                     Text(
@@ -145,12 +209,13 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                     )
-                    Text(stringResource(R.string.scale_measuring, s.name), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.scale_measuring, s.name), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                     Text(s.protocol, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         stringResource(if (profile != null) R.string.scale_barefoot else R.string.comp_profile_needed),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
                     )
                     LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
@@ -185,7 +250,7 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = startScan) { Text(stringResource(R.string.scale_again)) }
+                        OutlinedButton(onClick = { startScan(false) }) { Text(stringResource(R.string.scale_again)) }
                         Button(onClick = { vm.saveScaleWeight(s.kg, s.address, s.name, s.composition, s.impedance); onDismiss() }) {
                             Text(stringResource(R.string.save))
                         }
@@ -205,6 +270,7 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                             }
                         ),
                         style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
                     )
                     when (s.reason) {
                         ScaleState.Reason.BLUETOOTH_OFF -> Button(onClick = {
@@ -213,23 +279,152 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                         ScaleState.Reason.NO_PERMISSION -> Button(onClick = {
                             permissionLauncher.launch(BleScaleManager.requiredPermissions())
                         }) { Text(stringResource(R.string.allow)) }
-                        else -> Button(onClick = startScan) { Text(stringResource(R.string.retry)) }
+                        else -> Button(onClick = { startScan(false) }) { Text(stringResource(R.string.retry)) }
                     }
+                    if (s.reason == ScaleState.Reason.CONNECTION_LOST || s.reason == ScaleState.Reason.TIMEOUT) OtherAppTip()
                 }
             }
 
             Spacer(Modifier.height(4.dp))
             HorizontalDivider()
             Text(
+                stringResource(R.string.scale_hc_tip),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
                 stringResource(R.string.scale_supported),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (savedAddress != null) {
-                TextButton(onClick = { vm.forgetScale(); scale.start(null) }) {
+                TextButton(onClick = { vm.forgetScale(); startScan(true) }) {
                     Text(stringResource(R.string.scale_forget, settings.scaleName.ifBlank { savedAddress }))
                 }
             }
+            TextButton(onClick = { showLog = !showLog }) {
+                Icon(if (showLog) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null)
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.scale_tech))
+            }
+            if (showLog) TechLog(log)
+        }
+    }
+}
+
+/** The three things to do, shown while searching. */
+@Composable
+private fun HowToCard() {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(R.string.scale_how_1, R.string.scale_how_2, R.string.scale_how_3).forEachIndexed { i, res ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("${i + 1}", color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.labelLarge)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(stringResource(res), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+            }
+        }
+    }
+    OtherAppTip()
+}
+
+/** Scales accept a single connection: the maker's app grabs it first when it runs. */
+@Composable
+private fun OtherAppTip() {
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(R.string.scale_tip_other_app),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SeenCount(seen: Int) {
+    if (seen > 0) {
+        Text(
+            pluralStringResource(R.plurals.scale_seen, seen, seen),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun PulsingIcon() {
+    val pulse = rememberInfiniteTransition(label = "pulse")
+    val scaleFactor by pulse.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "scale",
+    )
+    Box(
+        Modifier
+            .size(84.dp)
+            .graphicsLayer { scaleX = scaleFactor; scaleY = scaleFactor }
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.AutoMirrored.Outlined.BluetoothSearching,
+            null,
+            Modifier.size(44.dp),
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+    }
+}
+
+/** Raw log to copy and send when a scale misbehaves. */
+@Composable
+private fun TechLog(lines: List<String>) {
+    val clipboard = LocalClipboardManager.current
+    val text = lines.joinToString("\n")
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            stringResource(R.string.scale_tech_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(onClick = { clipboard.setText(AnnotatedString(text)) }, enabled = lines.isNotEmpty()) {
+            Icon(Icons.Outlined.ContentCopy, null)
+            Spacer(Modifier.width(6.dp))
+            Text(stringResource(R.string.copy_log))
+        }
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                lines.takeLast(60).joinToString("\n").ifEmpty { "—" },
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.padding(10.dp),
+            )
         }
     }
 }

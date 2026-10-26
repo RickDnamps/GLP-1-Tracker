@@ -90,7 +90,7 @@ fun ProgressScreen(
                     OutlinedButton(onClick = onSyncHealthConnect) {
                         Icon(Icons.Outlined.Sync, null)
                         Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.hc_short), maxLines = 1)
+                        Text(stringResource(R.string.hc_button), maxLines = 1)
                     }
                 }
             }

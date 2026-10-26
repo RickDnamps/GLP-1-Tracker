@@ -54,7 +54,8 @@ interface ScaleProtocol {
         fun looksCompatible(name: String?, advertisedServices: Collection<UUID>): Boolean {
             val n = name?.lowercase().orEmpty()
             val known = setOf(LefuProtocol.SERVICE, QnProtocol.SERVICE_T1, QnProtocol.SERVICE_T2, StandardWeightScale.SERVICE, uuid16(0x181B))
-            return advertisedServices.any { it in known } ||
+            // Some ES-32MD / ES-CS20M units advertise a "113360_…" placeholder name.
+            return advertisedServices.any { it in known } || n.startsWith("113360_") ||
                 listOf("renpho", "qn-scale", "es-cs20m", "es-32md", "es-26", "fitindex", "scale", "balance").any { it in n }
         }
     }

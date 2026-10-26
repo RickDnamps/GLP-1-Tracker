@@ -25,6 +25,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -157,7 +160,10 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
     }
     LaunchedEffect(Unit) {
         vm.importedCounts.collect { count ->
-            snackbar.showSnackbar(context.resources.getQuantityString(R.plurals.hc_imported, count, count))
+            snackbar.showSnackbar(
+                if (count == 0) context.getString(R.string.hc_nothing_new)
+                else context.resources.getQuantityString(R.plurals.hc_imported, count, count)
+            )
         }
     }
     // Pull new weights from Health Connect (Renpho, Withings, Fitbit…) when the app opens.
@@ -231,11 +237,15 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
                 }
             }
         },
-    ) { padding ->
+    ) { scaffoldPadding ->
         val open: (Editor) -> Unit = { editor = it }
+        // Screens live below the title bar (so lists never scroll under it) and only get the
+        // bottom inset, which they use to scroll clear of the navigation bar and the FAB.
+        val padding = PaddingValues(bottom = scaffoldPadding.calculateBottomPadding())
         NavHost(
             navController,
             startDestination = Tab.HOME.route,
+            modifier = Modifier.padding(top = scaffoldPadding.calculateTopPadding()).clipToBounds(),
             enterTransition = { fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.98f) },
             exitTransition = { fadeOut(tween(150)) },
         ) {
