@@ -446,11 +446,10 @@
     <string name="comp_real_age">Real age: %1$d</string>
     <string name="comp_estimated">Scale values are estimates; brands use different formulas. Follow the trend rather than the exact number.</string>
     <string name="comp_section">Body composition (optional)</string>
-    <string name="comp_profile_needed">Set your sex and year of birth in Settings → Profile to estimate body composition from your scale\'s impedance.</string>
+    <string name="comp_profile_needed">Set your sex and date of birth in Settings → Profile to estimate body composition from your scale\'s impedance.</string>
     <string name="sex">Sex</string>
     <string name="sex_male">Male</string>
     <string name="sex_female">Female</string>
-    <string name="birth_year">Year of birth</string>
     <string name="msg_photo_saved">Photo added</string>
     <string name="scale_barefoot">Stay still, barefoot on the metal plates: measuring body composition…</string>
     <string name="unit_cm">cm</string>
@@ -459,6 +458,11 @@
     <string name="unit_ft_in">ft / in</string>
     <string name="height_ft_in">%1$d ft %2$d in</string>
     <string name="length_unit">Height &amp; measurements unit</string>
+    <string name="birth_date">Date of birth</string>
+    <string name="birth_date_help">Scroll the day, the month and the year, then tap Save.</string>
+    <string name="birth_date_tap">Tap to choose</string>
+    <string name="age_years">%1$d years old</string>
+    <string name="profile_optional">Sex and date of birth (optional, for body composition from a smart scale)</string>
     <plurals name="ring_days">
         <item quantity="one">day</item>
         <item quantity="other">days</item>

@@ -281,6 +281,9 @@ data class ScaleUserProfile(
     val heightCm: Double,
     /** Last known weight; the scale needs it to accept the profile (0 = unknown). */
     val refWeightKg: Double,
+    /** Birth month/day; mid-year when only the year is known. */
+    val birthMonth: Int = 7,
+    val birthDay: Int = 1,
 )
 
 /**
@@ -400,7 +403,7 @@ class LefuProtocol(private val profile: ScaleUserProfile? = null) : ScaleProtoco
             return byteArrayOf(
                 (if (p.male) 0x11 else 0x21).toByte(),
                 (year ushr 8).toByte(), year.toByte(),
-                7, 1, // birth month/day unknown: mid-year
+                p.birthMonth.coerceIn(1, 12).toByte(), p.birthDay.coerceIn(1, 31).toByte(),
                 (heightMm ushr 8).toByte(), heightMm.toByte(),
                 0x00, 0x00,
                 (w ushr 8).toByte(), w.toByte(),

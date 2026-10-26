@@ -247,6 +247,8 @@ object Backup {
         put("celebratedBadges", s.celebratedBadges)
         put("sex", s.sex)
         put("birthYear", s.birthYear)
+        put("birthMonth", s.birthMonth)
+        put("birthDay", s.birthDay)
         put("lengthUnitValue", s.lengthUnitValue)
     }
 
@@ -295,6 +297,8 @@ object Backup {
             celebratedBadges = o.optString("celebratedBadges", d.celebratedBadges),
             sex = o.optInt("sex", d.sex),
             birthYear = o.optInt("birthYear", d.birthYear),
+            birthMonth = o.optInt("birthMonth", d.birthMonth).takeIf { it in 0..12 } ?: 0,
+            birthDay = o.optInt("birthDay", d.birthDay).takeIf { it in 0..31 } ?: 0,
             lengthUnitValue = o.optInt("lengthUnitValue", d.lengthUnitValue),
         )
     }

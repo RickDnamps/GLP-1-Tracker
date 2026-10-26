@@ -73,6 +73,7 @@ import com.rickdnamps.glp1tracker.notifications.Notifications
 import com.rickdnamps.glp1tracker.notifications.ReminderScheduler
 import com.rickdnamps.glp1tracker.ui.AppViewModel
 import com.rickdnamps.glp1tracker.ui.UiState
+import com.rickdnamps.glp1tracker.ui.components.BirthDateDialog
 import com.rickdnamps.glp1tracker.ui.components.ChoiceDialog
 import com.rickdnamps.glp1tracker.ui.components.ConfirmDialog
 import com.rickdnamps.glp1tracker.ui.components.DatePickerDialogFor
@@ -195,9 +196,14 @@ fun SettingsScreen(
                     stringResource(R.string.sex),
                     when (s.sex) { 1 -> stringResource(R.string.sex_male); 2 -> stringResource(R.string.sex_female); else -> "—" },
                 ) { dialog = SettingDialog.SEX }
-                SettingRow(stringResource(R.string.birth_year), if (s.birthYear > 0) s.birthYear.toString() else "—") {
-                    dialog = SettingDialog.BIRTH_YEAR
-                }
+                SettingRow(
+                    stringResource(R.string.birth_date),
+                    when {
+                        s.birthDateOrNull != null -> Format.date(s.birthDateOrNull!!) + " · " + stringResource(R.string.age_years, s.ageOrNull ?: 0)
+                        s.birthYear > 0 -> s.birthYear.toString()
+                        else -> stringResource(R.string.birth_date_tap)
+                    },
+                ) { dialog = SettingDialog.BIRTH_YEAR }
                 SettingRow(
                     stringResource(R.string.start_weight),
                     if (s.startWeightKg > 0) weightText(s.startWeightKg, s) else stringResource(R.string.first_entry),
@@ -586,9 +592,12 @@ private fun SettingDialogs(
                 onSelect = { v -> save { it.copy(sex = v) } },
             )
         }
-        SettingDialog.BIRTH_YEAR -> NumberInputDialog(stringResource(R.string.birth_year), s.birthYear.toDouble(), "", close, { v ->
-            if (v.toInt() in 1900..LocalDate.now().year) save { it.copy(birthYear = v.toInt()) }
-        }, allowDecimals = false)
+        SettingDialog.BIRTH_YEAR -> BirthDateDialog(
+            initial = s.birthDateOrNull ?: s.birthYear.takeIf { it > 0 }?.let { LocalDate.of(it, 7, 1) },
+            onDismiss = close,
+        ) { d ->
+            save { it.copy(birthYear = d.year, birthMonth = d.monthValue, birthDay = d.dayOfMonth) }
+        }
         SettingDialog.REPORT_PERIOD -> {
             val labels = mapOf(
                 3 to stringResource(R.string.report_period_3m),

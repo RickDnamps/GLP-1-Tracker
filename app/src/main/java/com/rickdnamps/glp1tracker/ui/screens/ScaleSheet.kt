@@ -68,7 +68,11 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
     val profile = remember(settings) {
         val male = when (settings.sex) { 1 -> true; 2 -> false; else -> null }
         if (male != null && settings.birthYear > 0 && settings.heightCm > 0) {
-            ScaleUserProfile(male, settings.birthYear, settings.heightCm, vm.state.value.weights.lastOrNull()?.weightKg ?: 0.0)
+            val born = settings.birthDateOrNull
+            ScaleUserProfile(
+                male, settings.birthYear, settings.heightCm, vm.state.value.weights.lastOrNull()?.weightKg ?: 0.0,
+                birthMonth = born?.monthValue ?: 7, birthDay = born?.dayOfMonth ?: 1,
+            )
         } else null
     }
     val startScan = {

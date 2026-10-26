@@ -54,6 +54,7 @@ import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.LengthUnit
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.WeightUnit
+import com.rickdnamps.glp1tracker.ui.components.BirthDateDialog
 import com.rickdnamps.glp1tracker.ui.components.ChoiceDialog
 import com.rickdnamps.glp1tracker.ui.components.TimePickerDialogFor
 import java.time.DayOfWeek
@@ -85,6 +86,9 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
     var inchText by rememberSaveable { mutableStateOf("") }
     var chooseMed by rememberSaveable { mutableStateOf(false) }
     var chooseTime by rememberSaveable { mutableStateOf(false) }
+    var sex by rememberSaveable { mutableIntStateOf(0) }
+    var birthEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
+    var chooseBirth by rememberSaveable { mutableStateOf(false) }
     var finishing by rememberSaveable { mutableStateOf(false) }
 
     val steps = 3
@@ -208,6 +212,17 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
                         } else {
                             NumberField(heightText, { heightText = it }, stringResource(R.string.height_optional), stringResource(R.string.unit_cm))
                         }
+                        Text(stringResource(R.string.profile_optional), style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = sex == 1, onClick = { sex = if (sex == 1) 0 else 1 }, label = { Text(stringResource(R.string.sex_male)) })
+                            FilterChip(selected = sex == 2, onClick = { sex = if (sex == 2) 0 else 2 }, label = { Text(stringResource(R.string.sex_female)) })
+                        }
+                        OutlinedButton(onClick = { chooseBirth = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                birthEpochDay?.let { stringResource(R.string.birth_date) + " : " + Format.date(LocalDate.ofEpochDay(it)) }
+                                    ?: stringResource(R.string.birth_date_tap),
+                            )
+                        }
                         Text(
                             stringResource(R.string.goals_help),
                             style = MaterialTheme.typography.bodySmall,
@@ -237,6 +252,10 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
                                 } else {
                                     Format.parse(heightText) ?: 0.0
                                 },
+                                sex = sex,
+                                birthYear = birthEpochDay?.let { LocalDate.ofEpochDay(it).year } ?: 0,
+                                birthMonth = birthEpochDay?.let { LocalDate.ofEpochDay(it).monthValue } ?: 0,
+                                birthDay = birthEpochDay?.let { LocalDate.ofEpochDay(it).dayOfMonth } ?: 0,
                                 lengthUnitValue = if (unit == WeightUnit.LB) LengthUnit.IN.ordinal else LengthUnit.CM.ordinal,
                                 goalWeightKg = Format.parse(goalText)?.let(unit::toKg) ?: 0.0,
                                 medication = medication,
@@ -269,6 +288,12 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
                 chooseMed = false
             },
         )
+    }
+    if (chooseBirth) {
+        BirthDateDialog(birthEpochDay?.let(LocalDate::ofEpochDay), { chooseBirth = false }) { d ->
+            birthEpochDay = d.toEpochDay()
+            chooseBirth = false
+        }
     }
     if (chooseTime) {
         TimePickerDialogFor(LocalTime.of(hour, minute), { chooseTime = false }) {

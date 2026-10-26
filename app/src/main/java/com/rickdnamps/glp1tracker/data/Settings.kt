@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.map
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Period
 
 data class UserSettings(
     val onboardingDone: Boolean = false,
@@ -77,13 +78,24 @@ data class UserSettings(
     /** 0 = not set, 1 = male, 2 = female (used for lean-mass estimates). */
     val sex: Int = 0,
     val birthYear: Int = 0,
+    /** Birth month (1-12) and day (1-31); 0 = only the year is known (older versions). */
+    val birthMonth: Int = 0,
+    val birthDay: Int = 0,
     /** 0 = cm, 1 = feet/inches (height) and inches (body measurements). */
     val lengthUnitValue: Int = 0,
 ) {
     val lengthUnit: LengthUnit get() = LengthUnit.fromValue(lengthUnitValue)
 
     val sexOrNull: Sex? get() = when (sex) { 1 -> Sex.MALE; 2 -> Sex.FEMALE; else -> null }
-    val ageOrNull: Int? get() = birthYear.takeIf { it in 1900..2100 }?.let { LocalDate.now().year - it }
+    /** Full date of birth when known (month and day set), else null. */
+    val birthDateOrNull: LocalDate?
+        get() = if (birthYear in 1900..2100 && birthMonth in 1..12 && birthDay in 1..31) {
+            runCatching { LocalDate.of(birthYear, birthMonth, birthDay) }.getOrNull()
+        } else null
+
+    val ageOrNull: Int?
+        get() = birthDateOrNull?.let { Period.between(it, LocalDate.now()).years }
+            ?: birthYear.takeIf { it in 1900..2100 }?.let { LocalDate.now().year - it }
 
     val skippedThrough: LocalDate? get() = skippedDueEpochDay.takeIf { it > 0 }?.let(LocalDate::ofEpochDay)
 
@@ -156,6 +168,8 @@ class SettingsRepository(context: Context) {
         val celebratedBadges = stringPreferencesKey("celebrated_badges")
         val sex = intPreferencesKey("sex")
         val birthYear = intPreferencesKey("birth_year")
+        val birthMonth = intPreferencesKey("birth_month")
+        val birthDay = intPreferencesKey("birth_day")
         val lengthUnitValue = intPreferencesKey("length_unit")
     }
 
@@ -212,6 +226,8 @@ class SettingsRepository(context: Context) {
             celebratedBadges = p[Keys.celebratedBadges] ?: d.celebratedBadges,
             sex = p[Keys.sex] ?: d.sex,
             birthYear = p[Keys.birthYear] ?: d.birthYear,
+            birthMonth = p[Keys.birthMonth] ?: d.birthMonth,
+            birthDay = p[Keys.birthDay] ?: d.birthDay,
             lengthUnitValue = p[Keys.lengthUnitValue] ?: d.lengthUnitValue,
         )
     }
@@ -271,6 +287,8 @@ class SettingsRepository(context: Context) {
         p[Keys.celebratedBadges] = s.celebratedBadges
         p[Keys.sex] = s.sex
         p[Keys.birthYear] = s.birthYear
+        p[Keys.birthMonth] = s.birthMonth
+        p[Keys.birthDay] = s.birthDay
         p[Keys.lengthUnitValue] = s.lengthUnitValue
     }
 }

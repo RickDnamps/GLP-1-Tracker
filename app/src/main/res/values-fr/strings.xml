@@ -446,11 +446,10 @@
     <string name="comp_real_age">Âge réel : %1$d</string>
     <string name="comp_estimated">Les valeurs des balances sont des estimations ; chaque marque a sa formule. Suivez la tendance plutôt que le chiffre exact.</string>
     <string name="comp_section">Composition corporelle (facultatif)</string>
-    <string name="comp_profile_needed">Indiquez votre sexe et votre année de naissance dans Réglages → Profil pour estimer la composition à partir de l\'impédance de la balance.</string>
+    <string name="comp_profile_needed">Indiquez votre sexe et votre date de naissance dans Réglages → Profil pour estimer la composition à partir de l\'impédance de la balance.</string>
     <string name="sex">Sexe</string>
     <string name="sex_male">Homme</string>
     <string name="sex_female">Femme</string>
-    <string name="birth_year">Année de naissance</string>
     <string name="msg_photo_saved">Photo ajoutée</string>
     <string name="scale_barefoot">Restez immobile, pieds nus sur les plaques métalliques : mesure de la composition…</string>
     <string name="unit_cm">cm</string>
@@ -459,6 +458,11 @@
     <string name="unit_ft_in">pi / po</string>
     <string name="height_ft_in">%1$d pi %2$d po</string>
     <string name="length_unit">Unité de taille et mensurations</string>
+    <string name="birth_date">Date de naissance</string>
+    <string name="birth_date_help">Faites défiler le jour, le mois et l\'année, puis touchez Enregistrer.</string>
+    <string name="birth_date_tap">Touchez pour choisir</string>
+    <string name="age_years">%1$d ans</string>
+    <string name="profile_optional">Sexe et date de naissance (facultatif, pour la composition corporelle avec une balance)</string>
     <plurals name="ring_days">
         <item quantity="one">jour</item>
         <item quantity="many">jours</item>

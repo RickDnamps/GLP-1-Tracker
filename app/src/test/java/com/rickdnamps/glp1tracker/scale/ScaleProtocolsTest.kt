@@ -94,6 +94,9 @@ class ScaleProtocolsTest {
         assertEquals(0x11, p96[5].toInt() and 0xFF) // male
         assertEquals(1780, ((p96[10].toInt() and 0xFF) shl 8) or (p96[11].toInt() and 0xFF))
         assertEquals(9250, ((p96[14].toInt() and 0xFF) shl 8) or (p96[15].toInt() and 0xFF))
+        assertEquals(1980, ((p96[6].toInt() and 0xFF) shl 8) or (p96[7].toInt() and 0xFF))
+        assertEquals(7, p96[8].toInt()) // month/day unknown → mid-year
+        assertEquals(1, p96[9].toInt())
         // History ack accepted → start BIA (0x90)
         val w2 = lefu.onNotification(LefuProtocol.RESULTS, frame(0x16, 0x01), 0).filterIsInstance<ScaleEvent.Write>()
         assertEquals(0x90, w2.single().write.value[2].toInt() and 0xFF)
@@ -102,6 +105,16 @@ class ScaleProtocolsTest {
         val events = lefu.onNotification(LefuProtocol.RESULTS, final, 0)
         assertEquals(2, events.filterIsInstance<ScaleEvent.Write>().size)
         assertEquals(ScaleEvent.Stable(91.2, impedance = 512.0), events.filterIsInstance<ScaleEvent.Stable>().single())
+    }
+
+    @Test
+    fun lefuProfileSendsFullBirthDate() {
+        val profile = ScaleUserProfile(male = false, birthYear = 1978, heightCm = 165.0, refWeightKg = 70.0, birthMonth = 3, birthDay = 15)
+        val p = LefuProtocol.profilePayload(profile, 7000)
+        assertEquals(0x21, p[0].toInt() and 0xFF) // female
+        assertEquals(1978, ((p[1].toInt() and 0xFF) shl 8) or (p[2].toInt() and 0xFF))
+        assertEquals(3, p[3].toInt())
+        assertEquals(15, p[4].toInt())
     }
 
     @Test

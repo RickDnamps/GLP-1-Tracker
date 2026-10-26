@@ -1,6 +1,23 @@
 package com.rickdnamps.glp1tracker.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import java.time.Month
+import java.time.Period
+import java.time.YearMonth
+import java.util.Locale
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -333,6 +350,114 @@ fun HeightInputDialog(title: String, initialCm: Double, imperial: Boolean, onDis
         confirmButton = {
             TextButton(enabled = valid, onClick = { cm?.let(onConfirm) }) { Text(stringResource(R.string.save)) }
         },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** Vertical snapping wheel (like iOS pickers); the centred item is the selection. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun <T> Wheel(
+    values: List<T>,
+    initialIndex: Int,
+    label: (T) -> String,
+    onSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val itemHeight = 44.dp
+    val itemPx = with(LocalDensity.current) { itemHeight.toPx() }
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex.coerceIn(0, values.lastIndex.coerceAtLeast(0)))
+    val fling = rememberSnapFlingBehavior(state)
+    val centered by remember {
+        derivedStateOf { state.firstVisibleItemIndex + if (state.firstVisibleItemScrollOffset > itemPx / 2) 1 else 0 }
+    }
+    LaunchedEffect(centered, values.size) {
+        if (values.isNotEmpty()) onSelected(centered.coerceIn(0, values.lastIndex))
+    }
+    Box(modifier.height(itemHeight * 5)) {
+        Box(
+            Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .height(itemHeight)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)),
+        )
+        LazyColumn(
+            state = state,
+            flingBehavior = fling,
+            contentPadding = PaddingValues(vertical = itemHeight * 2),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            items(values.size) { i ->
+                Box(Modifier.height(itemHeight).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        label(values[i]),
+                        style = if (i == centered) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (i == centered) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (i == centered) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Date of birth with three wheels (day · month in words · year): nothing to type, no format to guess. */
+@Composable
+fun BirthDateDialog(initial: LocalDate?, onDismiss: () -> Unit, onConfirm: (LocalDate) -> Unit) {
+    val today = LocalDate.now()
+    val years = remember { ((today.year - 100)..(today.year - 10)).toList() }
+    val start = remember { (initial ?: LocalDate.of(1975, 6, 15)).let { it.withYear(it.year.coerceIn(years.first(), years.last())) } }
+    var year by remember { mutableStateOf(start.year) }
+    var month by remember { mutableStateOf(start.monthValue) }
+    var day by remember { mutableStateOf(start.dayOfMonth) }
+    val daysInMonth = YearMonth.of(year, month).lengthOfMonth()
+    val chosen = LocalDate.of(year, month, day.coerceAtMost(daysInMonth))
+    val locale = Locale.getDefault()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.birth_date)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    stringResource(R.string.birth_date_help),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Wheel(
+                        values = (1..daysInMonth).toList(),
+                        initialIndex = start.dayOfMonth - 1,
+                        label = { it.toString() },
+                        onSelected = { day = it + 1 },
+                        modifier = Modifier.weight(0.8f),
+                    )
+                    Wheel(
+                        values = Month.entries,
+                        initialIndex = start.monthValue - 1,
+                        label = { m -> m.getDisplayName(java.time.format.TextStyle.FULL, locale).replaceFirstChar { it.titlecase(locale) } },
+                        onSelected = { month = it + 1 },
+                        modifier = Modifier.weight(1.7f),
+                    )
+                    Wheel(
+                        values = years,
+                        initialIndex = years.indexOf(start.year),
+                        label = { it.toString() },
+                        onSelected = { year = years[it] },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Text(
+                    Format.date(chosen) + " · " + stringResource(R.string.age_years, Period.between(chosen, today).years),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(chosen) }) { Text(stringResource(R.string.save)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
