@@ -453,6 +453,12 @@
     <string name="birth_year">Year of birth</string>
     <string name="msg_photo_saved">Photo added</string>
     <string name="scale_barefoot">Stay still, barefoot on the metal plates: measuring body composition…</string>
+    <string name="unit_cm">cm</string>
+    <string name="unit_in">in</string>
+    <string name="unit_ft">ft</string>
+    <string name="unit_ft_in">ft / in</string>
+    <string name="height_ft_in">%1$d ft %2$d in</string>
+    <string name="length_unit">Height &amp; measurements unit</string>
     <plurals name="ring_days">
         <item quantity="one">day</item>
         <item quantity="other">days</item>

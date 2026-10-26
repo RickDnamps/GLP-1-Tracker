@@ -7,6 +7,8 @@ import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.data.WeightEntity
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.InjectionSite
+import com.rickdnamps.glp1tracker.domain.LengthUnit
+import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.MilestoneInput
 import com.rickdnamps.glp1tracker.domain.Milestones
@@ -108,3 +110,21 @@ fun milestoneInput(state: UiState, nowMillis: Long = System.currentTimeMillis())
 }
 
 fun milestones(state: UiState): List<Progress> = Milestones.evaluate(milestoneInput(state))
+
+/** Height in the user's unit: "178 cm" or "5 ft 10 in" / "5 pi 10 po". */
+@Composable
+fun heightText(cm: Double, settings: UserSettings): String =
+    if (settings.lengthUnit == LengthUnit.IN) {
+        val (ft, inch) = LengthUnit.feetInches(cm)
+        stringResource(R.string.height_ft_in, ft, inch)
+    } else {
+        Format.number(cm, 0) + " " + stringResource(R.string.unit_cm)
+    }
+
+/** A body measurement (stored in cm) in the user's unit, e.g. "92,5 cm" or "36,4 po". */
+@Composable
+fun lengthText(cm: Double, settings: UserSettings, signed: Boolean = false): String {
+    val v = settings.lengthUnit.fromCm(cm)
+    val prefix = if (signed && v > 0) "+" else ""
+    return prefix + Format.oneDecimal(v) + " " + stringResource(settings.lengthUnit.symbolRes)
+}

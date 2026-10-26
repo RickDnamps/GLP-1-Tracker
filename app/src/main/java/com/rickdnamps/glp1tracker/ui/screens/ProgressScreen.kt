@@ -53,6 +53,7 @@ import com.rickdnamps.glp1tracker.ui.milestones
 import com.rickdnamps.glp1tracker.domain.GoalForecast
 import androidx.compose.runtime.remember
 import com.rickdnamps.glp1tracker.ui.weightText
+import com.rickdnamps.glp1tracker.ui.lengthText
 import kotlin.math.abs
 
 @Composable
@@ -183,7 +184,7 @@ private fun WeightRow(entry: WeightEntity, delta: Double?, settings: UserSetting
             Column(Modifier.weight(1f)) {
                 Text(weightText(entry.weightKg, settings), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Text(
-                    Format.dateTime(entry.timestamp) + (entry.waistCm?.let { " · " + Format.oneDecimal(it) + " cm" } ?: "") +
+                    Format.dateTime(entry.timestamp) + (entry.waistCm?.let { " · " + lengthText(it, settings) } ?: "") +
                         (entry.bodyFatPct?.let { " · " + Format.oneDecimal(it) + " % " + stringResource(R.string.comp_fat).lowercase() } ?: ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

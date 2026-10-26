@@ -286,6 +286,7 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
         is Editor.Measurement -> MeasurementEditor(
             item = e.item,
             last = state.measurements.lastOrNull(),
+            unit = state.settings.lengthUnit,
             onDismiss = close,
             onSave = { vm.saveMeasurement(it); close() },
             onDelete = { vm.deleteMeasurement(it); close() },

@@ -71,3 +71,26 @@ enum class WeightUnit(@StringRes val symbolRes: Int) {
         fun fromName(name: String?): WeightUnit = entries.firstOrNull { it.name == name } ?: KG
     }
 }
+
+/** Unit for height and body measurements; values are always stored in cm. */
+enum class LengthUnit(@StringRes val symbolRes: Int) {
+    CM(R.string.unit_cm),
+    IN(R.string.unit_in);
+
+    fun fromCm(cm: Double): Double = if (this == CM) cm else cm / CM_PER_INCH
+    fun toCm(value: Double): Double = if (this == CM) value else value * CM_PER_INCH
+
+    companion object {
+        const val CM_PER_INCH = 2.54
+
+        fun fromValue(v: Int): LengthUnit = if (v == 1) IN else CM
+
+        /** Splits a height in cm into whole feet and inches (rounded to the nearest inch). */
+        fun feetInches(cm: Double): Pair<Int, Int> {
+            val totalIn = kotlin.math.round(cm / CM_PER_INCH).toInt()
+            return totalIn / 12 to totalIn % 12
+        }
+
+        fun fromFeetInches(feet: Int, inches: Double): Double = (feet * 12 + inches) * CM_PER_INCH
+    }
+}

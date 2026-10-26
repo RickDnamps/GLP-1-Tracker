@@ -453,6 +453,12 @@
     <string name="birth_year">Année de naissance</string>
     <string name="msg_photo_saved">Photo ajoutée</string>
     <string name="scale_barefoot">Restez immobile, pieds nus sur les plaques métalliques : mesure de la composition…</string>
+    <string name="unit_cm">cm</string>
+    <string name="unit_in">po</string>
+    <string name="unit_ft">pi</string>
+    <string name="unit_ft_in">pi / po</string>
+    <string name="height_ft_in">%1$d pi %2$d po</string>
+    <string name="length_unit">Unité de taille et mensurations</string>
     <plurals name="ring_days">
         <item quantity="one">jour</item>
         <item quantity="many">jours</item>

@@ -29,6 +29,8 @@ import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.data.MeasurementEntity
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.domain.Format
+import com.rickdnamps.glp1tracker.domain.LengthUnit
+import com.rickdnamps.glp1tracker.ui.lengthText
 import com.rickdnamps.glp1tracker.ui.components.DateTimeRow
 import com.rickdnamps.glp1tracker.ui.components.SectionCard
 import java.time.LocalDateTime
@@ -61,10 +63,10 @@ fun MeasurementsCard(measurements: List<MeasurementEntity>, settings: UserSettin
             val delta = latest - values.first().second
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(part.label), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Text(Format.oneDecimal(latest) + " cm", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(lengthText(latest, settings), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 if (values.size > 1 && kotlin.math.abs(delta) >= 0.05) {
                     Text(
-                        (if (delta > 0) "  +" else "  ") + Format.oneDecimal(delta),
+                        "  " + lengthText(delta, settings, signed = true),
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (delta < 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     )
@@ -94,16 +96,17 @@ fun MeasurementsCard(measurements: List<MeasurementEntity>, settings: UserSettin
 fun MeasurementEditor(
     item: MeasurementEntity?,
     last: MeasurementEntity?,
+    unit: LengthUnit,
     onDismiss: () -> Unit,
     onSave: (MeasurementEntity) -> Unit,
     onDelete: (MeasurementEntity) -> Unit,
 ) {
     var dateTime by remember { mutableStateOf(item?.let { Format.toLocalDateTime(it.timestamp) } ?: LocalDateTime.now().withSecond(0).withNano(0)) }
     val fields = remember {
-        BodyPart.entries.associateWith { part -> mutableStateOf(item?.let(part.get)?.let(Format::oneDecimal) ?: "") }
+        BodyPart.entries.associateWith { part -> mutableStateOf(item?.let(part.get)?.let { Format.oneDecimal(unit.fromCm(it)) } ?: "") }
     }
     var notes by remember { mutableStateOf(item?.notes ?: "") }
-    fun value(part: BodyPart) = Format.parse(fields.getValue(part).value)?.takeIf { it > 0 }
+    fun value(part: BodyPart) = Format.parse(fields.getValue(part).value)?.takeIf { it > 0 }?.let(unit::toCm)
     val any = BodyPart.entries.any { value(it) != null }
 
     EditorSheet(
@@ -136,8 +139,8 @@ fun MeasurementEditor(
                         value = text,
                         onValueChange = { text = it },
                         label = { Text(stringResource(part.label)) },
-                        placeholder = { last?.let(part.get)?.let { Text(Format.oneDecimal(it)) } },
-                        suffix = { Text("cm") },
+                        placeholder = { last?.let(part.get)?.let { Text(Format.oneDecimal(unit.fromCm(it))) } },
+                        suffix = { Text(stringResource(unit.symbolRes)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),

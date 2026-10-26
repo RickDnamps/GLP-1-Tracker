@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.domain.Format
+import com.rickdnamps.glp1tracker.domain.LengthUnit
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.WeightUnit
 import com.rickdnamps.glp1tracker.ui.components.ChoiceDialog
@@ -80,6 +81,8 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
     var weightText by rememberSaveable { mutableStateOf("") }
     var goalText by rememberSaveable { mutableStateOf("") }
     var heightText by rememberSaveable { mutableStateOf("") }
+    var feetText by rememberSaveable { mutableStateOf("") }
+    var inchText by rememberSaveable { mutableStateOf("") }
     var chooseMed by rememberSaveable { mutableStateOf(false) }
     var chooseTime by rememberSaveable { mutableStateOf(false) }
     var finishing by rememberSaveable { mutableStateOf(false) }
@@ -196,7 +199,15 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
                         }
                         NumberField(weightText, { weightText = it }, stringResource(R.string.current_weight), stringResource(unit.symbolRes))
                         NumberField(goalText, { goalText = it }, stringResource(R.string.goal_weight), stringResource(unit.symbolRes))
-                        NumberField(heightText, { heightText = it }, stringResource(R.string.height_optional), "cm")
+                        if (unit == WeightUnit.LB) {
+                            Text(stringResource(R.string.height_optional), style = MaterialTheme.typography.labelLarge)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                NumberField(feetText, { feetText = it }, stringResource(R.string.unit_ft), stringResource(R.string.unit_ft), Modifier.weight(1f))
+                                NumberField(inchText, { inchText = it }, stringResource(R.string.unit_in), stringResource(R.string.unit_in), Modifier.weight(1f))
+                            }
+                        } else {
+                            NumberField(heightText, { heightText = it }, stringResource(R.string.height_optional), stringResource(R.string.unit_cm))
+                        }
                         Text(
                             stringResource(R.string.goals_help),
                             style = MaterialTheme.typography.bodySmall,
@@ -219,7 +230,14 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
                             val settings = UserSettings(
                                 name = name.trim(),
                                 weightUnit = unit,
-                                heightCm = Format.parse(heightText) ?: 0.0,
+                                heightCm = if (unit == WeightUnit.LB) {
+                                    feetText.trim().toIntOrNull()?.let { ft ->
+                                        LengthUnit.fromFeetInches(ft, Format.parse(inchText.ifBlank { "0" }) ?: 0.0)
+                                    } ?: 0.0
+                                } else {
+                                    Format.parse(heightText) ?: 0.0
+                                },
+                                lengthUnitValue = if (unit == WeightUnit.LB) LengthUnit.IN.ordinal else LengthUnit.CM.ordinal,
                                 goalWeightKg = Format.parse(goalText)?.let(unit::toKg) ?: 0.0,
                                 medication = medication,
                                 doseMg = dose ?: medication.commonDosesMg.firstOrNull() ?: 0.0,
@@ -262,7 +280,7 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
 }
 
 @Composable
-private fun NumberField(value: String, onChange: (String) -> Unit, label: String, suffix: String) {
+private fun NumberField(value: String, onChange: (String) -> Unit, label: String, suffix: String, modifier: Modifier = Modifier.fillMaxWidth()) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
@@ -270,6 +288,6 @@ private fun NumberField(value: String, onChange: (String) -> Unit, label: String
         suffix = { Text(suffix) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
     )
 }

@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.rickdnamps.glp1tracker.domain.LengthUnit
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.Pharmacokinetics
 import com.rickdnamps.glp1tracker.domain.Sex
@@ -76,7 +77,11 @@ data class UserSettings(
     /** 0 = not set, 1 = male, 2 = female (used for lean-mass estimates). */
     val sex: Int = 0,
     val birthYear: Int = 0,
+    /** 0 = cm, 1 = feet/inches (height) and inches (body measurements). */
+    val lengthUnitValue: Int = 0,
 ) {
+    val lengthUnit: LengthUnit get() = LengthUnit.fromValue(lengthUnitValue)
+
     val sexOrNull: Sex? get() = when (sex) { 1 -> Sex.MALE; 2 -> Sex.FEMALE; else -> null }
     val ageOrNull: Int? get() = birthYear.takeIf { it in 1900..2100 }?.let { LocalDate.now().year - it }
 
@@ -151,6 +156,7 @@ class SettingsRepository(context: Context) {
         val celebratedBadges = stringPreferencesKey("celebrated_badges")
         val sex = intPreferencesKey("sex")
         val birthYear = intPreferencesKey("birth_year")
+        val lengthUnitValue = intPreferencesKey("length_unit")
     }
 
     val settings: Flow<UserSettings> = store.data.map(::read)
@@ -206,6 +212,7 @@ class SettingsRepository(context: Context) {
             celebratedBadges = p[Keys.celebratedBadges] ?: d.celebratedBadges,
             sex = p[Keys.sex] ?: d.sex,
             birthYear = p[Keys.birthYear] ?: d.birthYear,
+            lengthUnitValue = p[Keys.lengthUnitValue] ?: d.lengthUnitValue,
         )
     }
 
@@ -264,5 +271,6 @@ class SettingsRepository(context: Context) {
         p[Keys.celebratedBadges] = s.celebratedBadges
         p[Keys.sex] = s.sex
         p[Keys.birthYear] = s.birthYear
+        p[Keys.lengthUnitValue] = s.lengthUnitValue
     }
 }

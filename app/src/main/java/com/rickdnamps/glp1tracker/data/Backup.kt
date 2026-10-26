@@ -247,6 +247,7 @@ object Backup {
         put("celebratedBadges", s.celebratedBadges)
         put("sex", s.sex)
         put("birthYear", s.birthYear)
+        put("lengthUnitValue", s.lengthUnitValue)
     }
 
     private fun settingsFromJson(o: JSONObject): UserSettings {
@@ -294,6 +295,7 @@ object Backup {
             celebratedBadges = o.optString("celebratedBadges", d.celebratedBadges),
             sex = o.optInt("sex", d.sex),
             birthYear = o.optInt("birthYear", d.birthYear),
+            lengthUnitValue = o.optInt("lengthUnitValue", d.lengthUnitValue),
         )
     }
 

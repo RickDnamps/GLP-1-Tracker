@@ -76,6 +76,9 @@ import com.rickdnamps.glp1tracker.ui.UiState
 import com.rickdnamps.glp1tracker.ui.components.ChoiceDialog
 import com.rickdnamps.glp1tracker.ui.components.ConfirmDialog
 import com.rickdnamps.glp1tracker.ui.components.DatePickerDialogFor
+import com.rickdnamps.glp1tracker.ui.components.HeightInputDialog
+import com.rickdnamps.glp1tracker.ui.heightText
+import com.rickdnamps.glp1tracker.domain.LengthUnit
 import com.rickdnamps.glp1tracker.ui.components.NumberInputDialog
 import com.rickdnamps.glp1tracker.ui.components.SectionCard
 import com.rickdnamps.glp1tracker.ui.components.SettingRow
@@ -175,7 +178,17 @@ fun SettingsScreen(
                         ) { Text(stringResource(u.symbolRes)) }
                     }
                 }
-                SettingRow(stringResource(R.string.height), if (s.heightCm > 0) Format.number(s.heightCm, 0) + " cm" else "—") {
+                Text(stringResource(R.string.length_unit), style = MaterialTheme.typography.bodyLarge)
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf(LengthUnit.CM to R.string.unit_cm, LengthUnit.IN to R.string.unit_ft_in).forEachIndexed { i, (u, label) ->
+                        SegmentedButton(
+                            selected = s.lengthUnit == u,
+                            onClick = { vm.updateSettings { it.copy(lengthUnitValue = u.ordinal) } },
+                            shape = SegmentedButtonDefaults.itemShape(i, 2),
+                        ) { Text(stringResource(label)) }
+                    }
+                }
+                SettingRow(stringResource(R.string.height), if (s.heightCm > 0) heightText(s.heightCm, s) else "—") {
                     dialog = SettingDialog.HEIGHT
                 }
                 SettingRow(
@@ -473,7 +486,9 @@ private fun SettingDialogs(
     when (dialog) {
         null -> Unit
         SettingDialog.NAME -> TextInputDialog(stringResource(R.string.first_name), s.name, close) { v -> save { it.copy(name = v) } }
-        SettingDialog.HEIGHT -> NumberInputDialog(stringResource(R.string.height), s.heightCm, "cm", close, { v -> save { it.copy(heightCm = v) } })
+        SettingDialog.HEIGHT -> HeightInputDialog(stringResource(R.string.height), s.heightCm, s.lengthUnit == LengthUnit.IN, close) { cm ->
+            save { it.copy(heightCm = cm) }
+        }
         SettingDialog.START_WEIGHT -> NumberInputDialog(
             stringResource(R.string.start_weight), s.weightUnit.fromKg(s.startWeightKg), unit, close,
             { v -> save { it.copy(startWeightKg = it.weightUnit.toKg(v)) } },

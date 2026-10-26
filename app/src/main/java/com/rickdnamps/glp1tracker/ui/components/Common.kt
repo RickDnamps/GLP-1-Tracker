@@ -281,3 +281,58 @@ fun ConfirmDialog(title: String, text: String, confirmLabel: String, onDismiss: 
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
+
+/** Height entry in cm, or in feet + inches when [imperial]. Returns centimetres. */
+@Composable
+fun HeightInputDialog(title: String, initialCm: Double, imperial: Boolean, onDismiss: () -> Unit, onConfirm: (Double) -> Unit) {
+    val start = initialCm.takeIf { it > 0 }
+    var cmText by remember { mutableStateOf(start?.let { Format.number(it, 0) } ?: "") }
+    var ftText by remember { mutableStateOf(start?.let { com.rickdnamps.glp1tracker.domain.LengthUnit.feetInches(it).first.toString() } ?: "") }
+    var inText by remember { mutableStateOf(start?.let { com.rickdnamps.glp1tracker.domain.LengthUnit.feetInches(it).second.toString() } ?: "") }
+    val cm: Double? = if (imperial) {
+        val ft = ftText.trim().toIntOrNull()
+        val inch = Format.parse(inText.ifBlank { "0" })
+        if (ft != null && inch != null) com.rickdnamps.glp1tracker.domain.LengthUnit.fromFeetInches(ft, inch) else null
+    } else {
+        Format.parse(cmText)
+    }
+    val valid = cm != null && cm in 90.0..250.0
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            if (imperial) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = ftText,
+                        onValueChange = { ftText = it },
+                        suffix = { Text(stringResource(R.string.unit_ft)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = inText,
+                        onValueChange = { inText = it },
+                        suffix = { Text(stringResource(R.string.unit_in)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                OutlinedTextField(
+                    value = cmText,
+                    onValueChange = { cmText = it },
+                    suffix = { Text(stringResource(R.string.unit_cm)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = valid, onClick = { cm?.let(onConfirm) }) { Text(stringResource(R.string.save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
