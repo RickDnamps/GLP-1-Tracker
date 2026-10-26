@@ -74,20 +74,25 @@ object BodyCompositionMath {
             waterPct = water / weightKg * 100,
             boneKg = bone,
             bmrKcal = bmr,
-            metabolicAge = metabolicAge(bmr, weightKg, heightCm, age, sex),
+            metabolicAge = metabolicAge(fatPct, age, sex),
             proteinPct = (ffm - water - bone) / weightKg * 100,
             impedance = impedanceOhm,
         )
     }
 
     /**
-     * Age at which a typical person of the same weight, height and sex (Mifflin-St Jeor) would
-     * have this BMR: higher BMR (more muscle) → younger "body age". Clamped to ±15 years.
+     * "Body age": real age moved by how far body fat is from the healthy mid-range for that age
+     * and sex (Gallagher 2000: men ≈ 10 + 0.13 × age %, women ≈ 24 + 0.075 × age %), about one
+     * year per 3 points of fat. Leaner than the norm → younger. Clamped to −12 / +15 years.
+     * (Solving Mifflin-St Jeor for the age was far too sensitive: ±100 kcal = ±20 years.)
      */
-    fun metabolicAge(bmrKcal: Double, weightKg: Double, heightCm: Double, age: Int, sex: Sex): Int {
-        val s = if (sex == Sex.MALE) 5.0 else -161.0
-        val a = (10 * weightKg + 6.25 * heightCm + s - bmrKcal) / 5
-        return a.toInt().coerceIn(maxOf(12, age - 15), age + 15)
+    fun metabolicAge(fatPct: Double, age: Int, sex: Sex): Int {
+        val reference = when (sex) {
+            Sex.MALE -> 10.0 + 0.13 * age
+            Sex.FEMALE -> 24.0 + 0.075 * age
+        }
+        val a = age + 0.35 * (fatPct - reference)
+        return kotlin.math.round(a).toInt().coerceIn(maxOf(12, age - 12), age + 15)
     }
 
     /** General adult body-fat categories (ACE), adjusted for sex. */

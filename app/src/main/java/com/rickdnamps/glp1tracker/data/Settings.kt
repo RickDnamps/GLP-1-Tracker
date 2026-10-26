@@ -83,6 +83,8 @@ data class UserSettings(
     val birthDay: Int = 0,
     /** 0 = cm, 1 = feet/inches (height) and inches (body measurements). */
     val lengthUnitValue: Int = 0,
+    /** Body-composition formula version already applied to stored weigh-ins (see AppViewModel). */
+    val compFormulaVersion: Int = 0,
 ) {
     val lengthUnit: LengthUnit get() = LengthUnit.fromValue(lengthUnitValue)
 
@@ -171,6 +173,7 @@ class SettingsRepository(context: Context) {
         val birthMonth = intPreferencesKey("birth_month")
         val birthDay = intPreferencesKey("birth_day")
         val lengthUnitValue = intPreferencesKey("length_unit")
+        val compFormulaVersion = intPreferencesKey("comp_formula_version")
     }
 
     val settings: Flow<UserSettings> = store.data.map(::read)
@@ -229,6 +232,7 @@ class SettingsRepository(context: Context) {
             birthMonth = p[Keys.birthMonth] ?: d.birthMonth,
             birthDay = p[Keys.birthDay] ?: d.birthDay,
             lengthUnitValue = p[Keys.lengthUnitValue] ?: d.lengthUnitValue,
+            compFormulaVersion = p[Keys.compFormulaVersion] ?: d.compFormulaVersion,
         )
     }
 
@@ -290,5 +294,6 @@ class SettingsRepository(context: Context) {
         p[Keys.birthMonth] = s.birthMonth
         p[Keys.birthDay] = s.birthDay
         p[Keys.lengthUnitValue] = s.lengthUnitValue
+        p[Keys.compFormulaVersion] = s.compFormulaVersion
     }
 }

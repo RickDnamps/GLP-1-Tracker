@@ -19,6 +19,7 @@ import com.rickdnamps.glp1tracker.data.InjectionEntity
 import com.rickdnamps.glp1tracker.data.SideEffectEntity
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.data.WeightEntity
+import com.rickdnamps.glp1tracker.data.composition
 import com.rickdnamps.glp1tracker.data.withComposition
 import com.rickdnamps.glp1tracker.domain.BodyComp
 import com.rickdnamps.glp1tracker.domain.BodyCompositionMath
@@ -84,6 +85,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             runCatching { AutoBackup.runIfDue(getApplication(), repository) }
             ReminderScheduler.reschedule(getApplication(), repository)
         }
+        viewModelScope.launch { runCatching { refreshMetabolicAges() } }
+    }
+
+    /**
+     * One-off: the first "body age" formula pinned heavy users at age + 15. Recompute it for
+     * past Bluetooth weigh-ins (those with an impedance) with the current formula.
+     */
+    private suspend fun refreshMetabolicAges() {
+        val s = repository.settingsRepository.current()
+        if (s.compFormulaVersion >= 1) return
+        val sex = s.sexOrNull
+        val born = s.birthDateOrNull ?: s.birthYear.takeIf { it in 1900..2100 }?.let { java.time.LocalDate.of(it, 7, 1) }
+        if (sex != null && born != null) {
+            val fixed = repository.weightsSnapshot().mapNotNull { w ->
+                val c = w.composition
+                val fat = c.bodyFatPct
+                if (fat == null || c.metabolicAge == null || c.impedance == null) return@mapNotNull null
+                val day = java.time.Instant.ofEpochMilli(w.timestamp).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                val age = java.time.Period.between(born, day).years
+                w.withComposition(c.copy(metabolicAge = BodyCompositionMath.metabolicAge(fat, age, sex)))
+            }
+            if (fixed.isNotEmpty()) repository.addWeights(fixed)
+        }
+        repository.settingsRepository.update { it.copy(compFormulaVersion = 1) }
     }
 
     /** App lock state: kept here (not in saved state) so a killed process always starts locked. */

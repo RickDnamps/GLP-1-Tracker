@@ -22,11 +22,17 @@ class BodyCompositionTest {
     }
 
     @Test
-    fun moreMuscleMeansYoungerMetabolicAge() {
-        val lean = BodyCompositionMath.metabolicAge(1900.0, 80.0, 175.0, 45, Sex.MALE)
-        val soft = BodyCompositionMath.metabolicAge(1600.0, 80.0, 175.0, 45, Sex.MALE)
-        assertTrue(lean < soft)
-        assertTrue(soft <= 60)
+    fun metabolicAgeFollowsBodyFat() {
+        // Healthy fat for the age → body age ≈ real age; leaner → younger; more fat → older.
+        assertEquals(46, BodyCompositionMath.metabolicAge(16.0, 46, Sex.MALE))
+        assertTrue(BodyCompositionMath.metabolicAge(10.0, 46, Sex.MALE) < 46)
+        assertEquals(54, BodyCompositionMath.metabolicAge(38.0, 46, Sex.MALE))
+        assertEquals(50, BodyCompositionMath.metabolicAge(28.0, 50, Sex.FEMALE))
+        // Never runs away: capped at +15 years.
+        assertEquals(61, BodyCompositionMath.metabolicAge(90.0, 46, Sex.MALE))
+        // Large man (188 cm, 138 kg, ~450 Ω): about 8 years above his age, not pinned to the cap.
+        val big = BodyCompositionMath.estimate(138.0, 188.0, 46, Sex.MALE, 450.0)!!
+        assertTrue("age ${big.metabolicAge}", big.metabolicAge!! in 50..58)
     }
 
     @Test
