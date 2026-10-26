@@ -46,6 +46,8 @@ fun LineChart(
     dashedAfter: Long? = null,
     showDots: Boolean = false,
     yMinZero: Boolean = false,
+    /** Vertical event markers (e.g. dose changes) with a short label. */
+    events: List<Pair<Long, String>> = emptyList(),
     yLabel: (Double) -> String,
     xLabel: (Long) -> String,
     emptyText: String = "",
@@ -60,6 +62,8 @@ fun LineChart(
     val labelStyle = TextStyle(fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
     val markerColor = MaterialTheme.colorScheme.error
+    val eventColor = MaterialTheme.colorScheme.tertiary
+    val eventStyle = TextStyle(fontSize = 9.sp, color = eventColor)
     // Draw-in animation each time the data set changes.
     val reveal = remember(points.size, points.firstOrNull()?.first, points.lastOrNull()?.first) { Animatable(0f) }
     LaunchedEffect(reveal) { reveal.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
@@ -139,6 +143,15 @@ fun LineChart(
             if (showDots) {
                 points.forEach { drawCircle(lineColor, radius = 3.dp.toPx(), center = Offset(x(it.first), y(it.second))) }
             }
+        }
+        events.filter { it.first in minX..maxX }.forEach { (t, label) ->
+            val ex = x(t)
+            drawLine(
+                eventColor.copy(alpha = 0.7f), Offset(ex, topPad), Offset(ex, topPad + h), strokeWidth = 1.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f)),
+            )
+            val layout = measurer.measure(label, eventStyle)
+            drawText(layout, topLeft = Offset((ex + 2.dp.toPx()).coerceAtMost(size.width - layout.size.width), topPad))
         }
         marker?.takeIf { it in minX..maxX }?.let {
             val mx = x(it)

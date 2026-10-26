@@ -19,6 +19,10 @@ The owner is French-speaking (Québec): talk to them in French; UI ships in Fren
 - `scale/` Bluetooth LE scales: `ScaleProtocols.kt` is pure and unit-tested (standard 0x181D, QN/Renpho
   0xFFE0/0xFFF0, Renpho ES-CS20M "Lefu" 0x1A10); `BleScaleManager` does the GATT plumbing.
 - `health/` Health Connect weight import (read-only).
+- `widget/` Glance "next dose" home-screen widget (`WidgetUpdater.requestRefresh` after data changes).
+- `report/` PDF doctor report (`DoctorReport.write`, `ReportMath` is pure and tested).
+- `domain/Insights.kt`, `Milestones.kt`, `MissedDose.kt`, `Titration.kt`, `Supply.kt`: pure logic with tests.
+- Feature strings may live in their own files (`strings_widget.xml`, `strings_report.xml`, …) — always with a `values-fr` twin.
 - `ui/` Compose Material 3: one `AppViewModel` (`UiState`), screens in `ui/screens`, editors are bottom sheets
   (`Editor` sealed interface), shared widgets in `ui/components` (charts are hand-drawn on Canvas).
 
@@ -28,4 +32,4 @@ The owner is French-speaking (Québec): talk to them in French; UI ships in Fren
 - Weights are stored in kg; convert with `WeightUnit` only for display/input.
 - Keep `domain/` and `scale/ScaleProtocols.kt` free of Android imports so they stay unit-testable.
 - Medical wording: estimates only, never advice; keep the disclaimers.
-- Roadmap and ideas: `docs/ROADMAP.md`.
+- Roadmap and ideas: `docs/ROADMAP.md`, `docs/IDEAS.md`, `docs/PARITY.md`.

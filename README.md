@@ -6,18 +6,39 @@ tirzépatide magistral ou tout autre médicament). Interface en français et en 
 
 ## Fonctions
 
-- **Doses** : journal des injections (ou comprimés), médicament, dose, site, notes ; modification et suppression.
-- **Prochaine dose** : compte à rebours, retard, rappel par notification avec bouton « C'est fait ».
-- **Niveau estimé du médicament** : courbe pharmacocinétique (demi-vie + absorption) sur 14 à 180 jours, avec projection.
-- **Rotation des sites** : 6 sites (abdomen, cuisses, bras), dernier usage, nombre d'utilisations et site suggéré.
-- **Stylo** : suivi des doses restantes et alerte quand il est presque vide.
-- **Balance Bluetooth** : pesée directe avec les balances Renpho (QN, ES-CS20M), FITINDEX et toutes les balances au profil Bluetooth standard ; la balance est mémorisée, il suffit de monter dessus.
-- **Health Connect** : import automatique des pesées de Renpho, Withings, Eufy, Fitbit, Samsung Health, Google Fit…
-- **Poids** : graphique avec ligne d'objectif, poids de départ / actuel / visé, perte totale et en %, IMC, moyenne par semaine, tour de taille.
-- **Journal quotidien** : eau et protéines (objectifs), appétit / « food noise », humeur, notes.
-- **Effets secondaires** : 14 symptômes courants avec intensité, résumé des 30 derniers jours.
-- **Données** : export CSV (à partager avec le médecin), sauvegarde et restauration JSON. Tout reste sur le téléphone.
-- Thème clair / sombre, kg ou lb.
+Tout est **gratuit**, **hors ligne** et **sans compte** — y compris ce que les autres apps font payer.
+
+**Traitement**
+- Journal des doses (injections ou comprimés) avec **silhouette du corps interactive** pour choisir le site et rotation suggérée.
+- **Prochaine dose** : anneau de compte à rebours, rappel avec boutons « C'est fait » et « Plus tard », rappel la veille.
+- **Dose oubliée** : conduite à tenir selon la monographie de chaque médicament, bouton « Sauter cette dose ».
+- **Protection double dose** : avertit si une dose est saisie trop tôt après la précédente.
+- **Plan de paliers** (titration) avec plans habituels par médicament et rappel du prochain palier.
+- **Niveau estimé du médicament** dans le corps (modèle pharmacocinétique, biodisponibilité des comprimés).
+- **Stylos et réserve** : doses restantes, stylos neufs, date à laquelle jeter le stylo entamé, alerte de renouvellement d'ordonnance.
+- **Widget** « Prochaine dose » sur l'écran d'accueil du téléphone.
+
+**Corps et progrès**
+- Poids avec graphique animé, ligne d'objectif et repères de changement de dose ; IMC, % perdu, moyenne par semaine.
+- **Balance Bluetooth** (Renpho QN / ES-CS20M, FITINDEX, profil standard) et **Health Connect** (Renpho, Withings, Fitbit, Samsung…).
+- Mensurations (taille, hanches, poitrine, bras, cuisse, cou) et ratio taille/hauteur.
+- **Badges** avec confettis, **prédiction de la date d'atteinte de l'objectif**.
+
+**Analyses personnelles**
+- Effets secondaires et appétit **selon le jour après l'injection** (« vos nausées culminent au jour 2 »).
+- **Poids tendance** et détecteur de vrai plateau, jauge de rythme de perte, **coach protéines**.
+
+**Journal quotidien**
+- Eau (verre animé), protéines, repas avec calories/fibres et favoris, appétit, humeur, énergie, sommeil, « food noise », selles, activité et musculation.
+- 14 effets secondaires avec intensité et résumé des 30 derniers jours.
+
+**Outils et sécurité**
+- **Calculateur de seringue U-100** pour les fioles (mg ↔ mL ↔ unités) avec alerte d'erreur de virgule.
+- **Symptômes d'alerte** (pancréatite, vésicule, déshydratation, allergie…) avec appel direct 911 / 811 / 988.
+- **Rapport PDF pour le médecin**, export CSV, sauvegarde JSON et **sauvegarde automatique quotidienne**.
+- **Verrouillage** par empreinte / visage / NIP.
+
+**Apparence** : thèmes clair/sombre, 5 couleurs d'accent, Material You, polices Plus Jakarta Sans et Outfit. Français et anglais.
 
 > Cette application ne remplace pas l'avis d'un professionnel de la santé. Les niveaux de médicament
 > sont des estimations théoriques.

@@ -120,7 +120,7 @@ fun ProgressScreen(
             val rate = remember(points) { GoalForecast.weeklyRateKg(points, now) }
             MilestonesCard(progress, forecast, rate, settings)
         }
-        item { WeightChartCard(state.weights, settings, stats.goalKg) }
+        item { WeightChartCard(state.weights, settings, stats.goalKg, doseChanges(state)) }
         item { MeasurementsCard(state.measurements, settings, openEditor) }
         item {
             Text(
@@ -140,7 +140,7 @@ fun ProgressScreen(
 }
 
 @Composable
-private fun WeightChartCard(weights: List<WeightEntity>, settings: UserSettings, goalKg: Double?) {
+private fun WeightChartCard(weights: List<WeightEntity>, settings: UserSettings, goalKg: Double?, events: List<Pair<Long, String>>) {
     var rangeDays by rememberSaveable { mutableIntStateOf(0) }
     val now = System.currentTimeMillis()
     val filtered = if (rangeDays == 0) weights else weights.filter { it.timestamp >= now - rangeDays * 86_400_000L }
@@ -155,6 +155,7 @@ private fun WeightChartCard(weights: List<WeightEntity>, settings: UserSettings,
             points = filtered.map { it.timestamp to unit.fromKg(it.weightKg) },
             goal = goalKg?.let { unit.fromKg(it) },
             showDots = filtered.size <= 40,
+            events = events,
             yLabel = { Format.number(it, 1) },
             xLabel = { Format.shortDate(it) },
             height = 200.dp,
@@ -233,4 +234,11 @@ private fun ProgressHero(stats: com.rickdnamps.glp1tracker.ui.WeightStats, setti
             }
         }
     }
+}
+
+/** Points where the logged dose changed, labelled "0,5 mg", for chart markers. */
+private fun doseChanges(state: UiState): List<Pair<Long, String>> {
+    val asc = state.injections.sortedBy { it.timestamp }
+    return asc.filterIndexed { i, inj -> i == 0 || inj.doseMg != asc[i - 1].doseMg }
+        .map { it.timestamp to Format.dose(it.doseMg) + " mg" }
 }
