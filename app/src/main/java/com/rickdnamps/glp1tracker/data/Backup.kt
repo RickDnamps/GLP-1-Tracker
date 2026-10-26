@@ -25,6 +25,9 @@ object Backup {
 
     private const val FORMAT_VERSION = 3
 
+    /** JSONObject.put throws on NaN/Infinity: write those as null instead. */
+    private fun num(v: Double?): Any = if (v == null || !v.isFinite()) JSONObject.NULL else v
+
     fun toJson(s: Snapshot): String {
         val root = JSONObject()
         root.put("format", "glp1tracker")
@@ -34,24 +37,24 @@ object Backup {
         root.put("injections", JSONArray().apply {
             s.injections.forEach {
                 put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("medication", it.medication)
-                    .put("doseMg", it.doseMg).put("site", it.site).put("notes", it.notes))
+                    .put("doseMg", num(it.doseMg)).put("site", it.site).put("notes", it.notes))
             }
         })
         root.put("weights", JSONArray().apply {
             s.weights.forEach {
-                put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("weightKg", it.weightKg)
-                    .put("waistCm", it.waistCm ?: JSONObject.NULL).put("notes", it.notes)
-                    .put("bodyFatPct", it.bodyFatPct ?: JSONObject.NULL)
-                    .put("muscleKg", it.muscleKg ?: JSONObject.NULL)
-                    .put("waterPct", it.waterPct ?: JSONObject.NULL)
-                    .put("boneKg", it.boneKg ?: JSONObject.NULL)
-                    .put("visceralFat", it.visceralFat ?: JSONObject.NULL)
-                    .put("bmrKcal", it.bmrKcal ?: JSONObject.NULL)
+                put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("weightKg", num(it.weightKg))
+                    .put("waistCm", num(it.waistCm)).put("notes", it.notes)
+                    .put("bodyFatPct", num(it.bodyFatPct))
+                    .put("muscleKg", num(it.muscleKg))
+                    .put("waterPct", num(it.waterPct))
+                    .put("boneKg", num(it.boneKg))
+                    .put("visceralFat", num(it.visceralFat))
+                    .put("bmrKcal", num(it.bmrKcal))
                     .put("metabolicAge", it.metabolicAge ?: JSONObject.NULL)
-                    .put("proteinPct", it.proteinPct ?: JSONObject.NULL)
-                    .put("skeletalMusclePct", it.skeletalMusclePct ?: JSONObject.NULL)
-                    .put("subcutaneousFatPct", it.subcutaneousFatPct ?: JSONObject.NULL)
-                    .put("impedance", it.impedance ?: JSONObject.NULL))
+                    .put("proteinPct", num(it.proteinPct))
+                    .put("skeletalMusclePct", num(it.skeletalMusclePct))
+                    .put("subcutaneousFatPct", num(it.subcutaneousFatPct))
+                    .put("impedance", num(it.impedance)))
             }
         })
         root.put("sideEffects", JSONArray().apply {
@@ -71,9 +74,9 @@ object Backup {
         root.put("measurements", JSONArray().apply {
             s.measurements.forEach {
                 put(JSONObject().put("id", it.id).put("timestamp", it.timestamp)
-                    .put("waistCm", it.waistCm ?: JSONObject.NULL).put("hipsCm", it.hipsCm ?: JSONObject.NULL)
-                    .put("chestCm", it.chestCm ?: JSONObject.NULL).put("armCm", it.armCm ?: JSONObject.NULL)
-                    .put("thighCm", it.thighCm ?: JSONObject.NULL).put("neckCm", it.neckCm ?: JSONObject.NULL)
+                    .put("waistCm", num(it.waistCm)).put("hipsCm", num(it.hipsCm))
+                    .put("chestCm", num(it.chestCm)).put("armCm", num(it.armCm))
+                    .put("thighCm", num(it.thighCm)).put("neckCm", num(it.neckCm))
                     .put("notes", it.notes))
             }
         })
@@ -87,7 +90,7 @@ object Backup {
         root.put("vitals", JSONArray().apply {
             s.vitals.forEach {
                 put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("type", it.type)
-                    .put("value", it.value).put("value2", it.value2 ?: JSONObject.NULL).put("notes", it.notes))
+                    .put("value", num(it.value)).put("value2", num(it.value2)).put("notes", it.notes))
             }
         })
         return root.toString(2)
@@ -154,7 +157,8 @@ object Backup {
                     strength = it.optBoolean("strength"),
                 )
             },
-            measurements = root.optJSONArray("measurements").objects().map {
+            // v1 backups only had the waist on weigh-ins: rebuild measurements from it.
+            measurements = if (!root.has("measurements")) legacyWaist(root) else root.optJSONArray("measurements").objects().map {
                 MeasurementEntity(
                     id = it.optLong("id"),
                     timestamp = it.getLong("timestamp"),
@@ -190,6 +194,11 @@ object Backup {
             },
         )
     }
+
+    private fun legacyWaist(root: JSONObject): List<MeasurementEntity> =
+        root.optJSONArray("weights").objects()
+            .filter { !it.isNull("waistCm") && it.has("timestamp") }
+            .map { MeasurementEntity(timestamp = it.getLong("timestamp"), waistCm = it.optDouble("waistCm")) }
 
     private fun JSONObject.optNullableDouble(key: String): Double? = if (isNull(key)) null else optDouble(key)
 
@@ -251,10 +260,10 @@ object Backup {
             goalWeightKg = o.optDouble("goalWeightKg", d.goalWeightKg),
             medication = Medication.fromName(o.optString("medication")),
             doseMg = o.optDouble("doseMg", d.doseMg),
-            intervalDays = o.optInt("intervalDays", d.intervalDays),
+            intervalDays = o.optInt("intervalDays", d.intervalDays).coerceIn(1, 60),
             injectionDay = DayOfWeek.of(o.optInt("injectionDay", d.injectionDay.value).coerceIn(1, 7)),
-            reminderHour = o.optInt("reminderHour", d.reminderHour),
-            reminderMinute = o.optInt("reminderMinute", d.reminderMinute),
+            reminderHour = o.optInt("reminderHour", d.reminderHour).coerceIn(0, 23),
+            reminderMinute = o.optInt("reminderMinute", d.reminderMinute).coerceIn(0, 59),
             remindersEnabled = o.optBoolean("remindersEnabled", d.remindersEnabled),
             customMedName = o.optString("customMedName", d.customMedName),
             customHalfLifeHours = o.optDouble("customHalfLifeHours", d.customHalfLifeHours),
@@ -272,7 +281,7 @@ object Backup {
             doseEveReminder = o.optBoolean("doseEveReminder", d.doseEveReminder),
             weighInReminder = o.optBoolean("weighInReminder", d.weighInReminder),
             weighInDayValue = o.optInt("weighInDayValue", d.weighInDayValue),
-            weighInHour = o.optInt("weighInHour", d.weighInHour),
+            weighInHour = o.optInt("weighInHour", d.weighInHour).coerceIn(0, 23),
             waterReminders = o.optBoolean("waterReminders", d.waterReminders),
             journalReminder = o.optBoolean("journalReminder", d.journalReminder),
             calorieGoal = o.optInt("calorieGoal", d.calorieGoal),

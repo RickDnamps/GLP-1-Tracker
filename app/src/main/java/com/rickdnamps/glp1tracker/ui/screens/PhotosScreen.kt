@@ -71,6 +71,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.viewModelScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -237,7 +238,8 @@ fun PhotosScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValues
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         val targetPose = pose.name
-        scope.launch {
+        // ViewModel scope: the import must finish even if the screen is left meanwhile.
+        vm.viewModelScope.launch {
             importing = true
             importFailed = false
             val result = runCatching {
@@ -990,13 +992,13 @@ private fun ZoomableImage(photo: LoadedPhoto?, contentDescription: String?, modi
     Box(
         modifier
             .clipToBounds()
-            .pointerInput(Unit) {
+            .pointerInput(photo) {
                 detectTapGestures(onDoubleTap = {
                     scale = if (scale > 1f) 1f else 2.5f
                     offset = Offset.Zero
                 })
             }
-            .pointerInput(Unit) {
+            .pointerInput(photo) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     scale = (scale * zoom).coerceIn(1f, 5f)
                     val maxX = size.width * (scale - 1f) / 2f

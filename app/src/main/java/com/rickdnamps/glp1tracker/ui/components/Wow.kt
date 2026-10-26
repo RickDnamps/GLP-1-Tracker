@@ -132,17 +132,16 @@ fun AnimatedValue(text: String, style: TextStyle, color: Color = Color.Unspecifi
     }
 }
 
-/** Soft breathing alpha for "due now" hints. */
+/** Soft breathing alpha for "due now" hints; read it in a graphicsLayer to avoid recomposing. */
 @Composable
-fun pulseAlpha(): Float {
+fun pulseAlpha(): androidx.compose.runtime.State<Float> {
     val t = rememberInfiniteTransition(label = "pulse")
-    val a by t.animateFloat(
+    return t.animateFloat(
         initialValue = 0.55f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "alpha",
     )
-    return a
 }
 
 /** Background glow behind the screens. */

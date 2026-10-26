@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
     implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.appcompat)
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

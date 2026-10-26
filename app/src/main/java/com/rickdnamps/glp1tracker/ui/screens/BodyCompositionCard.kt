@@ -167,15 +167,20 @@ class CompositionFields(initial: BodyComp) {
     val bmr = mutableStateOf(initial.bmrKcal?.let { it.roundToInt().toString() } ?: "")
     val metabolicAge = mutableStateOf(initial.metabolicAge?.toString() ?: "")
     private val keep = initial
+    private val original = listOf(fat, muscle, water, bone, visceral, bmr, metabolicAge).map { it.value }
+
+    /** Untouched fields keep their exact stored value (no rounding, no range filtering). */
+    private fun <T> field(index: Int, state: MutableState<String>, old: T?, parse: (String) -> T?): T? =
+        if (state.value == original[index]) old else parse(state.value)
 
     fun toComposition(): BodyComp = keep.copy(
-        bodyFatPct = Format.parse(fat.value)?.takeIf { it in 2.0..75.0 },
-        muscleKg = Format.parse(muscle.value)?.takeIf { it > 0 },
-        waterPct = Format.parse(water.value)?.takeIf { it in 20.0..80.0 },
-        boneKg = Format.parse(bone.value)?.takeIf { it > 0 },
-        visceralFat = Format.parse(visceral.value)?.takeIf { it in 1.0..60.0 },
-        bmrKcal = Format.parse(bmr.value)?.takeIf { it in 500.0..5000.0 },
-        metabolicAge = Format.parse(metabolicAge.value)?.toInt()?.takeIf { it in 10..110 },
+        bodyFatPct = field(0, fat, keep.bodyFatPct) { t -> Format.parse(t)?.takeIf { it in 2.0..75.0 } },
+        muscleKg = field(1, muscle, keep.muscleKg) { t -> Format.parse(t)?.takeIf { it > 0 } },
+        waterPct = field(2, water, keep.waterPct) { t -> Format.parse(t)?.takeIf { it in 20.0..80.0 } },
+        boneKg = field(3, bone, keep.boneKg) { t -> Format.parse(t)?.takeIf { it > 0 } },
+        visceralFat = field(4, visceral, keep.visceralFat) { t -> Format.parse(t)?.takeIf { it in 1.0..60.0 } },
+        bmrKcal = field(5, bmr, keep.bmrKcal) { t -> Format.parse(t)?.takeIf { it in 500.0..5000.0 } },
+        metabolicAge = field(6, metabolicAge, keep.metabolicAge) { t -> Format.parse(t)?.toInt()?.takeIf { it in 10..110 } },
     )
 }
 

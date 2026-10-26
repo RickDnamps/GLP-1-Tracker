@@ -143,6 +143,7 @@ class TrackerRepository(
                 healthConnectLastImport = cur.healthConnectLastImport,
                 autoBackupUri = cur.autoBackupUri,
                 lastAutoBackupAt = cur.lastAutoBackupAt,
+                appLock = cur.appLock,
             )
         }
     }

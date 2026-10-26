@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -179,7 +179,7 @@ private fun NextDoseCard(state: UiState, onLog: () -> Unit, onSkip: (LocalDate) 
     val progress = if (late) 1f else (1f - days.toFloat() / interval).coerceIn(0.04f, 1f)
     val suggested = remember(state.injections) { InjectionSite.suggest(siteLastUse(state.injections)) }
     val urgent = days <= 0
-    val pulse = if (urgent) pulseAlpha() else 1f
+    val pulse = if (urgent) pulseAlpha() else null
 
     HeroCard(brush = brush) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -189,7 +189,7 @@ private fun NextDoseCard(state: UiState, onLog: () -> Unit, onSkip: (LocalDate) 
                 stroke = 11.dp,
                 trackColor = Color.White.copy(alpha = 0.22f),
                 colors = listOf(Color.White, Color.White.copy(alpha = 0.75f)),
-                modifier = Modifier.alpha(pulse),
+                modifier = Modifier.graphicsLayer { alpha = pulse?.value ?: 1f },
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     AnimatedValue(

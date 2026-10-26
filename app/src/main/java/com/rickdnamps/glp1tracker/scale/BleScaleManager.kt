@@ -236,7 +236,7 @@ class BleScaleManager(context: Context) {
                     stability.onLive(event.kg, System.currentTimeMillis())?.let { finish(it) }
                     // If the stream stops without a "stable" packet, keep the last reading.
                     main.removeCallbacks(liveFallback)
-                    main.postDelayed(liveFallback, LIVE_FALLBACK_MS)
+                    main.postDelayed(liveFallback, p.liveFallbackMs)
                 }
                 is ScaleEvent.Stable -> finish(event.kg, event.composition, event.impedance)
             }
@@ -310,7 +310,6 @@ class BleScaleManager(context: Context) {
     companion object {
         private val CCCD: UUID = uuid16(0x2902)
         private const val SCAN_TIMEOUT_MS = 120_000L
-        private const val LIVE_FALLBACK_MS = 4_000L
 
         fun requiredPermissions(): Array<String> =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

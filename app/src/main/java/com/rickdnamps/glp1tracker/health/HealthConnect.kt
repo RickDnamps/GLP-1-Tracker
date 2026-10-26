@@ -75,12 +75,15 @@ class HealthConnect(context: Context) {
      */
     suspend fun import(since: Instant, existing: List<WeightEntity>): ImportResult {
         val own = appContext.packageName
-        val weights = readAll(WeightRecord::class, since).filter { it.metadata.dataOrigin.packageName != own }
+        val weights = readAll(WeightRecord::class, since)
+            .filter { it.metadata.dataOrigin.packageName != own && it.weight.inKilograms in 20.0..400.0 }
 
         // Optional types: a missing permission simply yields no data.
         val samples = mutableListOf<Sample>()
         runCatching { readAll(BodyFatRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
-            samples += Sample(r.time.toEpochMilli()) { c, _ -> c.copy(bodyFatPct = c.bodyFatPct ?: r.percentage.value) }
+            samples += Sample(r.time.toEpochMilli()) { c, _ ->
+                c.copy(bodyFatPct = c.bodyFatPct ?: r.percentage.value.takeIf { it in 2.0..75.0 })
+            }
         }
         runCatching { readAll(LeanBodyMassRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
             samples += Sample(r.time.toEpochMilli()) { c, w ->
@@ -88,13 +91,17 @@ class HealthConnect(context: Context) {
             }
         }
         runCatching { readAll(BoneMassRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
-            samples += Sample(r.time.toEpochMilli()) { c, _ -> c.copy(boneKg = c.boneKg ?: r.mass.inKilograms) }
+            samples += Sample(r.time.toEpochMilli()) { c, _ -> c.copy(boneKg = c.boneKg ?: r.mass.inKilograms.takeIf { it in 0.5..10.0 }) }
         }
         runCatching { readAll(BodyWaterMassRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
-            samples += Sample(r.time.toEpochMilli()) { c, w -> c.copy(waterPct = c.waterPct ?: (r.mass.inKilograms / w * 100)) }
+            samples += Sample(r.time.toEpochMilli()) { c, w ->
+                c.copy(waterPct = c.waterPct ?: (r.mass.inKilograms / w * 100).takeIf { it in 20.0..80.0 })
+            }
         }
         runCatching { readAll(BasalMetabolicRateRecord::class, since) }.getOrDefault(emptyList()).forEach { r ->
-            samples += Sample(r.time.toEpochMilli()) { c, _ -> c.copy(bmrKcal = c.bmrKcal ?: r.basalMetabolicRate.inKilocaloriesPerDay) }
+            samples += Sample(r.time.toEpochMilli()) { c, _ ->
+                c.copy(bmrKcal = c.bmrKcal ?: r.basalMetabolicRate.inKilocaloriesPerDay.takeIf { it in 500.0..5000.0 })
+            }
         }
 
         fun enrich(w: WeightEntity): WeightEntity {

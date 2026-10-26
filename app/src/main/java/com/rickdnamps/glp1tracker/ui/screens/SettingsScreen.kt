@@ -52,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -141,7 +142,7 @@ fun SettingsScreen(
     val backupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let(vm::exportBackup)
     }
-    var reportFrom by remember { mutableStateOf(0L) }
+    var reportFrom by rememberSaveable { mutableStateOf(0L) }
     val pdfLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
         uri?.let { vm.exportDoctorReport(it, fromMillis = reportFrom) }
     }
@@ -338,7 +339,7 @@ fun SettingsScreen(
                             vm.updateSettings { it.copy(healthConnectAutoImport = false) }
                         } else {
                             scope.launch {
-                                if (healthConnect.hasPermissions()) {
+                                if (runCatching { healthConnect.hasPermissions() }.getOrDefault(false)) {
                                     vm.updateSettings { it.copy(healthConnectAutoImport = true) }
                                     vm.importFromHealthConnect(manual = true)
                                 } else {

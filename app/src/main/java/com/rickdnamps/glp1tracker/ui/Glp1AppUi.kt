@@ -43,6 +43,8 @@ import androidx.compose.runtime.mutableStateOf
 import com.rickdnamps.glp1tracker.domain.Milestones
 import com.rickdnamps.glp1tracker.ui.components.ConfettiBurst
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -97,15 +99,13 @@ private enum class Extra(val route: String, @StringRes val title: Int) {
 fun Glp1AppUi(vm: AppViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     // App lock: re-lock after one minute in the background.
-    var unlocked by rememberSaveable { mutableStateOf(false) }
-    var stoppedAt by rememberSaveable { mutableStateOf(0L) }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             when (event) {
-                androidx.lifecycle.Lifecycle.Event.ON_STOP -> stoppedAt = System.currentTimeMillis()
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> vm.stoppedAt = System.currentTimeMillis()
                 androidx.lifecycle.Lifecycle.Event.ON_START ->
-                    if (stoppedAt > 0 && System.currentTimeMillis() - stoppedAt > 60_000) unlocked = false
+                    if (vm.stoppedAt > 0 && System.currentTimeMillis() - vm.stoppedAt > 60_000) vm.unlocked = false
                 else -> Unit
             }
         }
@@ -115,7 +115,10 @@ fun Glp1AppUi(vm: AppViewModel) {
     when {
         !state.loaded -> Box(Modifier.fillMaxSize())
         !state.settings.onboardingDone -> OnboardingScreen(onFinish = vm::completeOnboarding)
-        state.settings.appLock && !unlocked -> LockScreen(onUnlocked = { unlocked = true })
+        state.settings.appLock && !vm.unlocked -> LockScreen(
+            onUnlocked = { vm.unlocked = true },
+            onLockUnavailable = { vm.disableLockAndUnlock() },
+        )
         else -> MainScaffold(state, vm)
     }
 }
@@ -137,23 +140,19 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
 
     // Celebrate every newly unlocked badge exactly once (persisted in settings).
     val progress = remember(state) { milestones(state) }
+    val achieved = remember(progress) { Milestones.achievedSet(progress) }
     var confetti by remember { mutableIntStateOf(0) }
-    LaunchedEffect(progress) {
-        val achieved = Milestones.achievedSet(progress)
-        val celebrated = Milestones.decode(state.settings.celebratedBadges)
-        if (state.settings.celebratedBadges.isEmpty()) {
-            // First run of this feature: remember existing badges silently.
-            vm.updateSettings { it.copy(celebratedBadges = Milestones.encode(achieved)) }
-            return@LaunchedEffect
-        }
-        val fresh = Milestones.newlyAchieved(celebrated, progress)
+    val uiScope = rememberCoroutineScope()
+    LaunchedEffect(achieved) {
+        val fresh = vm.claimNewBadges(achieved)
         if (fresh.isNotEmpty()) {
             confetti++
-            vm.updateSettings { it.copy(celebratedBadges = Milestones.encode(celebrated + fresh)) }
-            snackbar.showSnackbar(
-                if (fresh.size == 1) context.getString(R.string.ms_new_badge, fresh[0].emoji, context.getString(fresh[0].title))
-                else context.resources.getQuantityString(R.plurals.ms_new_badges, fresh.size, fresh.size)
-            )
+            uiScope.launch {
+                snackbar.showSnackbar(
+                    if (fresh.size == 1) context.getString(R.string.ms_new_badge, fresh[0].emoji, context.getString(fresh[0].title))
+                    else context.resources.getQuantityString(R.plurals.ms_new_badges, fresh.size, fresh.size)
+                )
+            }
         }
     }
     LaunchedEffect(Unit) {
@@ -218,6 +217,8 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
                     NavigationBarItem(
                         selected = extra == null && currentTab == tab,
                         onClick = {
+                            // From an inner screen (photos, vitals…), go back to the tab itself.
+                            if (extra != null && navController.popBackStack(tab.route, inclusive = false)) return@NavigationBarItem
                             navController.navigate(tab.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true

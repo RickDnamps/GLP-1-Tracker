@@ -28,6 +28,9 @@ interface ScaleProtocol {
     val displayName: String
     /** (service, characteristic) pairs to subscribe to, in order. Missing ones are skipped. */
     val subscriptions: List<Pair<UUID, UUID>>
+    /** How long to wait after the last live reading before keeping it as the result. */
+    val liveFallbackMs: Long get() = 4_000
+
     /** Writes to send once all subscriptions are active. */
     fun onReady(nowMillis: Long): List<GattWrite> = emptyList()
     fun onNotification(characteristic: UUID, data: ByteArray, nowMillis: Long): List<ScaleEvent>
@@ -76,7 +79,11 @@ class StandardWeightScale(private val hasBodyComposition: Boolean = false) : Sca
     override val subscriptions = listOf(SERVICE to MEASUREMENT, BODY_SERVICE to BODY_MEASUREMENT)
 
     private var weightKg: Double? = null
+    private var pendingBody: Body? = null
     private var done = false
+
+    // Composition is computed after the weight on many scales: give it time.
+    override val liveFallbackMs: Long get() = if (hasBodyComposition) 10_000 else 4_000
 
     override fun onNotification(characteristic: UUID, data: ByteArray, nowMillis: Long): List<ScaleEvent> {
         if (done) return emptyList()
@@ -84,11 +91,21 @@ class StandardWeightScale(private val hasBodyComposition: Boolean = false) : Sca
             MEASUREMENT -> {
                 val kg = parse(data) ?: return emptyList()
                 weightKg = kg
-                if (hasBodyComposition) listOf(ScaleEvent.Live(kg)) else { done = true; listOf(ScaleEvent.Stable(kg)) }
+                val body = pendingBody
+                when {
+                    body != null -> { done = true; listOf(ScaleEvent.Stable(kg, body.toComposition(kg), body.impedance)) }
+                    hasBodyComposition -> listOf(ScaleEvent.Live(kg))
+                    else -> { done = true; listOf(ScaleEvent.Stable(kg)) }
+                }
             }
             BODY_MEASUREMENT -> {
                 val body = parseBody(data) ?: return emptyList()
-                val kg = body.weightKg ?: weightKg ?: return emptyList()
+                val kg = body.weightKg ?: weightKg
+                if (kg == null) {
+                    // Composition arrived before the weight: keep it until the weight comes.
+                    pendingBody = body
+                    return emptyList()
+                }
                 done = true
                 listOf(ScaleEvent.Stable(kg, body.toComposition(kg), body.impedance))
             }

@@ -42,12 +42,32 @@ object AppLock {
     fun isAvailable(context: Context): Boolean =
         BiometricManager.from(context).canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS
 
-    fun prompt(activity: FragmentActivity, title: String, subtitle: String, cancel: String, onSuccess: () -> Unit) {
+    /** Errors meaning the phone can no longer authenticate: unlock rather than lock the user out. */
+    private val unrecoverable = setOf(
+        BiometricPrompt.ERROR_HW_NOT_PRESENT,
+        BiometricPrompt.ERROR_HW_UNAVAILABLE,
+        BiometricPrompt.ERROR_NO_BIOMETRICS,
+        BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL,
+        BiometricPrompt.ERROR_SECURITY_UPDATE_REQUIRED,
+    )
+
+    fun prompt(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        cancel: String,
+        onUnavailable: () -> Unit = {},
+        onSuccess: () -> Unit,
+    ) {
         val prompt = BiometricPrompt(
             activity,
             ContextCompat.getMainExecutor(activity),
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    if (errorCode in unrecoverable) onUnavailable()
+                }
             },
         )
         val info = BiometricPrompt.PromptInfo.Builder()
@@ -70,13 +90,20 @@ fun Context.findActivity(): FragmentActivity? {
 }
 
 @Composable
-fun LockScreen(onUnlocked: () -> Unit) {
+fun LockScreen(onUnlocked: () -> Unit, onLockUnavailable: () -> Unit) {
     val context = LocalContext.current
+    // Fingerprint / screen lock removed since the lock was enabled (or restored from a backup):
+    // never trap the user — open the app and turn the lock off.
+    if (!AppLock.isAvailable(context)) {
+        LaunchedEffect(Unit) { onLockUnavailable() }
+        return
+    }
     val title = stringResource(R.string.lock_title)
     val subtitle = stringResource(R.string.lock_subtitle)
     val cancel = stringResource(R.string.cancel)
     val unlock = {
-        context.findActivity()?.let { AppLock.prompt(it, title, subtitle, cancel, onUnlocked) } ?: onUnlocked()
+        context.findActivity()?.let { AppLock.prompt(it, title, subtitle, cancel, onUnavailable = onLockUnavailable, onSuccess = onUnlocked) }
+            ?: onUnlocked()
     }
     LaunchedEffect(Unit) { unlock() }
     Box(

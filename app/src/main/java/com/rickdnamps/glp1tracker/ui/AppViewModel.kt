@@ -84,6 +84,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** App lock state: kept here (not in saved state) so a killed process always starts locked. */
+    var unlocked by androidx.compose.runtime.mutableStateOf(false)
+    var stoppedAt = 0L
+
+    fun disableLockAndUnlock() {
+        unlocked = true
+        updateSettings { it.copy(appLock = false) }
+    }
+
     private val _messages = MutableSharedFlow<Int>(extraBufferCapacity = 4)
     /** One-off snackbar messages (string resource ids). */
     val messages: SharedFlow<Int> = _messages
@@ -157,6 +166,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun reschedule() = launchAndReschedule {}
 
+    /**
+     * Records [achieved] badges and returns those never celebrated before. The very first call
+     * only remembers existing badges (no confetti for badges earned before this feature).
+     */
+    suspend fun claimNewBadges(achieved: Set<com.rickdnamps.glp1tracker.domain.Badge>): List<com.rickdnamps.glp1tracker.domain.Badge> {
+        var fresh: List<com.rickdnamps.glp1tracker.domain.Badge> = emptyList()
+        repository.settingsRepository.update { s ->
+            val initialized = s.celebratedBadges.isNotEmpty()
+            val known = com.rickdnamps.glp1tracker.domain.Milestones.decode(s.celebratedBadges)
+            fresh = if (initialized) achieved.filter { it !in known }.sortedBy { it.ordinal } else emptyList()
+            // "-" marks an initialised but empty set.
+            val all = known + achieved
+            s.copy(celebratedBadges = com.rickdnamps.glp1tracker.domain.Milestones.encode(all).ifEmpty { "-" })
+        }
+        return fresh
+    }
+
     /** Skips the overdue dose: the schedule moves on to the next slot. */
     fun skipDose(due: LocalDate) = updateSettings { it.copy(skippedDueEpochDay = due.toEpochDay()) }
 
@@ -191,9 +217,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Health Connect ---
     /** Imports new weights; [manual] shows a message even when nothing was found. */
+    private val importMutex = kotlinx.coroutines.sync.Mutex()
+
     fun importFromHealthConnect(manual: Boolean) = viewModelScope.launch {
+        // One import at a time: two concurrent runs would both insert the same new weigh-ins.
+        if (!importMutex.tryLock()) return@launch
+        try {
+            importLocked(manual)
+        } finally {
+            importMutex.unlock()
+        }
+    }
+
+    private suspend fun importLocked(manual: Boolean) {
         runCatching {
-            if (!healthConnect.hasPermissions()) return@launch
+            if (!healthConnect.hasPermissions()) return
             val settings = repository.settingsRepository.current()
             // First import looks back one year, then re-reads 30 days (scale apps often sync late); duplicates are skipped.
             val since = if (settings.healthConnectLastImport > 0) settings.healthConnectLastImport - 30L * 86_400_000L
