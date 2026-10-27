@@ -436,7 +436,7 @@
     <string name="comp_level_healthy">Sain</string>
     <string name="comp_level_high">Élevé</string>
     <string name="comp_level_very_high">Très élevé</string>
-    <string name="comp_empty">Pas encore de composition corporelle. Elle vient de votre balance Bluetooth, de Health Connect (ex. l\'app Renpho) ou peut être saisie avec une pesée.</string>
+    <string name="comp_empty">Pas encore de composition corporelle. Pesez-vous avec « Me peser » (balance Bluetooth) : gras, eau, muscles, âge métabolique… s\'afficheront ici. Le sexe, la date de naissance et la taille doivent être indiqués dans Réglages → Profil.</string>
     <string name="comp_split">Sur les %1$s perdus, environ %2$d %% était du gras.</string>
     <string name="comp_split_good">Excellent : vous perdez surtout du gras et gardez vos muscles 💪</string>
     <string name="comp_split_warn">Une bonne part est de la masse maigre : visez des protéines à chaque repas et de la musculation 2 à 3 fois par semaine.</string>
@@ -476,12 +476,13 @@
     <string name="scale_tech_help">Si votre balance ne fonctionne pas, copiez ce journal et envoyez-le au développeur.</string>
     <string name="copy_log">Copier le journal</string>
     <string name="hc_button">Health Connect</string>
-    <string name="hc_nothing_new">Aucune nouvelle pesée dans Health Connect. L\'app de votre balance (Renpho…) doit partager ses pesées avec Health Connect.</string>
+    <string name="hc_nothing_new">Aucune nouvelle pesée dans Health Connect. Pour une balance Renpho, utilisez plutôt « Me peser » : l\'app lit directement la balance.</string>
     <string name="birth_date_choose">Choisir ma date de naissance</string>
     <string name="comp_lean">Masse maigre</string>
     <string name="comp_measured_on">Mesure du %1$s</string>
     <string name="comp_tap_hint">Touchez une valeur pour voir son évolution.</string>
     <string name="comp_need_two">L\'évolution s\'affichera dès la deuxième pesée.</string>
+    <string name="scale_profile_missing">Poids seulement : pour mesurer aussi le gras, l\'eau, les muscles et l\'âge métabolique, indiquez d\'abord votre sexe, votre date de naissance et votre taille dans Réglages → Profil.</string>
     <plurals name="scale_seen">
         <item quantity="one">%d appareil Bluetooth à proximité</item>
         <item quantity="many">%d appareils Bluetooth à proximité</item>

@@ -303,7 +303,7 @@ class LefuProtocol(private val profile: ScaleUserProfile? = null) : ScaleProtoco
     /** Bioimpedance takes a few seconds after the weight settles. */
     override val liveFallbackMs: Long get() = if (profile != null) 12_000 else 4_000
 
-    private enum class Phase { WAIT_PROFILE_ACK, WAIT_HIST_ACK, MEASURING }
+    private enum class Phase { WAIT_PROFILE_ACK, WAIT_WEIGHT_FOR_PROFILE, WAIT_HIST_ACK, MEASURING }
 
     private var phase = Phase.WAIT_PROFILE_ACK
     private var lastKg: Double? = null
@@ -344,13 +344,25 @@ class LefuProtocol(private val profile: ScaleUserProfile? = null) : ScaleProtoco
                 val kg = u16be(data, 8) / 100.0
                 if (!plausible(kg)) return emptyList()
                 lastKg = kg
+                val p = profile
+                if (phase == Phase.WAIT_WEIGHT_FOR_PROFILE && p != null) {
+                    // No previous weigh-in (new install): the scale rejects a profile without a
+                    // reference weight, so send it as soon as the first real weight arrives.
+                    phase = Phase.WAIT_HIST_ACK
+                    return listOf(ScaleEvent.Live(kg), write(0x96, profilePayload(p, (kg * 100).toInt())))
+                }
                 listOf(ScaleEvent.Live(kg))
             }
             0x17 -> {
                 val p = profile
                 if (phase != Phase.WAIT_PROFILE_ACK || p == null) return emptyList()
+                val reference = p.refWeightKg.takeIf { plausible(it) } ?: lastKg
+                if (reference == null) {
+                    phase = Phase.WAIT_WEIGHT_FOR_PROFILE
+                    return emptyList()
+                }
                 phase = Phase.WAIT_HIST_ACK
-                listOf(write(0x96, profilePayload(p, (p.refWeightKg * 100).toInt())))
+                listOf(write(0x96, profilePayload(p, (reference * 100).toInt())))
             }
             0x16 -> {
                 if (phase != Phase.WAIT_HIST_ACK) return emptyList()

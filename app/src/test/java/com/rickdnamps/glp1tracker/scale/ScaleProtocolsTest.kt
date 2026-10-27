@@ -117,6 +117,23 @@ class ScaleProtocolsTest {
     }
 
     @Test
+    fun lefuWaitsForAWeightWhenNoReferenceIsKnown() {
+        // First weigh-in after installing: no previous weight → send the profile with the live weight.
+        val profile = ScaleUserProfile(male = true, birthYear = 1980, heightCm = 188.0, refWeightKg = 0.0)
+        val lefu = LefuProtocol(profile)
+        fun frame(cmd: Int, vararg payload: Int) = LefuProtocol.buildFrame(cmd, bytes(*payload))
+        assertTrue(lefu.onNotification(LefuProtocol.RESULTS, frame(0x17, 0x01), 0).none { it is ScaleEvent.Write })
+        // 0x14 weight frame: 138.10 kg at [8..9]
+        val events = lefu.onNotification(LefuProtocol.RESULTS, frame(0x14, 0, 0, 0, 0x35, 0xF2, 0, 0), 0)
+        assertEquals(ScaleEvent.Live(138.1), events.first())
+        val p96 = events.filterIsInstance<ScaleEvent.Write>().single().write.value
+        assertEquals(0x96, p96[2].toInt() and 0xFF)
+        assertEquals(13810, ((p96[14].toInt() and 0xFF) shl 8) or (p96[15].toInt() and 0xFF))
+        // Further weights do not resend the profile.
+        assertTrue(lefu.onNotification(LefuProtocol.RESULTS, frame(0x14, 0, 0, 0, 0x35, 0xF2, 0, 0), 0).none { it is ScaleEvent.Write })
+    }
+
+    @Test
     fun lefuProfileSendsFullBirthDate() {
         val profile = ScaleUserProfile(male = false, birthYear = 1978, heightCm = 165.0, refWeightKg = 70.0, birthMonth = 3, birthDay = 15)
         val p = LefuProtocol.profilePayload(profile, 7000)

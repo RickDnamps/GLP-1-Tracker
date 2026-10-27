@@ -160,6 +160,7 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                         textAlign = TextAlign.Center,
                     )
                     SeenCount(s.seen)
+                    if (profile == null) ProfileMissingCard()
                     HowToCard()
                     if (s.waitingFor != null) {
                         TextButton(onClick = { startScan(true) }) { Text(stringResource(R.string.scale_choose_other)) }
@@ -339,6 +340,26 @@ private fun HowToCard() {
         }
     }
     OtherAppTip()
+}
+
+/** Without sex, date of birth and height the scale only weighs: say so before stepping on it. */
+@Composable
+private fun ProfileMissingCard() {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(R.string.scale_profile_missing),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+        }
+    }
 }
 
 /** Scales accept a single connection: the maker's app grabs it first when it runs. */
