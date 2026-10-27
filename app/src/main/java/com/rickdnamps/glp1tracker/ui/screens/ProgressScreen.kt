@@ -96,6 +96,8 @@ fun ProgressScreen(
             }
         }
         item { ProgressHero(stats, settings) }
+        // Right under the weight: fat, water, muscle, metabolic age… from the Bluetooth scale.
+        item { BodyCompositionCard(state.weights, settings) }
         item { PhotosEntryCard(state.photos, onClick = onOpenPhotos) }
         item { VitalsTeaserCard(state, onOpen = onOpenVitals) }
         item {
@@ -127,7 +129,6 @@ fun ProgressScreen(
         }
         item { TrialComparisonCard(state) }
         item { WeightChartCard(state.weights, settings, stats.goalKg, doseChanges(state)) }
-        item { BodyCompositionCard(state.weights, settings) }
         item { MeasurementsCard(state.measurements, settings, openEditor) }
         item {
             Text(

@@ -483,6 +483,7 @@
     <string name="comp_tap_hint">Touchez une valeur pour voir son évolution.</string>
     <string name="comp_need_two">L\'évolution s\'affichera dès la deuxième pesée.</string>
     <string name="scale_profile_missing">Poids seulement : pour mesurer aussi le gras, l\'eau, les muscles et l\'âge métabolique, indiquez d\'abord votre sexe, votre date de naissance et votre taille dans Réglages → Profil.</string>
+    <string name="scale_no_bia">Seul le poids a été mesuré cette fois. Pour le gras, l\'eau et l\'âge métabolique, restez pieds nus et immobile sur les plaques métalliques jusqu\'à la fin (environ 10 s).</string>
     <plurals name="scale_seen">
         <item quantity="one">%d appareil Bluetooth à proximité</item>
         <item quantity="many">%d appareils Bluetooth à proximité</item>

@@ -243,11 +243,13 @@ fun ScaleSheet(vm: AppViewModel, settings: UserSettings, onDismiss: () -> Unit) 
                             c.waterPct?.let { Text(stringResource(R.string.comp_water) + "\n" + f.oneDecimal(it) + " %", style = MaterialTheme.typography.bodyMedium) }
                         }
                     }
-                    if (s.composition == null && s.impedance != null && (settings.sexOrNull == null || settings.ageOrNull == null)) {
-                        Text(
-                            stringResource(R.string.comp_profile_needed),
+                    when {
+                        profile == null -> ProfileMissingCard()
+                        s.composition == null && s.impedance == null -> Text(
+                            stringResource(R.string.scale_no_bia),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

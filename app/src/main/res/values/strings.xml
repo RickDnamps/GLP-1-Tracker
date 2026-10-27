@@ -483,6 +483,7 @@
     <string name="comp_tap_hint">Tap a value to see how it changes over time.</string>
     <string name="comp_need_two">The trend appears from the second weigh-in.</string>
     <string name="scale_profile_missing">Weight only: to also measure fat, water, muscle and metabolic age, first set your sex, date of birth and height in Settings → Profile.</string>
+    <string name="scale_no_bia">Only the weight was measured this time. For fat, water and metabolic age, stay barefoot and still on the metal plates until the end (about 10 s).</string>
     <plurals name="scale_seen">
         <item quantity="one">%d Bluetooth device nearby</item>
         <item quantity="other">%d Bluetooth devices nearby</item>
