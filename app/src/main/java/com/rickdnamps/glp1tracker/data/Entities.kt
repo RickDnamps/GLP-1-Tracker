@@ -13,6 +13,8 @@ data class InjectionEntity(
     val doseMg: Double,
     val site: String,
     val notes: String = "",
+    /** How the injection felt, 1 (painful) … 5 (painless); 0 = not rated (v5). */
+    @ColumnInfo(defaultValue = "0") val comfort: Int = 0,
 )
 
 @Entity(tableName = "weights")

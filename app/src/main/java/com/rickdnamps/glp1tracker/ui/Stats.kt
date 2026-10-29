@@ -1,6 +1,7 @@
 package com.rickdnamps.glp1tracker.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.rickdnamps.glp1tracker.data.InjectionEntity
 import com.rickdnamps.glp1tracker.data.UserSettings
@@ -127,4 +128,45 @@ fun lengthText(cm: Double, settings: UserSettings, signed: Boolean = false): Str
     val v = settings.lengthUnit.fromCm(cm)
     val prefix = if (signed && v > 0) "+" else ""
     return prefix + Format.oneDecimal(v) + " " + stringResource(settings.lengthUnit.symbolRes)
+}
+
+/** Faces for an injection comfort rating, 1 (painful) … 5 (painless). */
+val COMFORT_EMOJIS = listOf("😖", "😣", "😐", "🙂", "😄")
+
+fun comfortEmoji(comfort: Int): String? = COMFORT_EMOJIS.getOrNull(comfort - 1)
+
+/** "Today", "Yesterday", "3 days ago". */
+@Composable
+fun agoText(millis: Long, today: LocalDate = LocalDate.now()): String {
+    val days = ChronoUnit.DAYS.between(Format.toLocalDateTime(millis).toLocalDate(), today).toInt()
+    return when {
+        days <= 0 -> stringResource(R.string.today)
+        days == 1 -> stringResource(R.string.yesterday)
+        else -> pluralStringResource(R.plurals.days_ago, days, days)
+    }
+}
+
+/** "Today", "Tomorrow", "In 5 days", "2 days late". */
+@Composable
+fun dueText(due: LocalDateTime, today: LocalDate = LocalDate.now()): String {
+    val days = daysUntil(due, today).toInt()
+    return when {
+        days < 0 -> pluralStringResource(R.plurals.days_late, -days, -days)
+        days == 0 -> stringResource(R.string.today)
+        days == 1 -> stringResource(R.string.due_tomorrow)
+        else -> pluralStringResource(R.plurals.in_days, days, days)
+    }
+}
+
+/** "In 1 d 6 h", "Now", "Reached 10 h ago" for the estimated peak. */
+@Composable
+fun peakText(peakMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
+    val dayUnit = stringResource(R.string.days_short_unit)
+    fun duration(hours: Int) = if (hours >= 24) "${hours / 24} $dayUnit ${hours % 24} h" else "$hours h"
+    val hours = ((peakMillis - nowMillis) / 3_600_000L).toInt()
+    return when {
+        hours >= 1 -> stringResource(R.string.peak_in, duration(hours))
+        hours > -1 -> stringResource(R.string.peak_now)
+        else -> stringResource(R.string.peak_reached, duration(-hours))
+    }
 }

@@ -59,6 +59,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rickdnamps.glp1tracker.R
+import com.rickdnamps.glp1tracker.domain.CyclePhase
+import com.rickdnamps.glp1tracker.domain.CycleTips
+import com.rickdnamps.glp1tracker.domain.TherapyStats
+import com.rickdnamps.glp1tracker.ui.peakText
 import com.rickdnamps.glp1tracker.data.DailyLogEntity
 import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.domain.InjectionSite
@@ -105,6 +109,7 @@ fun HomeScreen(
                 onSkip = { vm.skipDose(it) },
             )
         }
+        if (!settings.medication.isOral) item { CycleTipCard(state) }
         if (WeeklyRecaps.isRecapDay(LocalDate.now())) {
             item { WeeklyRecapCard(state) }
         }
@@ -120,6 +125,7 @@ fun HomeScreen(
         item { LevelCard(state) }
         item { WeightCard(state, onAdd = { openEditor(Editor.Weight()) }) }
         item { TodayCard(state, vm) }
+        item { WellbeingStrip(state) }
         item {
             Text(
                 stringResource(R.string.disclaimer_short),
@@ -379,6 +385,19 @@ private fun LevelCard(state: UiState) {
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
             )
+            // Peak of the current cycle (from the last dose to the next one).
+            val last = state.injections.first()
+            val dueMillis = Format.toMillis(nextDue(settings, state.injections))
+            val peak = remember(doseList, dueMillis) {
+                TherapyStats.peakTime(doseList, last.timestamp, maxOf(dueMillis, last.timestamp + dayMs))
+            }
+            peak?.let {
+                Text(
+                    stringResource(R.string.peak_label) + " : " + peakText(it, now),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             LineChart(
                 points = curve,
                 height = 150.dp,
@@ -525,5 +544,71 @@ private fun InsightsTeaser(state: UiState, openRoute: (String) -> Unit) {
             FilledTonalButton(onClick = { openRoute("insights") }) { Text(stringResource(R.string.insights_open)) }
             OutlinedButton(onClick = { openRoute("tools") }) { Text(stringResource(R.string.tools_title)) }
         }
+    }
+}
+
+/** Tip of the day for the phase of the weekly cycle (general information, not medical advice). */
+@Composable
+private fun CycleTipCard(state: UiState) {
+    val last = state.injections.firstOrNull() ?: return
+    val days = java.time.temporal.ChronoUnit.DAYS.between(Format.toLocalDateTime(last.timestamp).toLocalDate(), LocalDate.now()).toInt()
+    val phase = CycleTips.phase(days, state.settings.intervalDays) ?: return
+    val tip = when (phase) {
+        CyclePhase.INJECTION_DAY -> R.string.tip_injection_day
+        CyclePhase.EARLY -> R.string.tip_early
+        CyclePhase.PEAK -> R.string.tip_peak
+        CyclePhase.LATE -> R.string.tip_late
+    }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    if (days == 0) stringResource(R.string.tip_title_today) else stringResource(R.string.tip_title_day, days),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                Text(stringResource(tip), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+        }
+    }
+}
+
+private val wellbeingEmojis = listOf("😣", "🙁", "😐", "🙂", "😄")
+
+/** Mood of the last 7 days at a glance, with injection days and side effects marked. */
+@Composable
+private fun WellbeingStrip(state: UiState) {
+    val today = LocalDate.now()
+    val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
+    val moods = state.dailyLogs.associate { it.date to it.mood }
+    val effectDays = remember(state.sideEffects) { state.sideEffects.map { Format.toLocalDateTime(it.timestamp).toLocalDate() }.toSet() }
+    val doseDays = remember(state.injections) { state.injections.map { Format.toLocalDateTime(it.timestamp).toLocalDate() }.toSet() }
+    if (days.none { (moods[it.toString()] ?: 0) > 0 || it in effectDays || it in doseDays }) return
+    val locale = java.util.Locale.getDefault()
+    SectionCard(title = stringResource(R.string.wellbeing_title)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            days.forEach { d ->
+                val mood = moods[d.toString()] ?: 0
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                    Text(
+                        d.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).take(3),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (d == today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(wellbeingEmojis.getOrNull(mood - 1) ?: "·", style = MaterialTheme.typography.titleLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if (d in doseDays) Text("💉", style = MaterialTheme.typography.labelSmall)
+                        if (d in effectDays) Box(Modifier.padding(top = 4.dp).size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error))
+                    }
+                }
+            }
+        }
+        Text(stringResource(R.string.wellbeing_legend), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

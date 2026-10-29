@@ -37,7 +37,7 @@ object Backup {
         root.put("injections", JSONArray().apply {
             s.injections.forEach {
                 put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("medication", it.medication)
-                    .put("doseMg", num(it.doseMg)).put("site", it.site).put("notes", it.notes))
+                    .put("doseMg", num(it.doseMg)).put("site", it.site).put("notes", it.notes).put("comfort", it.comfort))
             }
         })
         root.put("weights", JSONArray().apply {
@@ -110,6 +110,7 @@ object Backup {
                     doseMg = it.optDouble("doseMg", 0.0),
                     site = it.optString("site"),
                     notes = it.optString("notes"),
+                    comfort = it.optInt("comfort", 0).takeIf { c -> c in 0..5 } ?: 0,
                 )
             },
             weights = root.optJSONArray("weights").objects().map {
@@ -319,10 +320,10 @@ object Backup {
         sideEffectName: (String) -> String,
     ): String = buildString {
         appendLine("# Injections")
-        appendLine("date,medication,dose_mg,site,notes")
+        appendLine("date,medication,dose_mg,site,comfort_1_5,notes")
         s.injections.sortedBy { it.timestamp }.forEach {
             appendLine(listOf(csvTime(it.timestamp), csv(medicationName(it.medication)), it.doseMg.toString(),
-                csv(siteName(it.site)), csv(it.notes)).joinToString(","))
+                csv(siteName(it.site)), if (it.comfort in 1..5) it.comfort.toString() else "", csv(it.notes)).joinToString(","))
         }
         appendLine()
         appendLine("# Weight")

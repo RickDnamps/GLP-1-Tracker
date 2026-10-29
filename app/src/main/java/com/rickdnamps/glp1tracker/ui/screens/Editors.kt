@@ -32,6 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import com.rickdnamps.glp1tracker.ui.COMFORT_EMOJIS
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -130,6 +132,27 @@ internal fun FieldLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
+private val comfortLabels = listOf(R.string.comfort_1, R.string.comfort_2, R.string.comfort_3, R.string.comfort_4, R.string.comfort_5)
+
+/** How the injection felt: five faces, tap again to clear. */
+@Composable
+private fun ComfortPicker(value: Int, onSelect: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        COMFORT_EMOJIS.forEachIndexed { i, emoji ->
+            FilterChip(
+                selected = value == i + 1,
+                onClick = { onSelect(i + 1) },
+                label = { Text(emoji, style = MaterialTheme.typography.titleMedium) },
+            )
+        }
+    }
+    Text(
+        stringResource(if (value in 1..5) comfortLabels[value - 1] else R.string.comfort_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun InjectionEditor(
@@ -154,6 +177,7 @@ fun InjectionEditor(
         mutableStateOf(item?.let { InjectionSite.fromName(it.site) } ?: if (settings.medication.isOral) InjectionSite.NONE else suggested)
     }
     var notes by remember { mutableStateOf(item?.notes ?: "") }
+    var comfort by remember { mutableIntStateOf(item?.comfort ?: 0) }
     var chooseMed by remember { mutableStateOf(false) }
     var confirmEarly by remember { mutableStateOf<InjectionEntity?>(null) }
     val dose = Format.parse(doseText)
@@ -173,6 +197,7 @@ fun InjectionEditor(
                 doseMg = dose ?: 0.0,
                 site = if (medication.isOral) InjectionSite.NONE.name else site.name,
                 notes = notes.trim(),
+                comfort = if (medication.isOral) 0 else comfort,
             )
             val tooSoon = item == null && previous != null && entity.timestamp - previous.timestamp < guardHours * 3_600_000L
             if (tooSoon) confirmEarly = entity else onSave(entity)
@@ -211,6 +236,8 @@ fun InjectionEditor(
         if (!medication.isOral) {
             FieldLabel(stringResource(R.string.injection_site))
             InjectionSitePicker(selected = site, suggested = suggested, lastUse = lastUse, onSelect = { site = it })
+            FieldLabel(stringResource(R.string.comfort_label))
+            ComfortPicker(comfort) { comfort = if (comfort == it) 0 else it }
         }
 
         OutlinedTextField(

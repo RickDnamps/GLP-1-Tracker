@@ -48,6 +48,10 @@ fun LineChart(
     yMinZero: Boolean = false,
     /** Vertical event markers (e.g. dose changes) with a short label. */
     events: List<Pair<Long, String>> = emptyList(),
+    /** Second series on its own scale (e.g. weight over the drug level), labelled on the right. */
+    overlay: List<Pair<Long, Double>> = emptyList(),
+    overlayColor: Color = MaterialTheme.colorScheme.tertiary,
+    overlayLabel: ((Double) -> String)? = null,
     yLabel: (Double) -> String,
     xLabel: (Long) -> String,
     emptyText: String = "",
@@ -64,6 +68,7 @@ fun LineChart(
     val markerColor = MaterialTheme.colorScheme.error
     val eventColor = MaterialTheme.colorScheme.tertiary
     val eventStyle = TextStyle(fontSize = 9.sp, color = eventColor)
+    val overlayStyle = TextStyle(fontSize = 10.sp, color = overlayColor)
     // Draw-in animation each time the data set changes.
     val reveal = remember(points.size, points.firstOrNull()?.first, points.lastOrNull()?.first) { Animatable(0f) }
     LaunchedEffect(reveal) { reveal.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
@@ -79,10 +84,12 @@ fun LineChart(
         val minX = points.first().first
         val maxX = max(points.last().first, minX + 1)
 
+        val shownOverlay = overlay.filter { it.first in minX..maxX }
         val leftPad = 44.dp.toPx()
+        val rightPad = if (shownOverlay.isNotEmpty() && overlayLabel != null) 40.dp.toPx() else 0f
         val bottomPad = 18.dp.toPx()
         val topPad = 6.dp.toPx()
-        val w = size.width - leftPad
+        val w = size.width - leftPad - rightPad
         val h = size.height - bottomPad - topPad
 
         fun x(v: Long) = leftPad + ((v - minX).toFloat() / (maxX - minX).toFloat()) * w
@@ -93,7 +100,7 @@ fun LineChart(
         for (i in 0..steps) {
             val v = minY + (maxY - minY) * i / steps
             val yy = y(v)
-            drawLine(gridColor, Offset(leftPad, yy), Offset(size.width, yy), strokeWidth = 1f)
+            drawLine(gridColor, Offset(leftPad, yy), Offset(leftPad + w, yy), strokeWidth = 1f)
             val layout = measurer.measure(yLabel(v), labelStyle)
             drawText(layout, topLeft = Offset(leftPad - layout.size.width - 6.dp.toPx(), yy - layout.size.height / 2))
         }
@@ -103,7 +110,7 @@ fun LineChart(
             val xx = when (i) {
                 0 -> leftPad
                 1 -> x(v) - layout.size.width / 2
-                else -> size.width - layout.size.width
+                else -> leftPad + w - layout.size.width
             }
             drawText(layout, topLeft = Offset(xx, size.height - layout.size.height))
         }
@@ -111,7 +118,7 @@ fun LineChart(
         goal?.let {
             val gy = y(it)
             drawLine(
-                goalColor, Offset(leftPad, gy), Offset(size.width, gy), strokeWidth = 2.dp.toPx(),
+                goalColor, Offset(leftPad, gy), Offset(leftPad + w, gy), strokeWidth = 2.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f)),
             )
         }
@@ -144,6 +151,31 @@ fun LineChart(
                 points.forEach { drawCircle(lineColor, radius = 3.dp.toPx(), center = Offset(x(it.first), y(it.second))) }
             }
         }
+        if (shownOverlay.isNotEmpty()) {
+            var oMin = shownOverlay.minOf { it.second }
+            var oMax = shownOverlay.maxOf { it.second }
+            if (oMax - oMin < 1e-6) { oMax += 1.0; oMin -= 1.0 }
+            val oPad = (oMax - oMin) * 0.1
+            oMax += oPad
+            oMin -= oPad
+            fun oy(v: Double) = topPad + h - ((v - oMin) / (oMax - oMin)).toFloat() * h
+            clipRect(right = revealRight) {
+                if (shownOverlay.size >= 2) {
+                    val path = Path().apply {
+                        shownOverlay.forEachIndexed { i, p -> if (i == 0) moveTo(x(p.first), oy(p.second)) else lineTo(x(p.first), oy(p.second)) }
+                    }
+                    drawPath(path, overlayColor, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+                }
+                shownOverlay.forEach { drawCircle(overlayColor, radius = 2.5.dp.toPx(), center = Offset(x(it.first), oy(it.second))) }
+            }
+            overlayLabel?.let { label ->
+                for (i in 0..steps) {
+                    val v = oMin + (oMax - oMin) * i / steps
+                    val layout = measurer.measure(label(v), overlayStyle)
+                    drawText(layout, topLeft = Offset(size.width - layout.size.width, oy(v) - layout.size.height / 2))
+                }
+            }
+        }
         events.filter { it.first in minX..maxX }.forEach { (t, label) ->
             val ex = x(t)
             drawLine(
@@ -151,7 +183,7 @@ fun LineChart(
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f)),
             )
             val layout = measurer.measure(label, eventStyle)
-            drawText(layout, topLeft = Offset((ex + 2.dp.toPx()).coerceAtMost(size.width - layout.size.width), topPad))
+            drawText(layout, topLeft = Offset((ex + 2.dp.toPx()).coerceAtMost(leftPad + w - layout.size.width), topPad))
         }
         marker?.takeIf { it in minX..maxX }?.let {
             val mx = x(it)
