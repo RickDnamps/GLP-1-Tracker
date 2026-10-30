@@ -72,7 +72,8 @@ data class UserSettings(
     /** Epoch day of the last dose the user decided to skip (0 = none). */
     val skippedDueEpochDay: Long = 0,
     /** 0 = follow system, 1 = light, 2 = dark. */
-    val themeMode: Int = 0,
+    /** 0 = follow the system, 1 = light (default), 2 = dark, 3 = bright. */
+    val themeMode: Int = 1,
     val accent: String = "TEAL",
     val dynamicColor: Boolean = false,
     /** Badges already celebrated with confetti (Milestones.encode). */
