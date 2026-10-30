@@ -1,6 +1,7 @@
 package com.rickdnamps.glp1tracker.report
 
 import com.rickdnamps.glp1tracker.data.composition
+import com.rickdnamps.glp1tracker.data.fullComposition
 import com.rickdnamps.glp1tracker.domain.BodyCompositionMath
 import com.rickdnamps.glp1tracker.domain.CompMetric
 import android.content.Context
@@ -284,8 +285,8 @@ private class ReportBuilder(
             CompMetric.VISCERAL, CompMetric.BMR, CompMetric.LEAN, CompMetric.METABOLIC_AGE,
         )
         val cards = preferred.mapNotNull { m ->
-            val v = m.read(last.composition, last.weightKg)?.let { if (m.isMass) unit.fromKg(it) else it } ?: return@mapNotNull null
-            val start = m.read(first.composition, first.weightKg)?.let { if (m.isMass) unit.fromKg(it) else it }
+            val v = m.read(last.fullComposition(settings), last.weightKg)?.let { if (m.isMass) unit.fromKg(it) else it } ?: return@mapNotNull null
+            val start = m.read(first.fullComposition(settings), first.weightKg)?.let { if (m.isMass) unit.fromKg(it) else it }
             val unitText = if (m.isMass) " $unitSymbol" else if (m.unit.isEmpty()) "" else " " + m.unit
             val value = format.compact(v) + unitText
             val caption = if (start != null && withComp.size > 1) signed(v - start, format::compact) + unitText else null

@@ -440,6 +440,7 @@
     <string name="comp_since">since %1$s</string>
     <string name="comp_real_age">Real age: %1$d</string>
     <string name="comp_estimated">Scale values are estimates; brands use different formulas. Follow the trend rather than the exact number.</string>
+    <string name="comp_derived_from_fat" formatted="false">This reading only had the body fat % (all Renpho shares with Health Connect): the other values are calculated from it. Visceral fat can\'t be calculated; you can type it in by editing the weigh-in in the Journal.</string>
     <string name="comp_section">Body composition (optional)</string>
     <string name="comp_profile_needed">Set your sex and date of birth in Settings → Profile to estimate body composition from your scale\'s impedance.</string>
     <string name="sex">Sex</string>

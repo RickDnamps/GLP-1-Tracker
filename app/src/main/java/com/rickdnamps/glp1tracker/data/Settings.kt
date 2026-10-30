@@ -102,9 +102,12 @@ data class UserSettings(
             runCatching { LocalDate.of(birthYear, birthMonth, birthDay) }.getOrNull()
         } else null
 
-    val ageOrNull: Int?
-        get() = birthDateOrNull?.let { Period.between(it, LocalDate.now()).years }
-            ?: birthYear.takeIf { it in 1900..2100 }?.let { LocalDate.now().year - it }
+    val ageOrNull: Int? get() = ageOn(LocalDate.now())
+
+    /** Age on [day] (e.g. the day of a weigh-in), from the full birth date or else the year. */
+    fun ageOn(day: LocalDate): Int? =
+        birthDateOrNull?.let { Period.between(it, day).years }
+            ?: birthYear.takeIf { it in 1900..2100 }?.let { day.year - it }
 
     val skippedThrough: LocalDate? get() = skippedDueEpochDay.takeIf { it > 0 }?.let(LocalDate::ofEpochDay)
 

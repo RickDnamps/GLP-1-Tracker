@@ -45,6 +45,7 @@ import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.data.WeightEntity
 import com.rickdnamps.glp1tracker.data.composition
+import com.rickdnamps.glp1tracker.data.fullComposition
 import com.rickdnamps.glp1tracker.domain.BodyComp
 import com.rickdnamps.glp1tracker.domain.BodyCompositionMath
 import com.rickdnamps.glp1tracker.domain.CompLevel
@@ -62,7 +63,10 @@ private fun CompMetric.shown(v: Double, settings: UserSettings): Double = if (is
 /** Every value of the latest reading at a glance (3 per row, like the Renpho app); tap one for its trend. */
 @Composable
 fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
-    val withComp = remember(weights) { weights.filter { !it.composition.isEmpty } }
+    // Each weigh-in with its composition, completed from the body fat % when the source shared only that.
+    val withComp = remember(weights, settings) {
+        weights.mapNotNull { w -> w.fullComposition(settings).takeIf { !it.isEmpty }?.let { w to it } }
+    }
     SectionCard(title = stringResource(R.string.comp_title), icon = Icons.Outlined.Accessibility) {
         if (withComp.isEmpty()) {
             Text(stringResource(R.string.comp_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -71,7 +75,7 @@ fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
             }
             return@SectionCard
         }
-        val latest = withComp.last()
+        val (latest, latestComp) = withComp.last()
         var selected by rememberSaveable { mutableStateOf<String?>(null) }
         val massUnit = stringResource(settings.weightUnit.symbolRes)
         val bmi = settings.heightCm.takeIf { it > 0 }?.let { h -> latest.weightKg / ((h / 100) * (h / 100)) }
@@ -85,8 +89,8 @@ fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
             )
             bmi?.let { add(Tile(stringResource(R.string.bmi), Format.oneDecimal(it), "", BodyCompositionMath.bmiLevel(it), null, null)) }
             CompMetric.entries.forEach { m ->
-                val v = m.read(latest.composition, latest.weightKg) ?: return@forEach
-                val first = withComp.firstNotNullOfOrNull { m.read(it.composition, it.weightKg) }
+                val v = m.read(latestComp, latest.weightKg) ?: return@forEach
+                val first = withComp.firstNotNullOfOrNull { (w, c) -> m.read(c, w.weightKg) }
                 val caption = when {
                     m == CompMetric.METABOLIC_AGE -> settings.ageOrNull?.let { stringResource(R.string.comp_real_age, it) }
                     first != null && withComp.size > 1 && abs(m.shown(v, settings) - m.shown(first, settings)) >= 0.05 -> {
@@ -124,7 +128,7 @@ fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
         }
 
         if (metric != null) {
-            val points = withComp.mapNotNull { w -> metric.read(w.composition, w.weightKg)?.let { w.timestamp to metric.shown(it, settings) } }
+            val points = withComp.mapNotNull { (w, c) -> metric.read(c, w.weightKg)?.let { w.timestamp to metric.shown(it, settings) } }
             Text(stringResource(metric.nameRes), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             if (points.size >= 2) {
                 LineChart(
@@ -143,8 +147,8 @@ fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
         }
 
         // Fat vs lean loss: the number GLP-1 users care about.
-        val firstFat = withComp.firstOrNull { it.bodyFatPct != null }
-        val lastFat = withComp.lastOrNull { it.bodyFatPct != null }
+        val firstFat = withComp.firstOrNull { it.first.bodyFatPct != null }?.first
+        val lastFat = withComp.lastOrNull { it.first.bodyFatPct != null }?.first
         if (firstFat != null && lastFat != null && firstFat !== lastFat) {
             BodyCompositionMath.lossSplit(firstFat.weightKg, firstFat.bodyFatPct!!, lastFat.weightKg, lastFat.bodyFatPct!!)?.let { split ->
                 Text(
@@ -159,6 +163,10 @@ fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
                     color = if (split.fatShare >= 0.75) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
                 )
             }
+        }
+        // Imported readings (Health Connect, manual entry) often bring only the fat %: say where the rest comes from.
+        if (latest.composition.waterPct == null && latestComp.waterPct != null) {
+            Text(stringResource(R.string.comp_derived_from_fat), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(stringResource(R.string.comp_estimated), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

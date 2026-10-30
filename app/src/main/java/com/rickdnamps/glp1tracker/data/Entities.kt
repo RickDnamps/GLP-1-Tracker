@@ -4,6 +4,9 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.rickdnamps.glp1tracker.domain.BodyComp
+import com.rickdnamps.glp1tracker.domain.BodyCompositionMath
+import java.time.Instant
+import java.time.ZoneId
 
 @Entity(tableName = "injections")
 data class InjectionEntity(
@@ -42,6 +45,12 @@ data class WeightEntity(
 val WeightEntity.composition: BodyComp
     get() = BodyComp(bodyFatPct, muscleKg, waterPct, boneKg, visceralFat, bmrKcal, metabolicAge, proteinPct,
         skeletalMusclePct, subcutaneousFatPct, impedance)
+
+/** Composition to show: what was measured, plus the values derived from its body fat % (see [BodyCompositionMath.complete]). */
+fun WeightEntity.fullComposition(settings: UserSettings): BodyComp {
+    val day = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+    return BodyCompositionMath.complete(composition, weightKg, settings.ageOn(day), settings.sexOrNull)
+}
 
 fun WeightEntity.withComposition(c: BodyComp) = copy(
     bodyFatPct = c.bodyFatPct, muscleKg = c.muscleKg, waterPct = c.waterPct, boneKg = c.boneKg,

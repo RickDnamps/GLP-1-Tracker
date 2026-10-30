@@ -39,6 +39,32 @@ class BodyCompositionTest {
     }
 
     @Test
+    fun completesAHealthConnectReadingFromItsFatPercentage() {
+        // Renpho shares only weight and body fat with Health Connect; the rest is derived from the
+        // same reading (304.4 lb, 38.6 %) and lands on the Renpho app's values above.
+        val c = BodyCompositionMath.complete(BodyComp(bodyFatPct = 38.6), 138.07, 46, Sex.MALE)
+        assertEquals(38.6, c.bodyFatPct!!, 0.001)
+        assertEquals(44.3, c.waterPct!!, 0.3)
+        assertEquals(9.4 / 2.20462, c.boneKg!!, 0.1)
+        assertEquals(177.6 / 2.20462, c.muscleKg!!, 1.0)
+        assertEquals(14.0, c.proteinPct!!, 0.3)
+        assertEquals(39.7, c.skeletalMusclePct!!, 0.3)
+        assertEquals(32.5, c.subcutaneousFatPct!!, 0.3)
+        assertEquals(2201.0, c.bmrKcal!!, 10.0)
+        assertEquals(53, c.metabolicAge)
+        assertNull(c.visceralFat)
+
+        // Values the source did provide are kept; no fat % → nothing to derive; no profile → no body age.
+        val withBmr = BodyCompositionMath.complete(BodyComp(bodyFatPct = 38.6, bmrKcal = 2150.0, visceralFat = 18.0), 138.07, 46, Sex.MALE)
+        assertEquals(2150.0, withBmr.bmrKcal!!, 0.001)
+        assertEquals(18.0, withBmr.visceralFat!!, 0.001)
+        assertEquals(BodyComp(waterPct = 50.0), BodyCompositionMath.complete(BodyComp(waterPct = 50.0), 80.0, 40, Sex.FEMALE))
+        val noProfile = BodyCompositionMath.complete(BodyComp(bodyFatPct = 30.0), 80.0, null, null)
+        assertNull(noProfile.metabolicAge)
+        assertNotNull(noProfile.waterPct)
+    }
+
+    @Test
     fun levelsMatchTheRenphoAppOnTheReferenceReading() {
         // Renpho: 302.6 lb, 188 cm man, 46 y — muscle "Excellent", skeletal muscle / water /
         // protein "below", subcutaneous fat and metabolic age "above", bone "average".

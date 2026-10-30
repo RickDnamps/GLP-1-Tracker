@@ -72,8 +72,23 @@ object BodyCompositionMath {
                 Sex.FEMALE -> -9.53 + 0.69 * h2r + 0.17 * weightKg + 0.02 * impedanceOhm
             } * FFM_CALIBRATION
             ).coerceIn(weightKg * 0.35, weightKg * 0.95)
+        return fromFatFreeMass(weightKg, ffm, age, sex).copy(impedance = impedanceOhm)
+    }
+
+    /**
+     * Fills what a reading lacks from its body fat %: Health Connect only carries weight, fat,
+     * lean, bone, water and BMR, and Renpho shares just the fat there. Values already present win;
+     * visceral fat cannot be derived. Metabolic age needs [age] and [sex].
+     */
+    fun complete(c: BodyComp, weightKg: Double, age: Int?, sex: Sex?): BodyComp {
+        val fat = c.bodyFatPct?.takeIf { it in 2.0..75.0 } ?: return c
+        if (weightKg <= 0) return c
+        return c.mergedWith(fromFatFreeMass(weightKg, weightKg * (1 - fat / 100), age, sex).copy(bodyFatPct = fat))
+    }
+
+    /** Every value from the fat-free mass, with the shares the Renpho app reports for the same reading. */
+    private fun fromFatFreeMass(weightKg: Double, ffm: Double, age: Int?, sex: Sex?): BodyComp {
         val fatPct = (weightKg - ffm) / weightKg * 100
-        // Shares of the fat-free mass as reported by the Renpho app for the same reading.
         val water = ffm * 0.722
         val bone = ffm * 0.05
         val muscle = ffm - bone
@@ -84,11 +99,10 @@ object BodyCompositionMath {
             waterPct = water / weightKg * 100,
             boneKg = bone,
             bmrKcal = bmr,
-            metabolicAge = metabolicAge(fatPct, age, sex),
+            metabolicAge = if (age != null && age in 10..100 && sex != null) metabolicAge(fatPct, age, sex) else null,
             proteinPct = (muscle - water) / weightKg * 100,
             skeletalMusclePct = muscle * 0.68 / weightKg * 100,
             subcutaneousFatPct = fatPct * 0.842,
-            impedance = impedanceOhm,
         )
     }
 
