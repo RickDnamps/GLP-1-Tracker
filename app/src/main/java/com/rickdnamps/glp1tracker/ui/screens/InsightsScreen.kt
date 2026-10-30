@@ -149,6 +149,13 @@ fun InsightsScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValu
                     xLabel = { Format.shortDate(it) },
                     emptyText = stringResource(R.string.chart_need_two),
                 )
+                Insights.weekOverWeek(weights, now)?.let { diff ->
+                    Text(
+                        stringResource(R.string.week_compare, weightText(diff, s, signed = true)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (diff <= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(stringResource(R.string.insights_trend_explain), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

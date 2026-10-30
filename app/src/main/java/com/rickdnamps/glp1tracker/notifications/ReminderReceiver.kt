@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.rickdnamps.glp1tracker.Glp1App
 import com.rickdnamps.glp1tracker.R
+import com.rickdnamps.glp1tracker.steps.PhoneSteps
 import com.rickdnamps.glp1tracker.data.TrackerRepository
 import com.rickdnamps.glp1tracker.data.UserSettings
 import com.rickdnamps.glp1tracker.domain.Format
@@ -40,9 +41,16 @@ class ReminderReceiver : BroadcastReceiver() {
         val repository = app.repository
         when (intent.action) {
             ACTION_REMIND -> runAsync {
+                // Reminders fire through the day: a good moment to read the pedometer.
+                runCatching { PhoneSteps.sample(context) }
                 val type = ReminderType.fromName(intent.getStringExtra(EXTRA_TYPE)) ?: ReminderType.DOSE
                 remind(context, repository, type)
                 ReminderScheduler.reschedule(context, repository)
+                app.onDataChanged()
+            }
+            ACTION_ADD_WATER -> runAsync {
+                Notifications.cancelHabit(context, ReminderType.WATER)
+                repository.updateDailyLog(LocalDate.now()) { it.copy(waterMl = it.waterMl + 250) }
                 app.onDataChanged()
             }
             ACTION_SNOOZE -> runAsync {
@@ -84,10 +92,16 @@ class ReminderReceiver : BroadcastReceiver() {
             ReminderType.WATER -> {
                 val water = repository.dailyLog(LocalDate.now())?.waterMl ?: 0
                 if (water < s.waterGoalMl) {
+                    val addWater = android.app.PendingIntent.getBroadcast(
+                        context, 300,
+                        Intent(context, ReminderReceiver::class.java).setAction(ACTION_ADD_WATER),
+                        android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+                    )
                     Notifications.showHabit(
                         context, type,
                         context.getString(R.string.notif_water_title),
                         context.getString(R.string.notif_water_text, water, s.waterGoalMl),
+                        listOf(context.getString(R.string.notif_action_water) to addWater),
                     )
                 }
             }
@@ -112,6 +126,7 @@ class ReminderReceiver : BroadcastReceiver() {
         const val ACTION_REMIND = "com.rickdnamps.glp1tracker.action.REMIND"
         const val ACTION_MARK_DONE = "com.rickdnamps.glp1tracker.action.MARK_DONE"
         const val ACTION_SNOOZE = "com.rickdnamps.glp1tracker.action.SNOOZE"
+        const val ACTION_ADD_WATER = "com.rickdnamps.glp1tracker.action.ADD_WATER"
         const val EXTRA_TYPE = "type"
     }
 }
@@ -121,6 +136,7 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val repository = (context.applicationContext as Glp1App).repository
         runAsync {
+            runCatching { PhoneSteps.sample(context) }
             ReminderScheduler.reschedule(context, repository)
             WidgetUpdater.refresh(context)
         }

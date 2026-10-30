@@ -33,7 +33,7 @@ object Notifications {
     }
 
     /** Gentle reminders (weigh-in, water, journal, eve of the dose). */
-    fun showHabit(context: Context, type: ReminderType, title: String, text: String) {
+    fun showHabit(context: Context, type: ReminderType, title: String, text: String, actions: List<Pair<String, PendingIntent>> = emptyList()) {
         if (!canPost(context)) return
         val open = PendingIntent.getActivity(
             context, 100 + type.requestCode,
@@ -47,6 +47,7 @@ object Notifications {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
             .setAutoCancel(true)
+            .apply { actions.forEach { (label, intent) -> addAction(0, label, intent) } }
             .build()
         try {
             NotificationManagerCompat.from(context).notify(2000 + type.requestCode, notification)
@@ -94,6 +95,10 @@ object Notifications {
         } catch (_: SecurityException) {
             // Permission revoked between the check and the call.
         }
+    }
+
+    fun cancelHabit(context: Context, type: ReminderType) {
+        NotificationManagerCompat.from(context).cancel(2000 + type.requestCode)
     }
 
     fun cancelDoseReminder(context: Context) {

@@ -142,6 +142,18 @@ object Insights {
         val ref = goalKg?.takeIf { it > 0 && it < currentKg } ?: currentKg
         return (ref * 1.2).toInt()..(ref * 1.6).toInt()
     }
+
+    /** A record low worth celebrating: below every earlier weigh-in (3+ of them) by at least 0.1 kg. */
+    fun isNewLow(previousKg: List<Double>, kg: Double): Boolean =
+        previousKg.size >= 3 && kg <= previousKg.min() - 0.1
+
+    /** Average of the last 7 days minus the average of the 7 days before (kg); null without both. */
+    fun weekOverWeek(weights: List<Pair<Long, Double>>, nowMillis: Long): Double? {
+        val last = weights.filter { it.first in (nowMillis - 7 * DAY_MS)..nowMillis }.map { it.second }
+        val before = weights.filter { it.first in (nowMillis - 14 * DAY_MS) until (nowMillis - 7 * DAY_MS) }.map { it.second }
+        if (last.isEmpty() || before.isEmpty()) return null
+        return last.average() - before.average()
+    }
 }
 
 /** Compounded vials: dose (mg) ↔ volume (mL) ↔ units on a U-100 insulin syringe. */

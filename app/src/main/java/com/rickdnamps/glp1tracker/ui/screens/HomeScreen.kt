@@ -66,6 +66,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rickdnamps.glp1tracker.health.HealthConnect
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.rickdnamps.glp1tracker.domain.StepMath
+import com.rickdnamps.glp1tracker.steps.PhoneSteps
+import androidx.compose.material.icons.outlined.Info
+import com.rickdnamps.glp1tracker.domain.Insights
+import com.rickdnamps.glp1tracker.domain.IntakeCheck
 import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.domain.CyclePhase
 import com.rickdnamps.glp1tracker.domain.CycleTips
@@ -117,7 +126,28 @@ fun HomeScreen(
                 onSkip = { vm.skipDose(it) },
             )
         }
-        if (!settings.medication.isOral) item { CycleTipCard(state) }
+        val gapDays = state.injections.firstOrNull()?.let {
+            java.time.temporal.ChronoUnit.DAYS.between(Format.toLocalDateTime(it.timestamp).toLocalDate(), LocalDate.now()).toInt()
+        }
+        if (gapDays != null && gapDays >= 14) {
+            item { NoticeCard(Icons.Outlined.Info, stringResource(R.string.gap_title, gapDays), stringResource(R.string.gap_text)) }
+        } else if (!settings.medication.isOral) {
+            item { CycleTipCard(state) }
+        }
+        val intake = intakeCheck(state)
+        if (intake != null && intake.first.any) {
+            item {
+                val (r, target) = intake
+                NoticeCard(
+                    Icons.Outlined.Restaurant,
+                    stringResource(R.string.intake_title),
+                    listOfNotNull(
+                        if (r.lowCalories) stringResource(R.string.intake_calories, r.averageCalories) else null,
+                        if (r.lowProtein) stringResource(R.string.intake_protein, r.averageProteinG, target) else null,
+                    ).joinToString("\n"),
+                )
+            }
+        }
         if (WeeklyRecaps.isRecapDay(LocalDate.now())) {
             item { WeeklyRecapCard(state) }
         }
@@ -494,25 +524,34 @@ private fun TodayCard(state: UiState, vm: AppViewModel) {
     }
 }
 
-/** Steps (today + last 7 days) and last night's sleep from Health Connect, or an offer to connect it. */
+/**
+ * Steps (today + last 7 days) and last night's sleep. Steps come from Health Connect when it has
+ * some (watch, phone health app) and otherwise from the phone's own step counter.
+ */
 @Composable
 private fun ActivityRows(vm: AppViewModel, stepGoal: Int) {
+    val context = LocalContext.current
     val activity by vm.activity.collectAsStateWithLifecycle()
     val available = remember { runCatching { vm.healthConnect.isAvailable() }.getOrDefault(false) }
-    val askPermission = rememberLauncherForActivityResult(HealthConnect.permissionContract()) { vm.refreshActivity() }
+    val askHealthConnect = rememberLauncherForActivityResult(HealthConnect.permissionContract()) { vm.refreshActivity() }
     LaunchedEffect(Unit) { vm.refreshActivity() }
-    val a = activity
-    if (a == null) {
-        if (available) {
-            TextButton(onClick = { askPermission.launch(vm.healthConnect.activityPermissions) }) {
-                Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.activity_connect))
-            }
-        }
-        return
+
+    val phoneSupported = remember { PhoneSteps.isSupported(context) }
+    var phoneAllowed by remember { mutableStateOf(PhoneSteps.hasPermission(context)) }
+    val askPhone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { phoneAllowed = it }
+    val phoneFlow = remember(phoneAllowed) {
+        if (phoneSupported && phoneAllowed) PhoneSteps.updates(context) else kotlinx.coroutines.flow.emptyFlow()
     }
-    a.stepsToday?.let { steps ->
+    val phone by phoneFlow.collectAsStateWithLifecycle(initialValue = null)
+
+    val a = activity
+    val hcSteps = a?.stepsToday?.takeIf { it > 0 }
+    val today = LocalDate.now().toEpochDay()
+    val steps = hcSteps ?: phone?.today
+    val bars = if (hcSteps != null && a != null) a.stepsByDay.map { it.second }
+    else phone?.let { p -> StepMath.lastDays(p, today).map { it.second } }
+
+    if (steps != null) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(12.dp))
@@ -525,11 +564,13 @@ private fun ActivityRows(vm: AppViewModel, stepGoal: Int) {
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            Spacer(Modifier.width(12.dp))
-            StepBars(a.stepsByDay.map { it.second }, stepGoal)
+            if (!bars.isNullOrEmpty()) {
+                Spacer(Modifier.width(12.dp))
+                StepBars(bars, stepGoal)
+            }
         }
     }
-    a.sleepLastNightMinutes?.let { minutes ->
+    a?.sleepLastNightMinutes?.let { minutes ->
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Outlined.Bedtime, null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(12.dp))
@@ -539,7 +580,22 @@ private fun ActivityRows(vm: AppViewModel, stepGoal: Int) {
             )
         }
     }
-    if (a.stepsToday == null && a.sleepLastNightMinutes == null) {
+    // Offers, only for what is not connected yet.
+    if (steps == null && phoneSupported && !phoneAllowed) {
+        TextButton(onClick = { askPhone.launch(PhoneSteps.PERMISSION) }) {
+            Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.steps_phone_connect))
+        }
+    }
+    if (a == null && available) {
+        TextButton(onClick = { askHealthConnect.launch(vm.healthConnect.activityPermissions) }) {
+            Icon(Icons.Outlined.Bedtime, null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.activity_connect))
+        }
+    }
+    if (a != null && steps == null && a.sleepLastNightMinutes == null && !(phoneSupported && phoneAllowed)) {
         Text(stringResource(R.string.activity_no_data), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -689,5 +745,37 @@ private fun WellbeingStrip(state: UiState) {
             }
         }
         Text(stringResource(R.string.wellbeing_legend), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Last 7 full days of food logging vs the calorie floor and the protein target (null: not enough logging). */
+private fun intakeCheck(state: UiState): Pair<IntakeCheck.Result, Int>? {
+    val current = state.weights.lastOrNull()?.weightKg ?: return null
+    val target = Insights.proteinRange(current, state.settings.goalWeightKg.takeIf { it > 0 }).first
+    val today = LocalDate.now()
+    val days = (1..7).map { today.minusDays(it.toLong()) }.map { d ->
+        val dayFoods = state.foods.filter { Format.toLocalDateTime(it.timestamp).toLocalDate() == d }
+        val log = state.dailyLogs.firstOrNull { it.date == d.toString() }
+        IntakeCheck.Day(dayFoods.sumOf { it.calories }, (log?.proteinG ?: 0) + dayFoods.sumOf { it.proteinG }.toInt(), dayFoods.size)
+    }
+    return IntakeCheck.check(days, IntakeCheck.calorieFloor(state.settings.sexOrNull), target)?.let { it to target }
+}
+
+/** Gentle information card (tertiary colours), e.g. long gap between doses or low intake. */
+@Composable
+private fun NoticeCard(icon: ImageVector, title: String, text: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+            Spacer(Modifier.width(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
+            }
+        }
     }
 }

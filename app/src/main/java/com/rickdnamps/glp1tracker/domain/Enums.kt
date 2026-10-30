@@ -41,6 +41,10 @@ enum class SideEffectType(@StringRes val nameRes: Int) {
     DIZZINESS(R.string.se_dizziness),
     INJECTION_SITE(R.string.se_injection_site),
     HAIR_LOSS(R.string.se_hair_loss),
+    // Often reported on Reddit but missing from the labels (Sehgal et al., 2026).
+    CHILLS(R.string.se_chills),
+    HOT_FLASHES(R.string.se_hot_flashes),
+    MENSTRUAL_CHANGES(R.string.se_menstrual),
     OTHER(R.string.se_other);
 
     companion object {

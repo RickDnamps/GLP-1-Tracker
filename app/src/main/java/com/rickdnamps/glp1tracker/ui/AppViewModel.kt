@@ -23,6 +23,7 @@ import com.rickdnamps.glp1tracker.data.composition
 import com.rickdnamps.glp1tracker.data.withComposition
 import com.rickdnamps.glp1tracker.domain.BodyComp
 import com.rickdnamps.glp1tracker.domain.BodyCompositionMath
+import com.rickdnamps.glp1tracker.domain.Insights
 import com.rickdnamps.glp1tracker.domain.InjectionSite
 import com.rickdnamps.glp1tracker.domain.Medication
 import com.rickdnamps.glp1tracker.domain.SideEffectType
@@ -150,8 +151,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Weight ---
     fun saveWeight(item: WeightEntity) = viewModelScope.launch {
+        val previous = repository.weightsSnapshot().filter { it.id != item.id }
         repository.saveWeight(item)
         message(R.string.msg_weight_saved)
+        if (item.id == 0L) celebrateIfNewLow(previous, item)
+    }
+
+    private val _newLows = MutableSharedFlow<Double>(extraBufferCapacity = 1)
+    /** Fresh weigh-ins that are a record low (kg), for a small celebration. */
+    val newLows: SharedFlow<Double> = _newLows
+
+    /**
+     * Celebrates a record low on a weigh-in from the last day, except when the loss is very fast
+     * or the goal is already passed (no cheering for losing too much).
+     */
+    private suspend fun celebrateIfNewLow(previous: List<WeightEntity>, item: WeightEntity) {
+        val now = System.currentTimeMillis()
+        if (now - item.timestamp > 86_400_000L) return
+        if (!Insights.isNewLow(previous.map { it.weightKg }, item.weightKg)) return
+        val s = repository.settingsRepository.current()
+        if (s.goalWeightKg > 0 && item.weightKg < s.goalWeightKg) return
+        val points = (previous + item).map { it.timestamp to it.weightKg }.sortedBy { it.first }
+        if (Insights.pace(points, now)?.first == Insights.Pace.VERY_FAST) return
+        _newLows.tryEmit(item.weightKg)
     }
 
     fun deleteWeight(item: WeightEntity) = viewModelScope.launch {
@@ -236,7 +258,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             else -> composition ?: estimated ?: impedance?.let { BodyComp(impedance = it) }
         }
         val entity = WeightEntity(timestamp = System.currentTimeMillis(), weightKg = kg)
+        val previous = repository.weightsSnapshot()
         repository.saveWeight(if (comp != null) entity.withComposition(comp) else entity)
+        celebrateIfNewLow(previous, entity)
         repository.settingsRepository.update { it.copy(scaleAddress = address, scaleName = name) }
         message(R.string.msg_weight_saved)
     }

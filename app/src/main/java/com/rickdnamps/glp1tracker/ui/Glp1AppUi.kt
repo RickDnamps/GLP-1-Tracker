@@ -62,6 +62,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.rickdnamps.glp1tracker.R
+import com.rickdnamps.glp1tracker.domain.Format
 import com.rickdnamps.glp1tracker.notifications.Notifications
 import com.rickdnamps.glp1tracker.ui.screens.Editor
 import com.rickdnamps.glp1tracker.ui.screens.FoodEditor
@@ -156,6 +157,13 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
                     else context.resources.getQuantityString(R.plurals.ms_new_badges, fresh.size, fresh.size)
                 )
             }
+        }
+    }
+    LaunchedEffect(Unit) {
+        vm.newLows.collect { kg ->
+            confetti++
+            val unit = vm.state.value.settings.weightUnit
+            snackbar.showSnackbar(context.getString(R.string.new_low, Format.oneDecimal(unit.fromKg(kg)) + " " + context.getString(unit.symbolRes)))
         }
     }
     LaunchedEffect(Unit) {
