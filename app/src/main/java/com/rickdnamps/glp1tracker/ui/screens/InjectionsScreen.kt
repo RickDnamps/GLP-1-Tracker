@@ -75,7 +75,7 @@ fun InjectionsScreen(state: UiState, contentPadding: PaddingValues, openEditor: 
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { TherapyCard(state) }
-        if (!settings.medication.isOral) item { SiteRotationCard(state.injections) }
+        if (!settings.medication.isOral) item { SiteRotationCard(state.injections, female = settings.sex == 2) }
         item {
             Text(
                 stringResource(R.string.history),
@@ -226,7 +226,7 @@ private fun LegendDot(color: Color, label: String) {
 }
 
 @Composable
-private fun SiteRotationCard(injections: List<InjectionEntity>) {
+private fun SiteRotationCard(injections: List<InjectionEntity>, female: Boolean) {
     val lastUse = remember(injections) { siteLastUse(injections) }
     val suggested = InjectionSite.suggest(lastUse)
     val comfort = remember(injections) {
@@ -234,7 +234,7 @@ private fun SiteRotationCard(injections: List<InjectionEntity>) {
             .filterKeys { it != InjectionSite.NONE }
     }
     SectionCard(title = stringResource(R.string.site_rotation), icon = Icons.Outlined.PersonPinCircle) {
-        BodyMap(selected = null, suggested = suggested, lastUse = lastUse, onSelect = null)
+        BodyMap(selected = null, suggested = suggested, lastUse = lastUse, onSelect = null, female = female)
         Text(
             stringResource(R.string.suggested_site, stringResource(suggested.nameRes)),
             style = MaterialTheme.typography.bodyMedium,

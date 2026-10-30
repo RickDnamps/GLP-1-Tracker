@@ -42,12 +42,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.vector.PathParser
+import com.rickdnamps.glp1tracker.ui.theme.LocalBrand
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -73,19 +75,19 @@ import kotlin.math.max
 import kotlin.math.min
 
 /*
- * Interactive injection-site body map: a friendly front-view silhouette drawn on Canvas with six
- * tappable zones coloured by how long each site has rested.
+ * Interactive injection-site body map: a shaded front-view figure (man or woman, see
+ * [BodyFigures]) with six tappable zones coloured by how long each site has rested.
  *
- * Geometry is authored in a fixed "figure space" of FIG_W x FIG_H units (aspect 0.55) and scaled
- * uniformly to fit, centred, in the canvas. FRONT VIEW: the person's LEFT side is on the viewer's
- * RIGHT, so every *_LEFT site sits at x > FIG_W / 2.
+ * Geometry lives in the figure's own FIG_W x FIG_H units and is scaled uniformly to fit, centred,
+ * in the canvas. FRONT VIEW: the person's LEFT side is on the viewer's RIGHT, so every *_LEFT
+ * site sits at x > FIG_W / 2.
  */
 
-private const val FIG_W = 110f
-private const val FIG_H = 200f
-private const val ZONE_R = 7f
+private const val FIG_W = BodyFigures.WIDTH
+private const val FIG_H = BodyFigures.HEIGHT
+private const val ZONE_R = 13f
 private const val SELECTED_GROW = 0.16f
-private val FigureHeight = 300.dp
+private val FigureHeight = 340.dp
 
 /**
  * Body map of the six injection sites.
@@ -94,6 +96,7 @@ private val FigureHeight = 300.dp
  * @param suggested site that gets the pulsing "next site" halo; null = no hint.
  * @param lastUse epoch millis of the last injection per site (missing = never used).
  * @param onSelect called when a zone is tapped; null makes the map read-only.
+ * @param female draws the woman's figure (from the profile's sex) instead of the man's.
  */
 @Composable
 fun BodyMap(
@@ -102,8 +105,11 @@ fun BodyMap(
     lastUse: Map<InjectionSite, Long>,
     onSelect: ((InjectionSite) -> Unit)?,
     modifier: Modifier = Modifier,
+    female: Boolean = false,
 ) {
     val cs = MaterialTheme.colorScheme
+    val figure = if (female) BodyFigures.female else BodyFigures.male
+    val paths = remember(figure) { FigurePaths(figure) }
     val sites = InjectionSite.injectable
     val sel = selected?.takeIf { it != InjectionSite.NONE }
     val sug = suggested?.takeIf { it != InjectionSite.NONE }
@@ -191,12 +197,12 @@ fun BodyMap(
         }
     }
 
-    val tapModifier = if (onSelect == null) Modifier else Modifier.pointerInput(Unit) {
+    val tapModifier = if (onSelect == null) Modifier else Modifier.pointerInput(figure) {
         detectTapGestures { offset ->
             val frame = BodyFrame(size.width.toFloat(), size.height.toFloat())
             val touchRadius = max(frame.len(ZONE_R) * 1.8f, 24.dp.toPx())
             val hit = InjectionSite.injectable
-                .map { it to (frame.pt(zoneCenter(it)) - offset).getDistance() }
+                .map { it to (frame.pt(zoneCenter(it, figure)) - offset).getDistance() }
                 .filter { it.second <= touchRadius }
                 .minByOrNull { it.second }
                 ?.first
@@ -208,10 +214,13 @@ fun BodyMap(
     }
 
     // --- Theme colours (no hard-coded colours: works in light and dark) ---
-    val bodyTop = lerp(cs.surfaceVariant, cs.primaryContainer, 0.35f)
-    val bodyBottom = cs.surfaceVariant
-    val bodyOutline = lerp(cs.surfaceVariant, cs.outline, 0.6f) // opaque, so overlaps never darken
-    val detailColor = cs.onSurfaceVariant.copy(alpha = 0.45f)
+    val isDark = LocalBrand.current.isDark
+    val skin = lerp(cs.surfaceVariant, cs.primaryContainer, 0.35f)
+    val skinShade = lerp(skin, cs.outline, 0.45f)
+    val skinLight = lerp(skin, Color.White, if (isDark) 0.12f else 0.65f)
+    val hairColor = if (isDark) lerp(cs.outline, cs.onSurfaceVariant, 0.4f) else lerp(cs.outline, cs.onSurface, 0.45f)
+    val bodyOutline = lerp(cs.surfaceVariant, cs.outline, 0.7f) // opaque, so overlaps never darken
+    val detailColor = cs.onSurfaceVariant.copy(alpha = 0.4f)
     val shadowColor = cs.onSurface.copy(alpha = 0.07f)
     val backdropGlow = cs.primaryContainer
     val haloColor = cs.tertiary
@@ -240,12 +249,11 @@ fun BodyMap(
                 .then(tapModifier)
         ) {
             val f = BodyFrame(size.width, size.height)
-            val grow = 1.5.dp.toPx()
 
-            // Soft backdrop glow, ground shadow, then the silhouette: outline pass (every shape grown)
-            // under a fill pass, which yields one clean outer contour with no seams where parts overlap.
-            val glowCenter = f.pt(FIG_W / 2f, 95f)
-            val glowR = f.len(92f)
+            // Soft backdrop glow, then the figure in its own units: outline pass under a fill pass,
+            // which yields one clean outer contour with no seams where parts overlap.
+            val glowCenter = f.pt(FIG_W / 2f, 200f)
+            val glowR = f.len(190f)
             drawCircle(
                 brush = Brush.radialGradient(
                     listOf(backdropGlow.copy(alpha = 0.35f), backdropGlow.copy(alpha = 0f)),
@@ -255,17 +263,36 @@ fun BodyMap(
                 radius = glowR,
                 center = glowCenter,
             )
-            drawOval(color = shadowColor, topLeft = f.pt(28f, 188.5f), size = Size(f.len(54f), f.len(7f)))
-            drawSilhouette(f, grow, SolidColor(bodyOutline))
-            drawSilhouette(f, 0f, Brush.verticalGradient(listOf(bodyTop, bodyBottom), startY = f.top, endY = f.bottom))
-            drawDetails(f, detailColor)
+            withTransform({
+                translate(f.originX, f.originY)
+                scale(f.scale, f.scale, pivot = Offset.Zero)
+            }) {
+                drawOval(color = shadowColor, topLeft = Offset(60f, 431f), size = Size(80f, 10f))
+                val outline = Stroke(width = 2.4f, join = StrokeJoin.Round)
+                listOf(paths.arm, paths.otherArm, paths.body, paths.head).forEach { drawPath(it, bodyOutline, style = outline) }
+                // Horizontal shading gives the limbs and torso a rounded, 3D look.
+                drawPath(
+                    paths.body,
+                    Brush.horizontalGradient(
+                        0f to skinShade, 0.28f to skin, 0.5f to skinLight, 0.72f to skin, 1f to skinShade,
+                        startX = 55f, endX = 145f,
+                    ),
+                )
+                drawPath(paths.arm, Brush.horizontalGradient(0f to skinShade, 0.45f to skinLight, 1f to skin, startX = 30f, endX = 68f))
+                drawPath(paths.otherArm, Brush.horizontalGradient(0f to skin, 0.55f to skinLight, 1f to skinShade, startX = 132f, endX = 170f))
+                drawPath(paths.head, Brush.radialGradient(listOf(skinLight, skinShade), center = Offset(96f, 26f), radius = 36f))
+                drawPath(paths.hair, hairColor)
+                val detail = Stroke(width = 1.3f, cap = StrokeCap.Round)
+                paths.lines.forEach { drawPath(it, detailColor, style = detail) }
+                drawOval(detailColor, topLeft = Offset(figure.navel.x - 1.6f, figure.navel.y - 2.2f), size = Size(3.2f, 4.4f))
+            }
 
             val enter = appear.value
             val baseR = f.len(ZONE_R)
 
             // Suggested site: two expanding, fading ripples + a slowly turning dashed ring.
             if (sug != null) {
-                val c = f.pt(zoneCenter(sug))
+                val c = f.pt(zoneCenter(sug, figure))
                 val sugSel = zones.first { it.site == sug }.selection.value
                 val r = baseR * (1f + SELECTED_GROW * sugSel) * backOut(stagger(enter, sites.indexOf(sug)))
                 if (r > 0f) {
@@ -296,7 +323,7 @@ fun BodyMap(
             zones.forEachIndexed { i, z ->
                 val pop = backOut(stagger(enter, i))
                 if (pop <= 0f) return@forEachIndexed
-                val c = f.pt(zoneCenter(z.site))
+                val c = f.pt(zoneCenter(z.site, figure))
                 val s = z.selection.value
                 val p = s.coerceIn(0f, 1f)
                 val r = baseR * (1f + SELECTED_GROW * s) * pop
@@ -318,7 +345,7 @@ fun BodyMap(
                 val alpha = stagger(enter, i).coerceIn(0f, 1f)
                 if (alpha <= 0f) return@forEachIndexed
                 val p = z.selection.value.coerceIn(0f, 1f)
-                val design = zoneCenter(z.site)
+                val design = zoneCenter(z.site, figure)
                 val c = f.pt(design)
                 val layout = measurer.measure(labels[i], labelStyle)
                 val w = layout.size.width + 2 * padH
@@ -430,24 +457,36 @@ private fun recencyColor(days: Int?, fresh: Color, mid: Color, recent: Color): C
 /** Maps figure units to canvas pixels: uniform scale, centred. */
 private class BodyFrame(width: Float, height: Float) {
     val scale = min(width / FIG_W, height / FIG_H)
-    private val ox = (width - FIG_W * scale) / 2f
-    private val oy = (height - FIG_H * scale) / 2f
-    val top: Float get() = oy
-    val bottom: Float get() = oy + FIG_H * scale
-    fun pt(x: Float, y: Float) = Offset(ox + x * scale, oy + y * scale)
+    val originX = (width - FIG_W * scale) / 2f
+    val originY = (height - FIG_H * scale) / 2f
+    fun pt(x: Float, y: Float) = Offset(originX + x * scale, originY + y * scale)
     fun pt(o: Offset) = pt(o.x, o.y)
     fun len(v: Float) = v * scale
 }
 
+/** The figure's SVG path data parsed once. */
+private class FigurePaths(figure: BodyFigure) {
+    private fun parse(d: String): Path = PathParser().parsePathString(d).toPath()
+    val body = parse(figure.body)
+    val arm = parse(figure.arm)
+    val otherArm = parse(figure.otherArm)
+    val head = parse(figure.head)
+    val hair = parse(figure.hair)
+    val lines = figure.lines.map(::parse)
+}
+
 /** Zone centres in figure units. The person's LEFT is on the viewer's RIGHT (x > FIG_W / 2). */
-private fun zoneCenter(site: InjectionSite): Offset = when (site) {
-    InjectionSite.ABDOMEN_RIGHT -> Offset(45f, 80f)
-    InjectionSite.ABDOMEN_LEFT -> Offset(FIG_W - 45f, 80f)
-    InjectionSite.THIGH_RIGHT -> Offset(45f, 124f)
-    InjectionSite.THIGH_LEFT -> Offset(FIG_W - 45f, 124f)
-    InjectionSite.ARM_RIGHT -> Offset(25.5f, 63f) // back of the upper arm, shown on its outer edge
-    InjectionSite.ARM_LEFT -> Offset(FIG_W - 25.5f, 63f)
-    InjectionSite.NONE -> Offset(FIG_W / 2f, 80f) // never drawn
+private fun zoneCenter(site: InjectionSite, figure: BodyFigure): Offset {
+    fun mirror(o: Offset) = Offset(FIG_W - o.x, o.y)
+    return when (site) {
+        InjectionSite.ABDOMEN_RIGHT -> figure.abdomenZone
+        InjectionSite.ABDOMEN_LEFT -> mirror(figure.abdomenZone)
+        InjectionSite.THIGH_RIGHT -> figure.thighZone
+        InjectionSite.THIGH_LEFT -> mirror(figure.thighZone)
+        InjectionSite.ARM_RIGHT -> figure.armZone // back of the upper arm, shown on its outer edge
+        InjectionSite.ARM_LEFT -> mirror(figure.armZone)
+        InjectionSite.NONE -> figure.navel // never drawn
+    }
 }
 
 /** Staggered 0..1 entrance progress of zone [index] from the global entrance progress [t]. */
@@ -459,114 +498,6 @@ private fun backOut(t: Float): Float {
     val c3 = c1 + 1f
     val u = t - 1f
     return 1f + c3 * u * u * u + c1 * u * u
-}
-
-/** A limb segment: two circles joined by their (near-)tangent quad — a tapered, rounded capsule. */
-private class LimbCapsule(val ax: Float, val ay: Float, val ar: Float, val bx: Float, val by: Float, val br: Float)
-
-private val BodyCapsules: List<LimbCapsule> = run {
-    val neck = LimbCapsule(55f, 25f, 5.2f, 55f, 34f, 6.4f)
-    val viewerLeft = listOf(
-        LimbCapsule(30.5f, 50.5f, 6.8f, 21.5f, 80f, 6.2f), // upper arm (starts inside the torso's shoulder)
-        LimbCapsule(21.5f, 80f, 6.2f, 17f, 105f, 5f), // forearm
-        LimbCapsule(16f, 111f, 6f, 16f, 111f, 6f), // hand
-        LimbCapsule(44f, 101f, 10.6f, 45.5f, 145f, 7.4f), // thigh
-        LimbCapsule(45.5f, 145f, 7.4f, 45.8f, 158f, 7.3f), // knee -> calf
-        LimbCapsule(45.8f, 158f, 7.3f, 46f, 181f, 4.8f), // calf -> ankle
-    )
-    val viewerRight = viewerLeft.map { LimbCapsule(FIG_W - it.ax, it.ay, it.ar, FIG_W - it.bx, it.by, it.br) }
-    listOf(neck) + viewerLeft + viewerRight
-}
-
-/** Left half of the torso outline (top-centre, down the viewer-left side, to bottom-centre). */
-private val TorsoStart = Offset(55f, 30f)
-private val TorsoLeftHalf: List<Triple<Offset, Offset, Offset>> = listOf(
-    Triple(Offset(51f, 30f), Offset(50f, 33.5f), Offset(45f, 34.5f)), // neck -> trapezius
-    Triple(Offset(40f, 35.5f), Offset(33f, 36f), Offset(29f, 39.5f)), // trapezius slope
-    Triple(Offset(25.5f, 42.5f), Offset(24.3f, 46f), Offset(24.3f, 49.5f)), // round shoulder, tangent to the arm
-    Triple(Offset(24.3f, 53f), Offset(31f, 57f), Offset(33f, 62f)), // armpit (hidden under the upper arm)
-    Triple(Offset(35f, 66f), Offset(36f, 70f), Offset(36f, 74f)), // waist
-    Triple(Offset(36f, 82f), Offset(32f, 88f), Offset(33f, 97f)), // hip
-    Triple(Offset(34f, 104f), Offset(42f, 108f), Offset(55f, 108f)), // crotch
-)
-
-private fun torsoPath(f: BodyFrame): Path {
-    val path = Path()
-    fun cubic(c1: Offset, c2: Offset, end: Offset) {
-        val a = f.pt(c1)
-        val b = f.pt(c2)
-        val e = f.pt(end)
-        path.cubicTo(a.x, a.y, b.x, b.y, e.x, e.y)
-    }
-    fun mirror(o: Offset) = Offset(FIG_W - o.x, o.y)
-    val start = f.pt(TorsoStart)
-    path.moveTo(start.x, start.y)
-    TorsoLeftHalf.forEach { (c1, c2, end) -> cubic(c1, c2, end) }
-    // Mirrored right half, walked back up: reverse each segment (swap controls, end at its start).
-    for (i in TorsoLeftHalf.indices.reversed()) {
-        val (c1, c2, _) = TorsoLeftHalf[i]
-        val segStart = if (i == 0) TorsoStart else TorsoLeftHalf[i - 1].third
-        cubic(mirror(c2), mirror(c1), mirror(segStart))
-    }
-    path.close()
-    return path
-}
-
-private fun DrawScope.drawCapsule(f: BodyFrame, c: LimbCapsule, grow: Float, brush: Brush) {
-    val a = f.pt(c.ax, c.ay)
-    val b = f.pt(c.bx, c.by)
-    val ra = f.len(c.ar) + grow
-    val rb = f.len(c.br) + grow
-    drawCircle(brush = brush, radius = ra, center = a)
-    val d = b - a
-    val l = d.getDistance()
-    if (l < 0.5f) return
-    drawCircle(brush = brush, radius = rb, center = b)
-    val nx = -d.y / l
-    val ny = d.x / l
-    val quad = Path().apply {
-        moveTo(a.x + nx * ra, a.y + ny * ra)
-        lineTo(b.x + nx * rb, b.y + ny * rb)
-        lineTo(b.x - nx * rb, b.y - ny * rb)
-        lineTo(a.x - nx * ra, a.y - ny * ra)
-        close()
-    }
-    drawPath(path = quad, brush = brush)
-}
-
-/** Head, neck, limbs, feet and torso, every shape grown by [grow] px (0 for the fill pass). */
-private fun DrawScope.drawSilhouette(f: BodyFrame, grow: Float, brush: Brush) {
-    drawCircle(brush = brush, radius = f.len(12.5f) + grow, center = f.pt(55f, 16.5f))
-    BodyCapsules.forEach { drawCapsule(f, it, grow, brush) }
-    for (cx in floatArrayOf(43.4f, FIG_W - 43.4f)) {
-        val tl = f.pt(cx - 6.5f, 181.8f)
-        drawOval(
-            brush = brush,
-            topLeft = Offset(tl.x - grow, tl.y - grow),
-            size = Size(f.len(13f) + 2f * grow, f.len(7.6f) + 2f * grow),
-        )
-    }
-    val torso = torsoPath(f)
-    drawPath(path = torso, brush = brush)
-    if (grow > 0f) drawPath(path = torso, brush = brush, style = Stroke(width = 2f * grow, join = StrokeJoin.Round))
-}
-
-/** A gentle face (it also makes the front view, hence the left/right mirroring, obvious) and the navel. */
-private fun DrawScope.drawDetails(f: BodyFrame, color: Color) {
-    drawCircle(color = color, radius = f.len(1.15f), center = f.pt(50.6f, 15.8f))
-    drawCircle(color = color, radius = f.len(1.15f), center = f.pt(59.4f, 15.8f))
-    val smileR = f.len(4.2f)
-    val sc = f.pt(55f, 18.2f)
-    drawArc(
-        color = color,
-        startAngle = 25f,
-        sweepAngle = 130f,
-        useCenter = false,
-        topLeft = Offset(sc.x - smileR, sc.y - smileR),
-        size = Size(2f * smileR, 2f * smileR),
-        style = Stroke(width = f.len(1.1f), cap = StrokeCap.Round),
-    )
-    drawCircle(color = color, radius = f.len(1.1f), center = f.pt(55f, 79f))
 }
 
 /** Check mark inside a zone of radius [r], stroked progressively as [progress] goes 0 -> 1. */

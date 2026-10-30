@@ -235,7 +235,7 @@ fun InjectionEditor(
 
         if (!medication.isOral) {
             FieldLabel(stringResource(R.string.injection_site))
-            InjectionSitePicker(selected = site, suggested = suggested, lastUse = lastUse, onSelect = { site = it })
+            InjectionSitePicker(selected = site, suggested = suggested, lastUse = lastUse, onSelect = { site = it }, female = settings.sex == 2)
             FieldLabel(stringResource(R.string.comfort_label))
             ComfortPicker(comfort) { comfort = if (comfort == it) 0 else it }
         }
@@ -291,12 +291,13 @@ fun InjectionSitePicker(
     suggested: InjectionSite,
     lastUse: Map<InjectionSite, Long>,
     onSelect: (InjectionSite) -> Unit,
+    female: Boolean = false,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        BodyMap(selected = selected, suggested = suggested, lastUse = lastUse, onSelect = onSelect)
+        BodyMap(selected = selected, suggested = suggested, lastUse = lastUse, onSelect = onSelect, female = female)
         if (selected != InjectionSite.NONE) {
             Text(
                 stringResource(R.string.bodymap_selected, stringResource(selected.nameRes)),
