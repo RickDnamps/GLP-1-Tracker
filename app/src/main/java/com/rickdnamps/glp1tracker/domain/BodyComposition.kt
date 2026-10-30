@@ -72,19 +72,38 @@ object BodyCompositionMath {
                 Sex.FEMALE -> -9.53 + 0.69 * h2r + 0.17 * weightKg + 0.02 * impedanceOhm
             } * FFM_CALIBRATION
             ).coerceIn(weightKg * 0.35, weightKg * 0.95)
-        return fromFatFreeMass(weightKg, ffm, age, sex).copy(impedance = impedanceOhm)
+        return fromFatFreeMass(weightKg, ffm, age, sex)
+            .copy(visceralFat = visceralFat(weightKg, heightCm, age, sex), impedance = impedanceOhm)
     }
 
     /**
      * Fills what a reading lacks from its body fat %: Health Connect only carries weight, fat,
-     * lean, bone, water and BMR, and Renpho shares just the fat there. Values already present win;
-     * visceral fat cannot be derived. Metabolic age needs [age] and [sex].
+     * lean, bone, water and BMR, and Renpho shares just the fat there. Values already present win.
+     * Metabolic age and visceral fat need [age] and [sex] (and the height for visceral fat).
      */
-    fun complete(c: BodyComp, weightKg: Double, age: Int?, sex: Sex?): BodyComp {
+    fun complete(c: BodyComp, weightKg: Double, heightCm: Double, age: Int?, sex: Sex?): BodyComp {
         val fat = c.bodyFatPct?.takeIf { it in 2.0..75.0 } ?: return c
         if (weightKg <= 0) return c
-        return c.mergedWith(fromFatFreeMass(weightKg, weightKg * (1 - fat / 100), age, sex).copy(bodyFatPct = fat))
+        val visceral = if (age != null && sex != null) visceralFat(weightKg, heightCm, age, sex) else null
+        return c.mergedWith(fromFatFreeMass(weightKg, weightKg * (1 - fat / 100), age, sex).copy(bodyFatPct = fat, visceralFat = visceral))
     }
+
+    /**
+     * Visceral fat rating (1–59) the way consumer scales compute it: from weight, height, age and
+     * sex, not from the impedance. Formula reverse-engineered from the Xiaomi scale (openScale),
+     * its main branch only: the other one jumps by ~15 points at the switch. × [VISCERAL_CALIBRATION]
+     * to match the Renpho app, which reads 21 on both 304.4 lb and 302.6 lb for the owner (188 cm, 46 y).
+     */
+    fun visceralFat(weightKg: Double, heightCm: Double, age: Int, sex: Sex): Double? {
+        if (weightKg <= 0 || heightCm !in 100.0..250.0 || age !in 10..100) return null
+        val raw = when (sex) {
+            Sex.MALE -> weightKg * 305 / (0.0826 * heightCm * heightCm - 0.4 * heightCm + 48) - 2.9 + 0.15 * age
+            Sex.FEMALE -> weightKg * 500 / (0.1158 * heightCm * heightCm + 1.45 * heightCm - 120) - 6 + 0.07 * age
+        }
+        return kotlin.math.round(raw * VISCERAL_CALIBRATION).coerceIn(1.0, 59.0)
+    }
+
+    private const val VISCERAL_CALIBRATION = 1.135
 
     /** Every value from the fat-free mass, with the shares the Renpho app reports for the same reading. */
     private fun fromFatFreeMass(weightKg: Double, ffm: Double, age: Int?, sex: Sex?): BodyComp {

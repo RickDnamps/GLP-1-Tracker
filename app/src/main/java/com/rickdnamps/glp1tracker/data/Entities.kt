@@ -49,7 +49,7 @@ val WeightEntity.composition: BodyComp
 /** Composition to show: what was measured, plus the values derived from its body fat % (see [BodyCompositionMath.complete]). */
 fun WeightEntity.fullComposition(settings: UserSettings): BodyComp {
     val day = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
-    return BodyCompositionMath.complete(composition, weightKg, settings.ageOn(day), settings.sexOrNull)
+    return BodyCompositionMath.complete(composition, weightKg, settings.heightCm, settings.ageOn(day), settings.sexOrNull)
 }
 
 fun WeightEntity.withComposition(c: BodyComp) = copy(

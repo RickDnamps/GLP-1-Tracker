@@ -36,13 +36,30 @@ class BodyCompositionTest {
         assertEquals(32.5, c.subcutaneousFatPct!!, 0.5)
         assertEquals(2201.0, c.bmrKcal!!, 20.0)
         assertEquals(53, c.metabolicAge)
+        assertEquals(21.0, c.visceralFat!!, 0.001)
+    }
+
+    @Test
+    fun visceralFatMatchesRenphoAndFollowsWeight() {
+        val m = BodyCompositionMath
+        // Renpho app: 21 at 304.4 lb and at 302.6 lb (188 cm, 46 y, man).
+        assertEquals(21.0, m.visceralFat(138.07, 187.96, 46, Sex.MALE)!!, 0.001)
+        assertEquals(21.0, m.visceralFat(137.26, 187.96, 46, Sex.MALE)!!, 0.001)
+        // Falls steadily with weight (one formula for every weight: no jump between branches).
+        val atBmi25 = m.visceralFat(88.3, 187.96, 46, Sex.MALE)!!
+        assertTrue("bmi 25: $atBmi25", atBmi25 in 12.0..17.0)
+        assertTrue(m.visceralFat(118.0, 187.96, 46, Sex.MALE)!! in atBmi25..21.0)
+        assertTrue(m.visceralFat(72.0, 178.0, 30, Sex.MALE)!! < atBmi25)
+        assertTrue(m.visceralFat(60.0, 165.0, 40, Sex.FEMALE)!! < 10)
+        assertTrue(m.visceralFat(110.0, 165.0, 55, Sex.FEMALE)!! >= 10)
+        assertNull(m.visceralFat(80.0, 0.0, 40, Sex.MALE))
     }
 
     @Test
     fun completesAHealthConnectReadingFromItsFatPercentage() {
         // Renpho shares only weight and body fat with Health Connect; the rest is derived from the
         // same reading (304.4 lb, 38.6 %) and lands on the Renpho app's values above.
-        val c = BodyCompositionMath.complete(BodyComp(bodyFatPct = 38.6), 138.07, 46, Sex.MALE)
+        val c = BodyCompositionMath.complete(BodyComp(bodyFatPct = 38.6), 138.07, 187.96, 46, Sex.MALE)
         assertEquals(38.6, c.bodyFatPct!!, 0.001)
         assertEquals(44.3, c.waterPct!!, 0.3)
         assertEquals(9.4 / 2.20462, c.boneKg!!, 0.1)
@@ -52,15 +69,16 @@ class BodyCompositionTest {
         assertEquals(32.5, c.subcutaneousFatPct!!, 0.3)
         assertEquals(2201.0, c.bmrKcal!!, 10.0)
         assertEquals(53, c.metabolicAge)
-        assertNull(c.visceralFat)
+        assertEquals(21.0, c.visceralFat!!, 0.001)
 
         // Values the source did provide are kept; no fat % → nothing to derive; no profile → no body age.
-        val withBmr = BodyCompositionMath.complete(BodyComp(bodyFatPct = 38.6, bmrKcal = 2150.0, visceralFat = 18.0), 138.07, 46, Sex.MALE)
+        val withBmr = BodyCompositionMath.complete(BodyComp(bodyFatPct = 38.6, bmrKcal = 2150.0, visceralFat = 18.0), 138.07, 187.96, 46, Sex.MALE)
         assertEquals(2150.0, withBmr.bmrKcal!!, 0.001)
         assertEquals(18.0, withBmr.visceralFat!!, 0.001)
-        assertEquals(BodyComp(waterPct = 50.0), BodyCompositionMath.complete(BodyComp(waterPct = 50.0), 80.0, 40, Sex.FEMALE))
-        val noProfile = BodyCompositionMath.complete(BodyComp(bodyFatPct = 30.0), 80.0, null, null)
+        assertEquals(BodyComp(waterPct = 50.0), BodyCompositionMath.complete(BodyComp(waterPct = 50.0), 80.0, 165.0, 40, Sex.FEMALE))
+        val noProfile = BodyCompositionMath.complete(BodyComp(bodyFatPct = 30.0), 80.0, 0.0, null, null)
         assertNull(noProfile.metabolicAge)
+        assertNull(noProfile.visceralFat)
         assertNotNull(noProfile.waterPct)
     }
 
