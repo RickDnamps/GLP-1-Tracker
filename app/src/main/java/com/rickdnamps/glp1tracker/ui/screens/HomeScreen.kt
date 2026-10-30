@@ -163,6 +163,9 @@ fun HomeScreen(
         item { LevelCard(state) }
         item { WeightCard(state, onAdd = { openEditor(Editor.Weight()) }) }
         item { TodayCard(state, vm) }
+        if (state.supplements.any { !it.archived && !it.asNeeded }) {
+            item { SupplementsCard(state, vm, LocalDate.now(), compact = true) }
+        }
         item { WellbeingStrip(state) }
         item {
             Text(

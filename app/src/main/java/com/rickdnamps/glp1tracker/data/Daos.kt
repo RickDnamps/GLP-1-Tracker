@@ -178,3 +178,45 @@ interface VitalDao {
     @Query("DELETE FROM vitals")
     suspend fun clear()
 }
+
+@Dao
+interface SupplementDao {
+    @Query("SELECT * FROM supplements ORDER BY asNeeded ASC, name ASC")
+    fun observeAll(): Flow<List<SupplementEntity>>
+
+    @Query("SELECT * FROM supplements")
+    suspend fun getAll(): List<SupplementEntity>
+
+    @Upsert
+    suspend fun upsert(item: SupplementEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<SupplementEntity>)
+
+    @Query("DELETE FROM supplements")
+    suspend fun clear()
+}
+
+@Dao
+interface SupplementLogDao {
+    @Query("SELECT * FROM supplement_logs ORDER BY timestamp ASC")
+    fun observeAll(): Flow<List<SupplementLogEntity>>
+
+    @Query("SELECT * FROM supplement_logs ORDER BY timestamp ASC")
+    suspend fun getAll(): List<SupplementLogEntity>
+
+    @Query("SELECT * FROM supplement_logs WHERE supplementId = :id AND timestamp >= :from AND timestamp < :to")
+    suspend fun between(id: Long, from: Long, to: Long): List<SupplementLogEntity>
+
+    @Insert
+    suspend fun insert(item: SupplementLogEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<SupplementLogEntity>)
+
+    @Delete
+    suspend fun delete(item: SupplementLogEntity)
+
+    @Query("DELETE FROM supplement_logs")
+    suspend fun clear()
+}

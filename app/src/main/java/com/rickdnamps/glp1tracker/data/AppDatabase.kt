@@ -11,8 +11,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         InjectionEntity::class, WeightEntity::class, SideEffectEntity::class, DailyLogEntity::class,
         MeasurementEntity::class, FoodEntity::class, PhotoEntity::class, VitalEntity::class,
+        SupplementEntity::class, SupplementLogEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -24,6 +25,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun foodDao(): FoodDao
     abstract fun photoDao(): PhotoDao
     abstract fun vitalDao(): VitalDao
+    abstract fun supplementDao(): SupplementDao
+    abstract fun supplementLogDao(): SupplementLogDao
 
     companion object {
         /** v2: body measurements and food log. Waist values move from weights to measurements. */
@@ -94,9 +97,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v6: supplements and as-needed remedies with their intakes. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `supplements` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `asNeeded` INTEGER NOT NULL, `archived` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `supplement_logs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`supplementId` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL)"
+                )
+            }
+        }
+
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "glp1tracker.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
     }
 }

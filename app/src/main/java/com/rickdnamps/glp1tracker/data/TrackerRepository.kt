@@ -20,6 +20,8 @@ class TrackerRepository(
     val foods: Flow<List<FoodEntity>> = db.foodDao().observeAll()
     val photos: Flow<List<PhotoEntity>> = db.photoDao().observeAll()
     val vitals: Flow<List<VitalEntity>> = db.vitalDao().observeAll()
+    val supplements: Flow<List<SupplementEntity>> = db.supplementDao().observeAll()
+    val supplementLogs: Flow<List<SupplementLogEntity>> = db.supplementLogDao().observeAll()
     val settings: Flow<UserSettings> = settingsRepository.settings
 
     suspend fun latestInjection(): InjectionEntity? = db.injectionDao().latest()
@@ -106,6 +108,33 @@ class TrackerRepository(
         db.dailyLogDao().upsert(transform(current).copy(date = key))
     }
 
+    suspend fun saveSupplement(item: SupplementEntity) = db.supplementDao().upsert(item)
+
+    /** Daily item: ticks or unticks [day]; remedy: adds one intake at [atMillis]. */
+    suspend fun toggleSupplement(item: SupplementEntity, day: LocalDate, atMillis: Long) {
+        if (item.asNeeded) {
+            db.supplementLogDao().insert(SupplementLogEntity(supplementId = item.id, timestamp = atMillis))
+            return
+        }
+        val zone = java.time.ZoneId.systemDefault()
+        val from = day.atStartOfDay(zone).toInstant().toEpochMilli()
+        val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val existing = db.supplementLogDao().between(item.id, from, to)
+        if (existing.isEmpty()) {
+            db.supplementLogDao().insert(SupplementLogEntity(supplementId = item.id, timestamp = atMillis.coerceIn(from, to - 1)))
+        } else {
+            existing.forEach { db.supplementLogDao().delete(it) }
+        }
+    }
+
+    /** Removes the last intake of a remedy on [day] (undo of an extra tap). */
+    suspend fun removeLastIntake(item: SupplementEntity, day: LocalDate) {
+        val zone = java.time.ZoneId.systemDefault()
+        val from = day.atStartOfDay(zone).toInstant().toEpochMilli()
+        val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        db.supplementLogDao().between(item.id, from, to).maxByOrNull { it.timestamp }?.let { db.supplementLogDao().delete(it) }
+    }
+
     suspend fun snapshot(): Backup.Snapshot = Backup.Snapshot(
         settings = settingsRepository.current(),
         injections = db.injectionDao().getAll(),
@@ -115,6 +144,8 @@ class TrackerRepository(
         measurements = db.measurementDao().getAll(),
         foods = db.foodDao().getAll(),
         vitals = db.vitalDao().getAll(),
+        supplements = db.supplementDao().getAll(),
+        supplementLogs = db.supplementLogDao().getAll(),
     )
 
     suspend fun restore(snapshot: Backup.Snapshot) {
@@ -126,6 +157,8 @@ class TrackerRepository(
             db.measurementDao().clear()
             db.foodDao().clear()
             db.vitalDao().clear()
+            db.supplementDao().clear()
+            db.supplementLogDao().clear()
             db.injectionDao().insertAll(snapshot.injections)
             db.weightDao().insertAll(snapshot.weights)
             db.sideEffectDao().insertAll(snapshot.sideEffects)
@@ -133,6 +166,8 @@ class TrackerRepository(
             db.measurementDao().insertAll(snapshot.measurements)
             db.foodDao().insertAll(snapshot.foods)
             db.vitalDao().insertAll(snapshot.vitals)
+            db.supplementDao().insertAll(snapshot.supplements)
+            db.supplementLogDao().insertAll(snapshot.supplementLogs)
         }
         settingsRepository.update { cur ->
             snapshot.settings.copy(

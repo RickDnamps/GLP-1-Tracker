@@ -14,6 +14,8 @@ import com.rickdnamps.glp1tracker.data.MeasurementEntity
 import com.rickdnamps.glp1tracker.data.PhotoEntity
 import com.rickdnamps.glp1tracker.data.PhotoStore
 import com.rickdnamps.glp1tracker.data.VitalEntity
+import com.rickdnamps.glp1tracker.data.SupplementLogEntity
+import com.rickdnamps.glp1tracker.data.SupplementEntity
 import com.rickdnamps.glp1tracker.data.DailyLogEntity
 import com.rickdnamps.glp1tracker.data.InjectionEntity
 import com.rickdnamps.glp1tracker.data.SideEffectEntity
@@ -54,6 +56,8 @@ data class UiState(
     val foods: List<FoodEntity> = emptyList(),
     val photos: List<PhotoEntity> = emptyList(),
     val vitals: List<VitalEntity> = emptyList(),
+    val supplements: List<SupplementEntity> = emptyList(),
+    val supplementLogs: List<SupplementLogEntity> = emptyList(),
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -65,20 +69,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val state: StateFlow<UiState> = combine(
         combine(
-            repository.settings,
-            repository.injections,
-            repository.weights,
-            repository.sideEffects,
-            repository.dailyLogs,
-        ) { settings, injections, weights, sideEffects, dailyLogs ->
-            UiState(true, settings, injections, weights, sideEffects, dailyLogs)
+            combine(
+                repository.settings,
+                repository.injections,
+                repository.weights,
+                repository.sideEffects,
+                repository.dailyLogs,
+            ) { settings, injections, weights, sideEffects, dailyLogs ->
+                UiState(true, settings, injections, weights, sideEffects, dailyLogs)
+            },
+            repository.measurements,
+            repository.foods,
+            repository.photos,
+            repository.vitals,
+        ) { core, measurements, foods, photos, vitals ->
+            core.copy(measurements = measurements, foods = foods, photos = photos, vitals = vitals)
         },
-        repository.measurements,
-        repository.foods,
-        repository.photos,
-        repository.vitals,
-    ) { core, measurements, foods, photos, vitals ->
-        core.copy(measurements = measurements, foods = foods, photos = photos, vitals = vitals)
+        repository.supplements,
+        repository.supplementLogs,
+    ) { core, supplements, logs ->
+        core.copy(supplements = supplements, supplementLogs = logs)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     init {
@@ -193,6 +203,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- Daily log ---
+    // --- Supplements & remedies ---
+    fun saveSupplement(item: SupplementEntity) = viewModelScope.launch { repository.saveSupplement(item) }
+
+    fun toggleSupplement(item: SupplementEntity, day: LocalDate) = viewModelScope.launch {
+        val now = java.time.LocalDateTime.now()
+        val at = if (day == now.toLocalDate()) now else day.atTime(12, 0)
+        repository.toggleSupplement(item, day, at.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+    }
+
+    fun removeLastIntake(item: SupplementEntity, day: LocalDate) = viewModelScope.launch { repository.removeLastIntake(item, day) }
+
     fun updateDailyLog(date: LocalDate, transform: (DailyLogEntity) -> DailyLogEntity) = viewModelScope.launch {
         repository.updateDailyLog(date, transform)
     }

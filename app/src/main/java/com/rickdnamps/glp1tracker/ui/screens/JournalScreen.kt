@@ -97,6 +97,7 @@ fun JournalScreen(state: UiState, vm: AppViewModel, contentPadding: PaddingValue
             }
         }
         item { HabitsCard(state, log, date, vm) }
+        item { SupplementsCard(state, vm, date) }
         item {
             FoodCard(
                 state.foods, date, state.settings,

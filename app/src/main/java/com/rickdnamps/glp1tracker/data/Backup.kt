@@ -21,6 +21,8 @@ object Backup {
         val measurements: List<MeasurementEntity> = emptyList(),
         val foods: List<FoodEntity> = emptyList(),
         val vitals: List<VitalEntity> = emptyList(),
+        val supplements: List<SupplementEntity> = emptyList(),
+        val supplementLogs: List<SupplementLogEntity> = emptyList(),
     )
 
     private const val FORMAT_VERSION = 3
@@ -92,6 +94,14 @@ object Backup {
                 put(JSONObject().put("id", it.id).put("timestamp", it.timestamp).put("type", it.type)
                     .put("value", num(it.value)).put("value2", num(it.value2)).put("notes", it.notes))
             }
+        })
+        root.put("supplements", JSONArray().apply {
+            s.supplements.forEach {
+                put(JSONObject().put("id", it.id).put("name", it.name).put("asNeeded", it.asNeeded).put("archived", it.archived))
+            }
+        })
+        root.put("supplementLogs", JSONArray().apply {
+            s.supplementLogs.forEach { put(JSONObject().put("id", it.id).put("supplementId", it.supplementId).put("timestamp", it.timestamp)) }
         })
         return root.toString(2)
     }
@@ -171,6 +181,17 @@ object Backup {
                     neckCm = it.optNullableDouble("neckCm"),
                     notes = it.optString("notes"),
                 )
+            },
+            supplements = root.optJSONArray("supplements").objects().map {
+                SupplementEntity(
+                    id = it.optLong("id"),
+                    name = it.optString("name"),
+                    asNeeded = it.optBoolean("asNeeded", false),
+                    archived = it.optBoolean("archived", false),
+                )
+            }.filter { it.name.isNotBlank() },
+            supplementLogs = root.optJSONArray("supplementLogs").objects().map {
+                SupplementLogEntity(id = it.optLong("id"), supplementId = it.optLong("supplementId"), timestamp = it.getLong("timestamp"))
             },
             vitals = root.optJSONArray("vitals").objects().map {
                 VitalEntity(
@@ -356,6 +377,14 @@ object Backup {
         appendLine("date,name,kcal,protein_g,fiber_g")
         s.foods.sortedBy { it.timestamp }.forEach {
             appendLine(listOf(csvTime(it.timestamp), csv(it.name), it.calories.toString(), cm(it.proteinG), cm(it.fiberG)).joinToString(","))
+        }
+        appendLine()
+        appendLine("# Supplements and remedies")
+        appendLine("date,name,as_needed")
+        val supplementNames = s.supplements.associateBy { it.id }
+        s.supplementLogs.sortedBy { it.timestamp }.forEach { log ->
+            val item = supplementNames[log.supplementId] ?: return@forEach
+            appendLine(listOf(csvTime(log.timestamp), csv(item.name), item.asNeeded.toString()).joinToString(","))
         }
         appendLine()
         appendLine("# Vitals and labs")

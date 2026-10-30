@@ -125,3 +125,21 @@ data class VitalEntity(
     val value2: Double? = null,
     val notes: String = "",
 )
+
+/** A supplement or as-needed remedy the user tracks (multivitamin, fibre, anti-nausea…). */
+@Entity(tableName = "supplements")
+data class SupplementEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    /** false = ticked once a day, true = counted each time it is taken (remedies). */
+    val asNeeded: Boolean = false,
+    val archived: Boolean = false,
+)
+
+/** One intake of a [SupplementEntity]. */
+@Entity(tableName = "supplement_logs")
+data class SupplementLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val supplementId: Long,
+    val timestamp: Long,
+)
