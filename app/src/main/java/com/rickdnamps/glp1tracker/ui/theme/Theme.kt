@@ -27,6 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.rickdnamps.glp1tracker.R
+import java.time.LocalTime
+import kotlinx.coroutines.delay
+import com.rickdnamps.glp1tracker.domain.ThemeSchedule
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.getValue
 
 /** Accent palettes the user can pick; neutrals stay shared so every accent looks polished. */
 enum class Accent(
@@ -190,15 +195,36 @@ fun isDarkTheme(themeMode: Int): Boolean = when (themeMode) {
     else -> isSystemInDarkTheme()
 }
 
+/**
+ * True during the night window when "dark in the evening" is on; re-checked every minute so the
+ * theme flips by itself while the app is open.
+ */
+@Composable
+fun rememberNightMode(enabled: Boolean, startMinutes: Int, endMinutes: Int): Boolean {
+    val night by produceState(
+        initialValue = enabled && ThemeSchedule.isNight(LocalTime.now(), startMinutes, endMinutes),
+        enabled, startMinutes, endMinutes,
+    ) {
+        while (true) {
+            value = enabled && ThemeSchedule.isNight(LocalTime.now(), startMinutes, endMinutes)
+            if (!enabled) break
+            delay(30_000)
+        }
+    }
+    return night
+}
+
 @Composable
 fun Glp1Theme(
     themeMode: Int = 0,
     accent: Accent = Accent.TEAL,
     dynamicColor: Boolean = false,
+    /** Dark regardless of [themeMode] (night window of "dark in the evening"). */
+    forceDark: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val dark = isDarkTheme(themeMode)
-    val bright = themeMode == THEME_BRIGHT
+    val dark = forceDark || isDarkTheme(themeMode)
+    val bright = themeMode == THEME_BRIGHT && !dark
     val context = LocalContext.current
     val scheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->

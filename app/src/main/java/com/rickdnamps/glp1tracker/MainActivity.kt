@@ -14,6 +14,7 @@ import com.rickdnamps.glp1tracker.ui.Glp1AppUi
 import com.rickdnamps.glp1tracker.ui.theme.Accent
 import com.rickdnamps.glp1tracker.ui.theme.Glp1Theme
 import com.rickdnamps.glp1tracker.ui.theme.isDarkTheme
+import com.rickdnamps.glp1tracker.ui.theme.rememberNightMode
 
 /** FragmentActivity (not ComponentActivity) because the biometric app lock needs it. */
 class MainActivity : FragmentActivity() {
@@ -26,7 +27,8 @@ class MainActivity : FragmentActivity() {
             val state by viewModel.state.collectAsStateWithLifecycle()
             val s = state.settings
             // Status and navigation bar icons follow the app's theme, not only the system's.
-            val dark = isDarkTheme(s.themeMode)
+            val night = rememberNightMode(s.autoDarkAtNight, s.nightStartMinutes, s.nightEndMinutes)
+            val dark = night || isDarkTheme(s.themeMode)
             DisposableEffect(dark) {
                 val transparent = android.graphics.Color.TRANSPARENT
                 enableEdgeToEdge(
@@ -35,7 +37,7 @@ class MainActivity : FragmentActivity() {
                 )
                 onDispose {}
             }
-            Glp1Theme(themeMode = s.themeMode, accent = Accent.fromName(s.accent), dynamicColor = s.dynamicColor) {
+            Glp1Theme(themeMode = s.themeMode, accent = Accent.fromName(s.accent), dynamicColor = s.dynamicColor, forceDark = night) {
                 Glp1AppUi(viewModel)
             }
         }

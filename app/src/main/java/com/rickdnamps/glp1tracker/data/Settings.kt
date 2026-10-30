@@ -74,6 +74,10 @@ data class UserSettings(
     /** 0 = follow system, 1 = light, 2 = dark. */
     /** 0 = follow the system, 1 = light (default), 2 = dark, 3 = bright. */
     val themeMode: Int = 1,
+    /** Switch to the dark theme between [nightStartMinutes] and [nightEndMinutes] (minutes after midnight). */
+    val autoDarkAtNight: Boolean = false,
+    val nightStartMinutes: Int = 20 * 60,
+    val nightEndMinutes: Int = 7 * 60,
     val accent: String = "TEAL",
     val dynamicColor: Boolean = false,
     /** Badges already celebrated with confetti (Milestones.encode). */
@@ -169,6 +173,9 @@ class SettingsRepository(context: Context) {
         val appLock = booleanPreferencesKey("app_lock")
         val skippedDueEpochDay = longPreferencesKey("skipped_due_epoch_day")
         val themeMode = intPreferencesKey("theme_mode")
+        val autoDarkAtNight = booleanPreferencesKey("auto_dark_at_night")
+        val nightStartMinutes = intPreferencesKey("night_start_minutes")
+        val nightEndMinutes = intPreferencesKey("night_end_minutes")
         val accent = stringPreferencesKey("accent")
         val dynamicColor = booleanPreferencesKey("dynamic_color")
         val celebratedBadges = stringPreferencesKey("celebrated_badges")
@@ -229,6 +236,9 @@ class SettingsRepository(context: Context) {
             appLock = p[Keys.appLock] ?: d.appLock,
             skippedDueEpochDay = p[Keys.skippedDueEpochDay] ?: d.skippedDueEpochDay,
             themeMode = p[Keys.themeMode] ?: d.themeMode,
+            autoDarkAtNight = p[Keys.autoDarkAtNight] ?: d.autoDarkAtNight,
+            nightStartMinutes = p[Keys.nightStartMinutes] ?: d.nightStartMinutes,
+            nightEndMinutes = p[Keys.nightEndMinutes] ?: d.nightEndMinutes,
             accent = p[Keys.accent] ?: d.accent,
             dynamicColor = p[Keys.dynamicColor] ?: d.dynamicColor,
             celebratedBadges = p[Keys.celebratedBadges] ?: d.celebratedBadges,
@@ -292,6 +302,9 @@ class SettingsRepository(context: Context) {
         p[Keys.appLock] = s.appLock
         p[Keys.skippedDueEpochDay] = s.skippedDueEpochDay
         p[Keys.themeMode] = s.themeMode
+        p[Keys.autoDarkAtNight] = s.autoDarkAtNight
+        p[Keys.nightStartMinutes] = s.nightStartMinutes
+        p[Keys.nightEndMinutes] = s.nightEndMinutes
         p[Keys.accent] = s.accent
         p[Keys.dynamicColor] = s.dynamicColor
         p[Keys.celebratedBadges] = s.celebratedBadges

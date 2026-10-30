@@ -96,7 +96,7 @@ import kotlinx.coroutines.launch
 private enum class SettingDialog {
     NAME, HEIGHT, START_WEIGHT, GOAL_WEIGHT, MEDICATION, DOSE, DOSE_CUSTOM, INTERVAL, INTERVAL_CUSTOM, DAY, TIME,
     CUSTOM_NAME, CUSTOM_HALF_LIFE, WATER_GOAL, STEP_GOAL, PROTEIN_GOAL, PEN_TOTAL, PEN_REMAINING,
-    SEX, BIRTH_YEAR, REPORT_PERIOD, STOCK_PENS, DISCARD_DAYS, PEN_OPENED, WEIGH_IN_DAY, WEIGH_IN_TIME, CALORIE_GOAL, FIBER_GOAL,
+    NIGHT_START, NIGHT_END, SEX, BIRTH_YEAR, REPORT_PERIOD, STOCK_PENS, DISCARD_DAYS, PEN_OPENED, WEIGH_IN_DAY, WEIGH_IN_TIME, CALORIE_GOAL, FIBER_GOAL,
 }
 
 private const val CUSTOM = -1.0
@@ -224,6 +224,22 @@ fun SettingsScreen(
                             onClick = { vm.updateSettings { it.copy(themeMode = mode) } },
                             shape = SegmentedButtonDefaults.itemShape(i, modes.size),
                         ) { Text(stringResource(label), maxLines = 1, style = MaterialTheme.typography.labelMedium) }
+                    }
+                }
+                if (s.themeMode != 2) {
+                    SwitchRow(stringResource(R.string.theme_auto_night), s.autoDarkAtNight) { on ->
+                        vm.updateSettings { it.copy(autoDarkAtNight = on) }
+                    }
+                    if (s.autoDarkAtNight) {
+                        val today = LocalDate.now()
+                        SettingRow(
+                            stringResource(R.string.night_start),
+                            Format.time(today.atTime(s.nightStartMinutes / 60, s.nightStartMinutes % 60)),
+                        ) { dialog = SettingDialog.NIGHT_START }
+                        SettingRow(
+                            stringResource(R.string.night_end),
+                            Format.time(today.atTime(s.nightEndMinutes / 60, s.nightEndMinutes % 60)),
+                        ) { dialog = SettingDialog.NIGHT_END }
                     }
                 }
                 Text(stringResource(R.string.accent_color), style = MaterialTheme.typography.bodyLarge)
@@ -638,6 +654,12 @@ private fun SettingDialogs(
             onDismiss = close,
             onSelect = { d -> save { it.copy(weighInDayValue = d.value) } },
         )
+        SettingDialog.NIGHT_START -> TimePickerDialogFor(java.time.LocalTime.of(s.nightStartMinutes / 60, s.nightStartMinutes % 60), close) { t ->
+            save { it.copy(nightStartMinutes = t.hour * 60 + t.minute) }
+        }
+        SettingDialog.NIGHT_END -> TimePickerDialogFor(java.time.LocalTime.of(s.nightEndMinutes / 60, s.nightEndMinutes % 60), close) { t ->
+            save { it.copy(nightEndMinutes = t.hour * 60 + t.minute) }
+        }
         SettingDialog.WEIGH_IN_TIME -> TimePickerDialogFor(java.time.LocalTime.of(s.weighInHour, 0), close) { t ->
             save { it.copy(weighInHour = t.hour) }
         }

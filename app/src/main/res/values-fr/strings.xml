@@ -561,6 +561,9 @@
     <string name="rem_simethicone">Siméthicone (gaz)</string>
     <string name="rem_ginger">Gingembre</string>
     <string name="rem_antidiarrheal">Antidiarrhéique</string>
+    <string name="theme_auto_night">Sombre le soir (automatique)</string>
+    <string name="night_start">Sombre à partir de</string>
+    <string name="night_end">Clair de nouveau à</string>
     <plurals name="days_ago">
         <item quantity="one">Il y a %d jour</item>
         <item quantity="many">Il y a %d jours</item>

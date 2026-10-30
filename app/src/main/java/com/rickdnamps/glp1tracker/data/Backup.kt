@@ -265,6 +265,9 @@ object Backup {
         put("appLock", s.appLock)
         put("skippedDueEpochDay", s.skippedDueEpochDay)
         put("themeMode", s.themeMode)
+        put("autoDarkAtNight", s.autoDarkAtNight)
+        put("nightStartMinutes", s.nightStartMinutes)
+        put("nightEndMinutes", s.nightEndMinutes)
         put("accent", s.accent)
         put("dynamicColor", s.dynamicColor)
         put("celebratedBadges", s.celebratedBadges)
@@ -316,6 +319,9 @@ object Backup {
             appLock = o.optBoolean("appLock", d.appLock),
             skippedDueEpochDay = o.optLong("skippedDueEpochDay", d.skippedDueEpochDay),
             themeMode = o.optInt("themeMode", d.themeMode),
+            autoDarkAtNight = o.optBoolean("autoDarkAtNight", d.autoDarkAtNight),
+            nightStartMinutes = o.optInt("nightStartMinutes", d.nightStartMinutes).coerceIn(0, 1439),
+            nightEndMinutes = o.optInt("nightEndMinutes", d.nightEndMinutes).coerceIn(0, 1439),
             accent = o.optString("accent", d.accent),
             dynamicColor = o.optBoolean("dynamicColor", d.dynamicColor),
             celebratedBadges = o.optString("celebratedBadges", d.celebratedBadges),
