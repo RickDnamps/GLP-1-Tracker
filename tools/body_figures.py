@@ -1,4 +1,5 @@
-# Generates the body-map figures (ui/components/BodyFigures.kt) and a preview: python3 tools/body_figures.py
+# Body-map figures: hand-authored half outlines mirrored around x = 100. Writes figures.json (path data
+# copied into ui/components/BodyFigures.kt) and preview.html/svg in the current directory. Run: python3 tools/body_figures.py
 import json, sys
 W = 200.0
 
