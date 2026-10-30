@@ -144,18 +144,18 @@ fun pulseAlpha(): androidx.compose.runtime.State<Float> {
     )
 }
 
-/** Background glow behind the screens. */
-fun Modifier.topGlow(color: Color): Modifier = drawBehind {
+/** Background glow behind the screens; [strength] scales it (the bright theme keeps it faint). */
+fun Modifier.topGlow(color: Color, strength: Float = 1f): Modifier = drawBehind {
     drawRect(
         Brush.radialGradient(
-            colors = listOf(color.copy(alpha = 0.22f), Color.Transparent),
+            colors = listOf(color.copy(alpha = 0.22f * strength), Color.Transparent),
             center = Offset(size.width * 0.15f, 0f),
             radius = size.width * 1.1f,
         )
     )
     drawRect(
         Brush.radialGradient(
-            colors = listOf(color.copy(alpha = 0.10f), Color.Transparent),
+            colors = listOf(color.copy(alpha = 0.10f * strength), Color.Transparent),
             center = Offset(size.width * 1.0f, size.height * 0.25f),
             radius = size.width * 0.8f,
         )

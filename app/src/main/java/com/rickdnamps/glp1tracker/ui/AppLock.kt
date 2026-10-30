@@ -109,7 +109,7 @@ fun LockScreen(onUnlocked: () -> Unit, onLockUnavailable: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
-            .topGlow(MaterialTheme.colorScheme.primary)
+            .topGlow(MaterialTheme.colorScheme.primary, com.rickdnamps.glp1tracker.ui.theme.LocalBrand.current.glow)
             .padding(24.dp),
         contentAlignment = Alignment.Center,
     ) {

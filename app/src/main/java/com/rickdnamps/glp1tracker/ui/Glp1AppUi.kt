@@ -184,7 +184,7 @@ private fun MainScaffold(state: UiState, vm: AppViewModel) {
     Scaffold(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.background)
-            .topGlow(MaterialTheme.colorScheme.primary),
+            .topGlow(MaterialTheme.colorScheme.primary, com.rickdnamps.glp1tracker.ui.theme.LocalBrand.current.glow),
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(

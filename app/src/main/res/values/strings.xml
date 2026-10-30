@@ -522,6 +522,7 @@
     <string name="sleep_last_night">Sleep last night · %1$s</string>
     <string name="activity_connect">Show my steps and sleep (Health Connect)</string>
     <string name="activity_no_data">No steps or sleep in Health Connect yet: your phone\'s health app, watch or Google Fit must record them.</string>
+    <string name="theme_bright">Bright</string>
     <plurals name="days_ago">
         <item quantity="one">%d day ago</item>
         <item quantity="other">%d days ago</item>

@@ -33,12 +33,34 @@ enum class Accent(
     @StringRes val label: Int,
     val light: Triple<Color, Color, Color>, // primary, primaryContainer, tertiary
     val dark: Triple<Color, Color, Color>,
+    /** "Bright" theme: livelier primary, paler container, end colour of the hero gradient. */
+    val bright: Triple<Color, Color, Color>,
 ) {
-    TEAL(R.string.accent_teal, Triple(Color(0xFF00695C), Color(0xFFA6F2E0), Color(0xFF7A5900)), Triple(Color(0xFF6FE0C5), Color(0xFF005045), Color(0xFFF5BF48))),
-    OCEAN(R.string.accent_ocean, Triple(Color(0xFF0B57D0), Color(0xFFD3E3FD), Color(0xFF00677D)), Triple(Color(0xFFA8C7FA), Color(0xFF0842A0), Color(0xFF5DD5F5))),
-    VIOLET(R.string.accent_violet, Triple(Color(0xFF6750A4), Color(0xFFEADDFF), Color(0xFF7D5260)), Triple(Color(0xFFCFBCFF), Color(0xFF4F378B), Color(0xFFEFB8C8))),
-    ROSE(R.string.accent_rose, Triple(Color(0xFFB4235F), Color(0xFFFFD9E2), Color(0xFF7C5800)), Triple(Color(0xFFFFB1C8), Color(0xFF8E0049), Color(0xFFF7BD48))),
-    SUNSET(R.string.accent_sunset, Triple(Color(0xFFB3261E), Color(0xFFFFDAD4), Color(0xFF8B5000)), Triple(Color(0xFFFFB4A9), Color(0xFF8C1D18), Color(0xFFFFB870)));
+    TEAL(
+        R.string.accent_teal,
+        Triple(Color(0xFF00695C), Color(0xFFA6F2E0), Color(0xFF7A5900)), Triple(Color(0xFF6FE0C5), Color(0xFF005045), Color(0xFFF5BF48)),
+        Triple(Color(0xFF00897B), Color(0xFFD5F6EE), Color(0xFF0097A7)),
+    ),
+    OCEAN(
+        R.string.accent_ocean,
+        Triple(Color(0xFF0B57D0), Color(0xFFD3E3FD), Color(0xFF00677D)), Triple(Color(0xFFA8C7FA), Color(0xFF0842A0), Color(0xFF5DD5F5)),
+        Triple(Color(0xFF1A73E8), Color(0xFFE1ECFE), Color(0xFF0398DC)),
+    ),
+    VIOLET(
+        R.string.accent_violet,
+        Triple(Color(0xFF6750A4), Color(0xFFEADDFF), Color(0xFF7D5260)), Triple(Color(0xFFCFBCFF), Color(0xFF4F378B), Color(0xFFEFB8C8)),
+        Triple(Color(0xFF7B5CD6), Color(0xFFF0E8FF), Color(0xFFAB47BC)),
+    ),
+    ROSE(
+        R.string.accent_rose,
+        Triple(Color(0xFFB4235F), Color(0xFFFFD9E2), Color(0xFF7C5800)), Triple(Color(0xFFFFB1C8), Color(0xFF8E0049), Color(0xFFF7BD48)),
+        Triple(Color(0xFFD81B60), Color(0xFFFFE6EE), Color(0xFFF4511E)),
+    ),
+    SUNSET(
+        R.string.accent_sunset,
+        Triple(Color(0xFFB3261E), Color(0xFFFFDAD4), Color(0xFF8B5000)), Triple(Color(0xFFFFB4A9), Color(0xFF8C1D18), Color(0xFFFFB870)),
+        Triple(Color(0xFFE53935), Color(0xFFFFE6E1), Color(0xFFEF6C00)),
+    );
 
     companion object {
         fun fromName(name: String?) = entries.firstOrNull { it.name == name } ?: TEAL
@@ -66,6 +88,27 @@ private fun lightScheme(a: Accent): ColorScheme {
         surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFFFFFFF),
         surfaceContainer = Color(0xFFEFF3F1), surfaceContainerHigh = Color(0xFFE8EDEA),
         surfaceContainerHighest = Color(0xFFE1E7E4),
+    )
+}
+
+/** White background, livelier accent, very light containers: for people who find the light theme too dark. */
+private fun brightScheme(a: Accent): ColorScheme {
+    val (p, pc, _) = a.bright
+    return lightColorScheme(
+        primary = p, onPrimary = Color.White,
+        primaryContainer = pc, onPrimaryContainer = Color(0xFF0B1F1A),
+        secondary = Color(0xFF52665F), onSecondary = Color.White,
+        secondaryContainer = Color(0xFFEAF4F0), onSecondaryContainer = Color(0xFF0F2520),
+        tertiary = a.light.third, onTertiary = Color.White,
+        tertiaryContainer = Color(0xFFFFF2D8), onTertiaryContainer = Color(0xFF2A1C00),
+        error = Color(0xFFBA1A1A), errorContainer = Color(0xFFFFE4E0), onErrorContainer = Color(0xFF410002),
+        background = Color.White, onBackground = Color(0xFF1A1F1D),
+        surface = Color.White, onSurface = Color(0xFF1A1F1D),
+        surfaceVariant = Color(0xFFEBF0EE), onSurfaceVariant = Color(0xFF4A5350),
+        outline = Color(0xFF7D8683), outlineVariant = Color(0xFFD7DEDB),
+        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFFCFDFD),
+        surfaceContainer = Color(0xFFF6F9F8), surfaceContainerHigh = Color(0xFFF1F5F3),
+        surfaceContainerHighest = Color(0xFFEAEFED),
     )
 }
 
@@ -131,11 +174,21 @@ private val AppShapes = Shapes(
     extraLarge = RoundedCornerShape(32.dp),
 )
 
-/** Extra brand colours not covered by Material: hero gradients. */
+/** Extra brand colours not covered by Material: hero gradients, strength of the background glow. */
 @Immutable
-data class Brand(val hero: Brush, val heroAlt: Brush, val isDark: Boolean)
+data class Brand(val hero: Brush, val heroAlt: Brush, val isDark: Boolean, val glow: Float = 1f)
 
 val LocalBrand = staticCompositionLocalOf { Brand(Brush.linearGradient(listOf(Color.Gray, Color.Gray)), Brush.linearGradient(listOf(Color.Gray, Color.Gray)), false) }
+
+/** Theme modes stored in settings: 0 system, 1 light, 2 dark, 3 bright (extra-light). */
+const val THEME_BRIGHT = 3
+
+@Composable
+fun isDarkTheme(themeMode: Int): Boolean = when (themeMode) {
+    1, THEME_BRIGHT -> false
+    2 -> true
+    else -> isSystemInDarkTheme()
+}
 
 @Composable
 fun Glp1Theme(
@@ -144,22 +197,22 @@ fun Glp1Theme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val dark = when (themeMode) {
-        1 -> false
-        2 -> true
-        else -> isSystemInDarkTheme()
-    }
+    val dark = isDarkTheme(themeMode)
+    val bright = themeMode == THEME_BRIGHT
     val context = LocalContext.current
     val scheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         dark -> darkScheme(accent)
+        bright -> brightScheme(accent)
         else -> lightScheme(accent)
     }
     val brand = Brand(
-        hero = Brush.linearGradient(listOf(scheme.primary, scheme.tertiary.copy(alpha = 0.85f).compositeOver(scheme.primary))),
+        hero = if (bright && !dynamicColor) Brush.linearGradient(listOf(accent.bright.first, accent.bright.third))
+        else Brush.linearGradient(listOf(scheme.primary, scheme.tertiary.copy(alpha = 0.85f).compositeOver(scheme.primary))),
         heroAlt = Brush.linearGradient(listOf(scheme.primaryContainer, scheme.surfaceContainerHigh)),
         isDark = dark,
+        glow = if (bright) 0.4f else 1f,
     )
     androidx.compose.runtime.CompositionLocalProvider(LocalBrand provides brand) {
         MaterialTheme(colorScheme = scheme, typography = AppTypography, shapes = AppShapes, content = content)

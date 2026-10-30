@@ -522,6 +522,7 @@
     <string name="sleep_last_night">Sommeil la nuit dernière · %1$s</string>
     <string name="activity_connect">Afficher mes pas et mon sommeil (Health Connect)</string>
     <string name="activity_no_data">Pas encore de pas ni de sommeil dans Health Connect : l\'app santé du téléphone, une montre ou Google Fit doit les enregistrer.</string>
+    <string name="theme_bright">Lumineux</string>
     <plurals name="days_ago">
         <item quantity="one">Il y a %d jour</item>
         <item quantity="many">Il y a %d jours</item>

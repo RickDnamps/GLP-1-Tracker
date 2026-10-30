@@ -216,12 +216,14 @@ fun SettingsScreen(
         item {
             SectionCard(title = stringResource(R.string.appearance), icon = Icons.Outlined.Palette) {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    listOf(R.string.theme_system, R.string.theme_light, R.string.theme_dark).forEachIndexed { i, label ->
+                    // Stored values: 0 system, 1 light, 2 dark, 3 bright; shown from lightest to darkest.
+                    val modes = listOf(0 to R.string.theme_system, 3 to R.string.theme_bright, 1 to R.string.theme_light, 2 to R.string.theme_dark)
+                    modes.forEachIndexed { i, (mode, label) ->
                         SegmentedButton(
-                            selected = s.themeMode == i,
-                            onClick = { vm.updateSettings { it.copy(themeMode = i) } },
-                            shape = SegmentedButtonDefaults.itemShape(i, 3),
-                        ) { Text(stringResource(label), maxLines = 1) }
+                            selected = s.themeMode == mode,
+                            onClick = { vm.updateSettings { it.copy(themeMode = mode) } },
+                            shape = SegmentedButtonDefaults.itemShape(i, modes.size),
+                        ) { Text(stringResource(label), maxLines = 1, style = MaterialTheme.typography.labelMedium) }
                     }
                 }
                 Text(stringResource(R.string.accent_color), style = MaterialTheme.typography.bodyLarge)

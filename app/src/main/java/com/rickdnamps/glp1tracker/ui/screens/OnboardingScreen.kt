@@ -95,7 +95,7 @@ fun OnboardingScreen(onFinish: (UserSettings, Double?) -> Unit) {
 
     val steps = 3
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-      Box(Modifier.fillMaxSize().topGlow(MaterialTheme.colorScheme.primary)) {
+      Box(Modifier.fillMaxSize().topGlow(MaterialTheme.colorScheme.primary, com.rickdnamps.glp1tracker.ui.theme.LocalBrand.current.glow)) {
         Column(
             Modifier
                 .fillMaxSize()
