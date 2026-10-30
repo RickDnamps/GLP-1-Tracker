@@ -232,7 +232,7 @@
     <string name="hc_help">Renpho, Withings, Eufy, Fitbit, Samsung Health, Google Fit… can share your weigh-ins through Health Connect: enable it in their app, then here.</string>
     <string name="msg_hc_failed">Health Connect import failed</string>
     <string name="hc_rationale_title">Your health data</string>
-    <string name="hc_rationale_text">GLP-1 Tracker only reads your weight from Health Connect to show your progress. The data stays on your phone: it is never sent to a server, sold or shared.</string>
+    <string name="hc_rationale_text">GLP-1 Tracker only reads your weight, body composition, steps and sleep from Health Connect to show your progress. The data stays on your phone: it is never sent to a server, sold or shared.</string>
     <string name="on">On</string>
     <string name="off">Off</string>
     <string name="edit">Edit</string>
@@ -517,6 +517,11 @@
     <string name="tip_late">Appetite often comes back before the next dose: plan protein- and fibre-rich snacks.</string>
     <string name="wellbeing_title">Wellbeing · last 7 days</string>
     <string name="wellbeing_legend">Mood from your journal · 💉 dose · red dot: side effect</string>
+    <string name="steps">Steps</string>
+    <string name="step_goal">Daily steps goal</string>
+    <string name="sleep_last_night">Sleep last night · %1$s</string>
+    <string name="activity_connect">Show my steps and sleep (Health Connect)</string>
+    <string name="activity_no_data">No steps or sleep in Health Connect yet: your phone\'s health app, watch or Google Fit must record them.</string>
     <plurals name="days_ago">
         <item quantity="one">%d day ago</item>
         <item quantity="other">%d days ago</item>

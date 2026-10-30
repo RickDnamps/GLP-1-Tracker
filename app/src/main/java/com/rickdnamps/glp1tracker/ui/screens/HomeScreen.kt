@@ -58,6 +58,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
+import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rickdnamps.glp1tracker.health.HealthConnect
 import com.rickdnamps.glp1tracker.R
 import com.rickdnamps.glp1tracker.domain.CyclePhase
 import com.rickdnamps.glp1tracker.domain.CycleTips
@@ -482,6 +490,77 @@ private fun TodayCard(state: UiState, vm: AppViewModel) {
             stepLabel = "+10",
             onAdd = { vm.updateDailyLog(today) { it.copy(proteinG = it.proteinG + 10) } },
         )
+        ActivityRows(vm, s.stepGoal)
+    }
+}
+
+/** Steps (today + last 7 days) and last night's sleep from Health Connect, or an offer to connect it. */
+@Composable
+private fun ActivityRows(vm: AppViewModel, stepGoal: Int) {
+    val activity by vm.activity.collectAsStateWithLifecycle()
+    val available = remember { runCatching { vm.healthConnect.isAvailable() }.getOrDefault(false) }
+    val askPermission = rememberLauncherForActivityResult(HealthConnect.permissionContract()) { vm.refreshActivity() }
+    LaunchedEffect(Unit) { vm.refreshActivity() }
+    val a = activity
+    if (a == null) {
+        if (available) {
+            TextButton(onClick = { askPermission.launch(vm.healthConnect.activityPermissions) }) {
+                Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.activity_connect))
+            }
+        }
+        return
+    }
+    a.stepsToday?.let { steps ->
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                val f = java.text.NumberFormat.getIntegerInstance()
+                Text(stringResource(R.string.steps) + " · " + f.format(steps) + " / " + f.format(stepGoal), style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { if (stepGoal > 0) (steps.toFloat() / stepGoal).coerceIn(0f, 1f) else 0f },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            StepBars(a.stepsByDay.map { it.second }, stepGoal)
+        }
+    }
+    a.sleepLastNightMinutes?.let { minutes ->
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Outlined.Bedtime, null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                stringResource(R.string.sleep_last_night, "${minutes / 60} h ${"%02d".format(minutes % 60)}"),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+    if (a.stepsToday == null && a.sleepLastNightMinutes == null) {
+        Text(stringResource(R.string.activity_no_data), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Seven small bars (oldest → today), full height at the step goal. */
+@Composable
+private fun StepBars(values: List<Long>, goal: Int) {
+    val top = maxOf(goal.toLong(), values.maxOrNull() ?: 0L).coerceAtLeast(1L)
+    Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Bottom, modifier = Modifier.height(28.dp)) {
+        values.forEachIndexed { i, v ->
+            Box(
+                Modifier
+                    .width(5.dp)
+                    .height((28f * v / top).coerceAtLeast(2f).dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(
+                        if (i == values.lastIndex) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.primary.copy(alpha = if (v >= goal) 0.7f else 0.35f)
+                    ),
+            )
+        }
     }
 }
 

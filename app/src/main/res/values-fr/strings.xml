@@ -232,7 +232,7 @@
     <string name="hc_help">Renpho, Withings, Eufy, Fitbit, Samsung Health, Google Fit… peuvent partager vos pesées via Health Connect : activez-le dans leur app, puis ici.</string>
     <string name="msg_hc_failed">Échec de l\'import Health Connect</string>
     <string name="hc_rationale_title">Vos données de santé</string>
-    <string name="hc_rationale_text">Suivi GLP-1 lit uniquement votre poids dans Health Connect pour afficher vos progrès. Les données restent sur votre téléphone : elles ne sont jamais envoyées à un serveur, vendues ni partagées.</string>
+    <string name="hc_rationale_text">Suivi GLP-1 lit uniquement votre poids, votre composition corporelle, vos pas et votre sommeil dans Health Connect pour afficher vos progrès. Les données restent sur votre téléphone : elles ne sont jamais envoyées à un serveur, vendues ni partagées.</string>
     <string name="on">Activé</string>
     <string name="off">Désactivé</string>
     <string name="edit">Modifier</string>
@@ -517,6 +517,11 @@
     <string name="tip_late">L\'appétit revient souvent avant la prochaine dose : prévoyez des collations riches en protéines et en fibres.</string>
     <string name="wellbeing_title">Bien-être · 7 derniers jours</string>
     <string name="wellbeing_legend">Humeur du journal · 💉 dose · point rouge : effet secondaire</string>
+    <string name="steps">Pas</string>
+    <string name="step_goal">Objectif de pas par jour</string>
+    <string name="sleep_last_night">Sommeil la nuit dernière · %1$s</string>
+    <string name="activity_connect">Afficher mes pas et mon sommeil (Health Connect)</string>
+    <string name="activity_no_data">Pas encore de pas ni de sommeil dans Health Connect : l\'app santé du téléphone, une montre ou Google Fit doit les enregistrer.</string>
     <plurals name="days_ago">
         <item quantity="one">Il y a %d jour</item>
         <item quantity="many">Il y a %d jours</item>

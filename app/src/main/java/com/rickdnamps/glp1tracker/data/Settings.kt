@@ -42,6 +42,8 @@ data class UserSettings(
     val customMedName: String = "",
     val customHalfLifeHours: Double = 168.0,
     val waterGoalMl: Int = 2000,
+    /** Daily steps goal (steps come from Health Connect). */
+    val stepGoal: Int = 8000,
     val proteinGoalG: Int = 80,
     val penTrackingEnabled: Boolean = false,
     val penDosesTotal: Int = 4,
@@ -138,6 +140,7 @@ class SettingsRepository(context: Context) {
         val customMedName = stringPreferencesKey("custom_med_name")
         val customHalfLifeHours = doublePreferencesKey("custom_half_life_hours")
         val waterGoalMl = intPreferencesKey("water_goal_ml")
+        val stepGoal = intPreferencesKey("step_goal")
         val proteinGoalG = intPreferencesKey("protein_goal_g")
         val penTrackingEnabled = booleanPreferencesKey("pen_tracking_enabled")
         val penDosesTotal = intPreferencesKey("pen_doses_total")
@@ -197,6 +200,7 @@ class SettingsRepository(context: Context) {
             customMedName = p[Keys.customMedName] ?: d.customMedName,
             customHalfLifeHours = p[Keys.customHalfLifeHours] ?: d.customHalfLifeHours,
             waterGoalMl = p[Keys.waterGoalMl] ?: d.waterGoalMl,
+            stepGoal = p[Keys.stepGoal] ?: d.stepGoal,
             proteinGoalG = p[Keys.proteinGoalG] ?: d.proteinGoalG,
             penTrackingEnabled = p[Keys.penTrackingEnabled] ?: d.penTrackingEnabled,
             penDosesTotal = p[Keys.penDosesTotal] ?: d.penDosesTotal,
@@ -259,6 +263,7 @@ class SettingsRepository(context: Context) {
         p[Keys.customMedName] = s.customMedName
         p[Keys.customHalfLifeHours] = s.customHalfLifeHours
         p[Keys.waterGoalMl] = s.waterGoalMl
+        p[Keys.stepGoal] = s.stepGoal
         p[Keys.proteinGoalG] = s.proteinGoalG
         p[Keys.penTrackingEnabled] = s.penTrackingEnabled
         p[Keys.penDosesTotal] = s.penDosesTotal

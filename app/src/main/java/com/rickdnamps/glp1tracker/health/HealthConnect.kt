@@ -10,7 +10,11 @@ import androidx.health.connect.client.records.BodyWaterMassRecord
 import androidx.health.connect.client.records.BoneMassRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.Record
+import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
+import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.rickdnamps.glp1tracker.data.WeightEntity
@@ -18,6 +22,9 @@ import com.rickdnamps.glp1tracker.data.composition
 import com.rickdnamps.glp1tracker.data.withComposition
 import com.rickdnamps.glp1tracker.domain.BodyComp
 import java.time.Instant
+import java.time.LocalDate
+import java.time.Period
+import java.time.ZoneId
 import kotlin.math.abs
 import kotlin.reflect.KClass
 
@@ -39,6 +46,57 @@ class HealthConnect(context: Context) {
     /** Also asks for body composition and for history older than 30 days (optional). */
     val requestedPermissions: Set<String> =
         permissions + compositionTypes.map { HealthPermission.getReadPermission(it) } + READ_HISTORY
+
+    private val stepsPermission = HealthPermission.getReadPermission(StepsRecord::class)
+    private val sleepPermission = HealthPermission.getReadPermission(SleepSessionRecord::class)
+
+    /** Steps and sleep for the home screen (optional, asked separately from the weight import). */
+    val activityPermissions: Set<String> = setOf(stepsPermission, sleepPermission)
+
+    /** Today's steps, the last 7 days (oldest first) and last night's sleep; null when not allowed or no data. */
+    data class Activity(
+        val stepsToday: Long?,
+        val stepsByDay: List<Pair<LocalDate, Long>>,
+        val sleepLastNightMinutes: Long?,
+    )
+
+    suspend fun hasActivityPermission(): Boolean =
+        isAvailable() && client().permissionController.getGrantedPermissions().any { it in activityPermissions }
+
+    suspend fun activity(today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): Activity {
+        val granted = client().permissionController.getGrantedPermissions()
+        // Aggregates merge every source (phone, watch, apps) without double counting.
+        val steps = if (stepsPermission in granted) {
+            runCatching {
+                client().aggregateGroupByPeriod(
+                    AggregateGroupByPeriodRequest(
+                        metrics = setOf(StepsRecord.COUNT_TOTAL),
+                        timeRangeFilter = TimeRangeFilter.between(today.minusDays(6).atStartOfDay(), today.plusDays(1).atStartOfDay()),
+                        timeRangeSlicer = Period.ofDays(1),
+                    )
+                ).map { it.startTime.toLocalDate() to (it.result[StepsRecord.COUNT_TOTAL] ?: 0L) }
+            }.getOrNull()
+        } else null
+        // Last night: sleep ending between yesterday 18:00 and today 18:00.
+        val sleep = if (sleepPermission in granted) {
+            runCatching {
+                client().aggregate(
+                    AggregateRequest(
+                        metrics = setOf(SleepSessionRecord.SLEEP_DURATION_TOTAL),
+                        timeRangeFilter = TimeRangeFilter.between(
+                            today.minusDays(1).atTime(18, 0).atZone(zone).toInstant(),
+                            today.atTime(18, 0).atZone(zone).toInstant(),
+                        ),
+                    )
+                )[SleepSessionRecord.SLEEP_DURATION_TOTAL]?.toMinutes()?.takeIf { it > 0 }
+            }.getOrNull()
+        } else null
+        return Activity(
+            stepsToday = steps?.firstOrNull { it.first == today }?.second,
+            stepsByDay = steps.orEmpty(),
+            sleepLastNightMinutes = sleep,
+        )
+    }
 
     fun isAvailable(): Boolean =
         HealthConnectClient.getSdkStatus(appContext) == HealthConnectClient.SDK_AVAILABLE

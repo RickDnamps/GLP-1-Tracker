@@ -37,6 +37,7 @@
 | **Juniper** | Télésanté 🏥 | Programme | Balance (poids et tour de taille), analyses personnalisées, recettes, vidéos, accent sur musculation et protéines, communauté |
 | **Mochi Health** | Télésanté 🏥 | Programme | Messagerie, suivi des ordonnances, renouvellements et livraisons, comparaison de pharmacies, diététistes |
 | **Measured** | Télésanté 🏥 | Abonnement | Consultations en ligne, messagerie illimitée, analyses de laboratoire, communauté (fiche publique peu détaillée) |
+| **Galerno** (GLP-1 AI Companion) | Suivi + IA | Achats intégrés (note 2,9/5 sur Google Play) | Compagnon IA, photo des repas. Montre aussi : tableau de bord « calme » (prochaine dose, pas, eau, sommeil), carte du corps avec **confort noté après chaque injection**, bien-être des 7 derniers jours en émojis, « dynamique du traitement » (30 j / 90 j / tout : nombre de doses, dose moyenne, intervalle ; niveau + calories + poids sur un même graphique ; pic estimé), labos, résumé pour le médecin, prédiction de perte |
 | Autres 2025-2026 | Suivis | Variable | **Titrate** et **Regimen** (calculateur de reconstitution U-100, plusieurs composés, labos), **Semaya** (date d'ouverture du stylo ou de la fiole, chronologie des doses), **GLP-1 Journey Tracker**, **GlucoseTrack**, **Steady** (HbA1c, lipides, foie, rein, tension, import de capteur de glycémie), **Gaby** et **Back2Me** (cycle menstruel, payant chez Gaby), **Simple GLP** (Apple Watch), **Glowise** (voix, lecture de menu, menus de 7 jours), **GLPeak+** (repas par IA payants), **Havit** (coach IA, 29,99 $/mois), **Gala** (rappels de renouvellement), **Velto** (intervalle de 3 à 30 j), **Glia** (widgets d'écran verrouillé), **GLP1Suivi** (coût total), **Preserve** (musculation et protéines), **Jabby** (rappel reporté ou sauté) |
 
 **À retenir :**
@@ -672,3 +673,16 @@ Pour le code-barres seul, **ZXing** (`com.google.zxing:core`, Java pur, aucune t
 [USDA FoodData Central](https://catalog.data.gov/dataset/fooddata-central) ·
 [Zepbound hors du frigo (21 jours)](https://www.doctronic.ai/blog/how-long-can-zepbound-be-out-of-the-fridge/) ·
 [Clue, GLP-1 et cycle menstruel](https://helloclue.com/science/ask-the-experts/glp-1s-and-your-cycle-the-impact-of-weight-loss-medications-on-hormonal-health)
+
+
+---
+
+## Ajouts inspirés de Galerno (29 oct. 2026)
+
+Livrés, hors ligne et gratuits :
+- **Dynamique du traitement** (onglet Doses) : 30 j / 90 j / tout, doses et écart avec la période précédente, dose moyenne, intervalle moyen, part des doses à l'heure, confort moyen, total en mg ; niveau estimé avec le poids superposé (échelle à droite) ; dernière dose, prochaine dose, pic estimé.
+- **Confort de l'injection** (😖 à 😄, facultatif) : dans l'éditeur et l'historique ; la carte des sites indique le plus et le moins confortable.
+- **Conseil du jour** selon la phase du cycle hebdomadaire, **pic estimé** sur la carte du niveau, **bien-être des 7 derniers jours** (humeur, doses, effets secondaires).
+- **Pas et sommeil** lus dans Health Connect (sur le téléphone), objectif de pas réglable.
+
+Non repris : le compagnon IA et l'analyse des repas en photo (serveur requis, ⛔ hors ligne), la communauté.

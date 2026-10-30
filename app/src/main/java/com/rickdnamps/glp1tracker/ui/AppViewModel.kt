@@ -274,6 +274,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }.onFailure { if (manual) message(R.string.msg_hc_failed) }
     }
 
+    private val _activity = kotlinx.coroutines.flow.MutableStateFlow<com.rickdnamps.glp1tracker.health.HealthConnect.Activity?>(null)
+    /** Steps and sleep from Health Connect for the home screen (null: not allowed / unavailable). */
+    val activity: StateFlow<com.rickdnamps.glp1tracker.health.HealthConnect.Activity?> = _activity
+
+    fun refreshActivity() = viewModelScope.launch {
+        _activity.value = runCatching {
+            if (healthConnect.hasActivityPermission()) healthConnect.activity() else null
+        }.getOrNull()
+    }
+
     private val _countMessages = MutableSharedFlow<Int>(extraBufferCapacity = 2)
     /** Number of weights imported from Health Connect. */
     val importedCounts: SharedFlow<Int> = _countMessages

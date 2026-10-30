@@ -222,6 +222,7 @@ object Backup {
         put("customMedName", s.customMedName)
         put("customHalfLifeHours", s.customHalfLifeHours)
         put("waterGoalMl", s.waterGoalMl)
+        put("stepGoal", s.stepGoal)
         put("proteinGoalG", s.proteinGoalG)
         put("penTrackingEnabled", s.penTrackingEnabled)
         put("penDosesTotal", s.penDosesTotal)
@@ -272,6 +273,7 @@ object Backup {
             customMedName = o.optString("customMedName", d.customMedName),
             customHalfLifeHours = o.optDouble("customHalfLifeHours", d.customHalfLifeHours),
             waterGoalMl = o.optInt("waterGoalMl", d.waterGoalMl),
+            stepGoal = o.optInt("stepGoal", d.stepGoal).takeIf { it in 500..100_000 } ?: d.stepGoal,
             proteinGoalG = o.optInt("proteinGoalG", d.proteinGoalG),
             penTrackingEnabled = o.optBoolean("penTrackingEnabled", d.penTrackingEnabled),
             penDosesTotal = o.optInt("penDosesTotal", d.penDosesTotal),

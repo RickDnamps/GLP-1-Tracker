@@ -95,7 +95,7 @@ import kotlinx.coroutines.launch
 
 private enum class SettingDialog {
     NAME, HEIGHT, START_WEIGHT, GOAL_WEIGHT, MEDICATION, DOSE, DOSE_CUSTOM, INTERVAL, INTERVAL_CUSTOM, DAY, TIME,
-    CUSTOM_NAME, CUSTOM_HALF_LIFE, WATER_GOAL, PROTEIN_GOAL, PEN_TOTAL, PEN_REMAINING,
+    CUSTOM_NAME, CUSTOM_HALF_LIFE, WATER_GOAL, STEP_GOAL, PROTEIN_GOAL, PEN_TOTAL, PEN_REMAINING,
     SEX, BIRTH_YEAR, REPORT_PERIOD, STOCK_PENS, DISCARD_DAYS, PEN_OPENED, WEIGH_IN_DAY, WEIGH_IN_TIME, CALORIE_GOAL, FIBER_GOAL,
 }
 
@@ -390,6 +390,7 @@ fun SettingsScreen(
         item {
             SectionCard(title = stringResource(R.string.daily_goals), icon = Icons.Outlined.LocalDrink) {
                 SettingRow(stringResource(R.string.water_goal), "${s.waterGoalMl} ml") { dialog = SettingDialog.WATER_GOAL }
+                SettingRow(stringResource(R.string.step_goal), s.stepGoal.toString()) { dialog = SettingDialog.STEP_GOAL }
                 SettingRow(stringResource(R.string.protein_goal), "${s.proteinGoalG} g") { dialog = SettingDialog.PROTEIN_GOAL }
                 SettingRow(stringResource(R.string.calorie_goal), "${s.calorieGoal} kcal") { dialog = SettingDialog.CALORIE_GOAL }
                 SettingRow(stringResource(R.string.fiber_goal), "${s.fiberGoalG} g") { dialog = SettingDialog.FIBER_GOAL }
@@ -573,6 +574,9 @@ private fun SettingDialogs(
         )
         SettingDialog.WATER_GOAL -> NumberInputDialog(stringResource(R.string.water_goal), s.waterGoalMl.toDouble(), "ml", close, { v ->
             save { it.copy(waterGoalMl = v.toInt()) }
+        }, allowDecimals = false)
+        SettingDialog.STEP_GOAL -> NumberInputDialog(stringResource(R.string.step_goal), s.stepGoal.toDouble(), "", close, { v ->
+            if (v.toInt() in 500..100_000) save { it.copy(stepGoal = v.toInt()) }
         }, allowDecimals = false)
         SettingDialog.PROTEIN_GOAL -> NumberInputDialog(stringResource(R.string.protein_goal), s.proteinGoalG.toDouble(), "g", close, { v ->
             save { it.copy(proteinGoalG = v.toInt()) }
