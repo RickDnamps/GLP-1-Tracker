@@ -1,5 +1,14 @@
 package com.rickdnamps.glp1tracker.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import com.rickdnamps.glp1tracker.ui.theme.LocalBrand
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -47,24 +56,8 @@ import com.rickdnamps.glp1tracker.ui.weightText
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Value as displayed: masses in the user's unit, whole numbers for kcal and ages. */
-@Composable
-private fun CompMetric.text(v: Double, settings: UserSettings): String = when {
-    isMass -> weightText(v, settings)
-    decimals == 0 -> v.roundToInt().toString() + if (unit.isEmpty()) "" else " $unit"
-    else -> Format.oneDecimal(v) + if (unit.isEmpty()) "" else " $unit"
-}
-
 /** Value in the unit shown to the user (for charts and differences). */
 private fun CompMetric.shown(v: Double, settings: UserSettings): Double = if (isMass) settings.weightUnit.fromKg(v) else v
-
-@Composable
-private fun levelColor(level: CompLevel?): Color = when (level) {
-    CompLevel.HEALTHY -> MaterialTheme.colorScheme.primary
-    CompLevel.HIGH, CompLevel.LOW -> MaterialTheme.colorScheme.tertiary
-    CompLevel.VERY_HIGH -> MaterialTheme.colorScheme.error
-    null -> MaterialTheme.colorScheme.onSurface
-}
 
 /** Every value of the latest reading at a glance (3 per row, like the Renpho app); tap one for its trend. */
 @Composable
@@ -79,10 +72,33 @@ fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
             return@SectionCard
         }
         val latest = withComp.last()
-        val sex = settings.sexOrNull
         var selected by rememberSaveable { mutableStateOf<String?>(null) }
-        val tiles = CompMetric.entries.mapNotNull { m -> m.read(latest.composition, latest.weightKg)?.let { m to it } }
-        val metric = tiles.firstOrNull { it.first.name == selected }?.first
+        val massUnit = stringResource(settings.weightUnit.symbolRes)
+        val bmi = settings.heightCm.takeIf { it > 0 }?.let { h -> latest.weightKg / ((h / 100) * (h / 100)) }
+        val tiles = buildList<Tile> {
+            // Weight and BMI first, then every composition value of the latest reading (Renpho order).
+            add(
+                Tile(
+                    stringResource(R.string.weight), Format.oneDecimal(settings.weightUnit.fromKg(latest.weightKg)), massUnit,
+                    bmi?.let { BodyCompositionMath.bmiLevel(it) }, null, null,
+                )
+            )
+            bmi?.let { add(Tile(stringResource(R.string.bmi), Format.oneDecimal(it), "", BodyCompositionMath.bmiLevel(it), null, null)) }
+            CompMetric.entries.forEach { m ->
+                val v = m.read(latest.composition, latest.weightKg) ?: return@forEach
+                val first = withComp.firstNotNullOfOrNull { m.read(it.composition, it.weightKg) }
+                val caption = when {
+                    m == CompMetric.METABOLIC_AGE -> settings.ageOrNull?.let { stringResource(R.string.comp_real_age, it) }
+                    first != null && withComp.size > 1 && abs(m.shown(v, settings) - m.shown(first, settings)) >= 0.05 -> {
+                        val d = m.shown(v, settings) - m.shown(first, settings)
+                        (if (d > 0) "+" else "−") + Format.oneDecimal(abs(d))
+                    }
+                    else -> null
+                }
+                add(Tile(stringResource(m.nameRes), m.number(v, settings), if (m.isMass) massUnit else m.unit, levelOf(m, v, latest.weightKg, settings), m, caption))
+            }
+        }
+        val metric = tiles.firstOrNull { it.metric?.name == selected }?.metric
 
         Text(
             stringResource(R.string.comp_measured_on, Format.date(latest.timestamp) + " · " + Format.time(Format.toLocalDateTime(latest.timestamp))),
@@ -94,38 +110,14 @@ fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
                 Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                row.forEach { (m, v) ->
-                    val level = when (m) {
-                        CompMetric.FAT -> BodyCompositionMath.fatLevel(v, sex)
-                        CompMetric.VISCERAL -> BodyCompositionMath.visceralLevel(v)
-                        CompMetric.WATER -> BodyCompositionMath.waterLevel(v, sex)
-                        else -> null
-                    }
-                    val first = withComp.firstNotNullOfOrNull { m.read(it.composition, it.weightKg) }
-                    val caption = when {
-                        level != null -> stringResource(
-                            when (level) {
-                                CompLevel.LOW -> R.string.comp_level_low
-                                CompLevel.HEALTHY -> R.string.comp_level_healthy
-                                CompLevel.HIGH -> R.string.comp_level_high
-                                CompLevel.VERY_HIGH -> R.string.comp_level_very_high
-                            }
-                        )
-                        m == CompMetric.METABOLIC_AGE -> settings.ageOrNull?.let { stringResource(R.string.comp_real_age, it) }
-                        first != null && withComp.size > 1 && abs(m.shown(v, settings) - m.shown(first, settings)) >= 0.05 -> {
-                            val d = m.shown(v, settings) - m.shown(first, settings)
-                            (if (d > 0) "+" else "−") + Format.oneDecimal(abs(d))
-                        }
-                        else -> null
-                    }
+                row.forEach { tile ->
+                    val m = tile.metric
                     CompTile(
-                        value = m.text(v, settings),
-                        label = stringResource(m.nameRes),
-                        caption = caption,
-                        color = levelColor(level),
-                        selected = m == metric,
+                        tile = tile,
+                        selected = m != null && m == metric,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
-                    ) { selected = if (m == metric) null else m.name }
+                        onClick = m?.let { { selected = if (it == metric) null else it.name } },
+                    )
                 }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }
@@ -172,46 +164,119 @@ fun BodyCompositionCard(weights: List<WeightEntity>, settings: UserSettings) {
     }
 }
 
+/** One value of the grid: label, number with a small unit, and a coloured level pill. */
+private data class Tile(
+    val label: String,
+    val number: String,
+    val unit: String,
+    val level: CompLevel?,
+    /** Tapping shows this metric's trend; null for weight and BMI. */
+    val metric: CompMetric?,
+    val caption: String?,
+)
+
+/** Number part of a metric (masses in the user's unit, kcal and ages without decimals). */
+private fun CompMetric.number(v: Double, settings: UserSettings): String = when {
+    isMass -> Format.oneDecimal(settings.weightUnit.fromKg(v))
+    decimals == 0 -> v.roundToInt().toString()
+    else -> Format.oneDecimal(v)
+}
+
+/** Level shown on a metric's pill, from general or consumer-scale reference ranges. */
+private fun levelOf(m: CompMetric, v: Double, weightKg: Double, settings: UserSettings): CompLevel? {
+    val sex = settings.sexOrNull
+    return when (m) {
+        CompMetric.FAT -> BodyCompositionMath.fatLevel(v, sex)
+        CompMetric.SUBCUTANEOUS -> BodyCompositionMath.subcutaneousLevel(v, sex)
+        CompMetric.VISCERAL -> BodyCompositionMath.visceralLevel(v)
+        CompMetric.WATER -> BodyCompositionMath.waterLevel(v, sex)
+        CompMetric.SKELETAL -> BodyCompositionMath.skeletalMuscleLevel(v, sex)
+        CompMetric.MUSCLE -> BodyCompositionMath.muscleMassLevel(v, settings.heightCm, sex)
+        CompMetric.BONE -> BodyCompositionMath.boneLevel(v, weightKg, sex)
+        CompMetric.PROTEIN -> BodyCompositionMath.proteinLevel(v)
+        CompMetric.METABOLIC_AGE -> settings.ageOrNull?.let { BodyCompositionMath.metabolicAgeLevel(v.roundToInt(), it) }
+        CompMetric.FAT_MASS, CompMetric.LEAN, CompMetric.BMR -> null
+    }
+}
+
+/** Blue below, green normal, teal excellent, orange high, red very high (lighter on dark themes). */
 @Composable
-private fun CompTile(
-    value: String,
-    label: String,
-    caption: String?,
-    color: Color,
-    selected: Boolean,
-    modifier: Modifier,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier,
-    ) {
+private fun pillColor(level: CompLevel): Color {
+    val base = when (level) {
+        CompLevel.LOW -> Color(0xFF1E88E5)
+        CompLevel.HEALTHY -> Color(0xFF2E7D32)
+        CompLevel.EXCELLENT -> Color(0xFF00897B)
+        CompLevel.HIGH -> Color(0xFFEF6C00)
+        CompLevel.VERY_HIGH -> Color(0xFFD32F2F)
+    }
+    return if (LocalBrand.current.isDark) lerp(base, Color.White, 0.35f) else base
+}
+
+@Composable
+private fun CompTile(tile: Tile, selected: Boolean, modifier: Modifier, onClick: (() -> Unit)?) {
+    val cs = MaterialTheme.colorScheme
+    val content: @Composable () -> Unit = {
         Column(
-            Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
+            Modifier.padding(horizontal = 6.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = color,
+                tile.label,
+                style = MaterialTheme.typography.labelMedium,
+                color = cs.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                minLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(tile.number) }
+                    if (tile.unit.isNotEmpty()) {
+                        withStyle(SpanStyle(fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Medium)) {
+                            append(" " + tile.unit)
+                        }
+                    }
+                },
+                style = MaterialTheme.typography.titleLarge,
+                color = cs.onSurface,
                 maxLines = 1,
                 textAlign = TextAlign.Center,
             )
-            Text(
-                label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-            )
-            if (caption != null) {
-                Text(caption, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1, textAlign = TextAlign.Center)
+            tile.level?.let { level ->
+                val color = pillColor(level)
+                Text(
+                    stringResource(
+                        when (level) {
+                            CompLevel.LOW -> R.string.comp_level_low
+                            CompLevel.HEALTHY -> R.string.comp_level_healthy
+                            CompLevel.HIGH -> R.string.comp_level_high
+                            CompLevel.VERY_HIGH -> R.string.comp_level_very_high
+                            CompLevel.EXCELLENT -> R.string.comp_level_excellent
+                        }
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = color,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(color.copy(alpha = 0.13f))
+                        .padding(horizontal = 10.dp, vertical = 3.dp),
+                )
+            }
+            tile.caption?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant, maxLines = 1, textAlign = TextAlign.Center)
             }
         }
+    }
+    val shape = RoundedCornerShape(20.dp)
+    val color = if (selected) cs.primaryContainer else cs.surfaceContainer
+    if (onClick != null) {
+        Surface(onClick = onClick, shape = shape, color = color, modifier = modifier) { content() }
+    } else {
+        Surface(shape = shape, color = color, modifier = modifier) { content() }
     }
 }
 

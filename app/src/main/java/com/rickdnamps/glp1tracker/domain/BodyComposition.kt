@@ -54,7 +54,7 @@ enum class CompMetric(@StringRes val nameRes: Int, val unit: String, val decimal
     val isMass: Boolean get() = unit == "kg"
 }
 
-enum class CompLevel { LOW, HEALTHY, HIGH, VERY_HIGH }
+enum class CompLevel { LOW, HEALTHY, HIGH, VERY_HIGH, EXCELLENT }
 
 object BodyCompositionMath {
 
@@ -134,6 +134,76 @@ object BodyCompositionMath {
         rating < 10 -> CompLevel.HEALTHY
         rating < 15 -> CompLevel.HIGH
         else -> CompLevel.VERY_HIGH
+    }
+
+    /** WHO adult BMI categories: < 18.5 low, 25–30 overweight, 30+ obesity. */
+    fun bmiLevel(bmi: Double): CompLevel = when {
+        bmi < 18.5 -> CompLevel.LOW
+        bmi < 25 -> CompLevel.HEALTHY
+        bmi < 30 -> CompLevel.HIGH
+        else -> CompLevel.VERY_HIGH
+    }
+
+    // Reference ranges used by consumer scales (Renpho / Xiaomi style); indicative only.
+
+    fun subcutaneousLevel(pct: Double, sex: Sex?): CompLevel {
+        val (low, high) = if (sex == Sex.FEMALE) 18.5 to 26.7 else 8.6 to 16.7
+        return when {
+            pct < low -> CompLevel.LOW
+            pct <= high -> CompLevel.HEALTHY
+            else -> CompLevel.HIGH
+        }
+    }
+
+    fun skeletalMuscleLevel(pct: Double, sex: Sex?): CompLevel? {
+        val (low, high) = when (sex ?: return null) {
+            Sex.FEMALE -> 40.0 to 50.0
+            Sex.MALE -> 49.0 to 59.0
+        }
+        return when {
+            pct < low -> CompLevel.LOW
+            pct <= high -> CompLevel.HEALTHY
+            else -> CompLevel.EXCELLENT
+        }
+    }
+
+    fun muscleMassLevel(kg: Double, heightCm: Double, sex: Sex?): CompLevel? {
+        if (heightCm <= 0) return null
+        val (low, high) = when (sex ?: return null) {
+            Sex.FEMALE -> when {
+                heightCm < 150 -> 29.1 to 34.7
+                heightCm < 160 -> 32.9 to 37.5
+                else -> 36.5 to 42.5
+            }
+            Sex.MALE -> when {
+                heightCm < 160 -> 38.5 to 46.5
+                heightCm < 170 -> 44.0 to 52.4
+                else -> 49.4 to 59.4
+            }
+        }
+        return when {
+            kg < low -> CompLevel.LOW
+            kg <= high -> CompLevel.HEALTHY
+            else -> CompLevel.EXCELLENT
+        }
+    }
+
+    fun boneLevel(kg: Double, weightKg: Double, sex: Sex?): CompLevel {
+        val standard = if (sex == Sex.FEMALE) {
+            when { weightKg < 45 -> 1.8; weightKg < 60 -> 2.2; else -> 2.5 }
+        } else {
+            when { weightKg < 60 -> 2.5; weightKg < 75 -> 2.9; else -> 3.2 }
+        }
+        return if (kg < standard - 0.1) CompLevel.LOW else CompLevel.HEALTHY
+    }
+
+    fun proteinLevel(pct: Double): CompLevel = if (pct < 16) CompLevel.LOW else CompLevel.HEALTHY
+
+    /** Body age above the real age is "high", below it "excellent". */
+    fun metabolicAgeLevel(metabolicAge: Int, age: Int): CompLevel = when {
+        metabolicAge > age -> CompLevel.HIGH
+        metabolicAge < age -> CompLevel.EXCELLENT
+        else -> CompLevel.HEALTHY
     }
 
     fun waterLevel(waterPct: Double, sex: Sex?): CompLevel {

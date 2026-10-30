@@ -430,7 +430,7 @@
     <string name="comp_skeletal">Muscle squelettique</string>
     <string name="comp_subcutaneous">Graisse sous-cutanée</string>
     <string name="comp_level_low">Bas</string>
-    <string name="comp_level_healthy">Sain</string>
+    <string name="comp_level_healthy">Normal</string>
     <string name="comp_level_high">Élevé</string>
     <string name="comp_level_very_high">Très élevé</string>
     <string name="comp_empty">Pas encore de composition corporelle. Pesez-vous avec « Me peser » (balance Bluetooth) : gras, eau, muscles, âge métabolique… s\'afficheront ici. Le sexe, la date de naissance et la taille doivent être indiqués dans Réglages → Profil.</string>
@@ -564,6 +564,7 @@
     <string name="theme_auto_night">Sombre le soir (automatique)</string>
     <string name="night_start">Sombre à partir de</string>
     <string name="night_end">Clair de nouveau à</string>
+    <string name="comp_level_excellent">Excellent</string>
     <plurals name="days_ago">
         <item quantity="one">Il y a %d jour</item>
         <item quantity="many">Il y a %d jours</item>

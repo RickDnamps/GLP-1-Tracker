@@ -429,8 +429,8 @@
     <string name="comp_protein">Protein</string>
     <string name="comp_skeletal">Skeletal muscle</string>
     <string name="comp_subcutaneous">Subcutaneous fat</string>
-    <string name="comp_level_low">Low</string>
-    <string name="comp_level_healthy">Healthy</string>
+    <string name="comp_level_low">Below normal</string>
+    <string name="comp_level_healthy">Normal</string>
     <string name="comp_level_high">High</string>
     <string name="comp_level_very_high">Very high</string>
     <string name="comp_empty">No body composition yet. Weigh yourself with “Weigh me” (Bluetooth scale): fat, water, muscle, metabolic age… appear here. Sex, date of birth and height must be set in Settings → Profile.</string>
@@ -564,6 +564,7 @@
     <string name="theme_auto_night">Dark in the evening (automatic)</string>
     <string name="night_start">Dark from</string>
     <string name="night_end">Light again at</string>
+    <string name="comp_level_excellent">Excellent</string>
     <plurals name="days_ago">
         <item quantity="one">%d day ago</item>
         <item quantity="other">%d days ago</item>

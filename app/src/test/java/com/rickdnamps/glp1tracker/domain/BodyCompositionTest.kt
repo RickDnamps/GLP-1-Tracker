@@ -39,6 +39,22 @@ class BodyCompositionTest {
     }
 
     @Test
+    fun levelsMatchTheRenphoAppOnTheReferenceReading() {
+        // Renpho: 302.6 lb, 188 cm man, 46 y — muscle "Excellent", skeletal muscle / water /
+        // protein "below", subcutaneous fat and metabolic age "above", bone "average".
+        val m = BodyCompositionMath
+        assertEquals(CompLevel.EXCELLENT, m.muscleMassLevel(79.65, 188.0, Sex.MALE))
+        assertEquals(CompLevel.LOW, m.skeletalMuscleLevel(39.2, Sex.MALE))
+        assertEquals(CompLevel.LOW, m.waterLevel(44.1, Sex.MALE))
+        assertEquals(CompLevel.LOW, m.proteinLevel(13.9))
+        assertEquals(CompLevel.HIGH, m.subcutaneousLevel(32.8, Sex.MALE))
+        assertEquals(CompLevel.HIGH, m.metabolicAgeLevel(53, 46))
+        assertEquals(CompLevel.HEALTHY, m.boneLevel(4.26, 137.3, Sex.MALE))
+        assertEquals(CompLevel.VERY_HIGH, m.bmiLevel(39.3))
+        assertEquals(CompLevel.HEALTHY, m.bmiLevel(22.0))
+    }
+
+    @Test
     fun metabolicAgeFollowsBodyFat() {
         // Healthy fat for the age → body age ≈ real age; leaner → younger; more fat → older.
         assertEquals(46, BodyCompositionMath.metabolicAge(16.0, 46, Sex.MALE))
